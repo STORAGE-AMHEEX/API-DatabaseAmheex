@@ -1,0 +1,195 @@
+<!DOCTYPE html>  
+<html lang="pt-BR">  
+<head>  
+  <meta charset="utf-8"/>  
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>  
+  <title>📘 StorageFile — Documentação Completa</title>  
+  <style>  
+    :root{  
+      --blue-1:#1E88E5; --blue-2:#42A5F5; --accent:#0B62A3;  
+      --muted:#6b7280; --card:#fff; --bg:#f4f8fb;  
+    }  
+    *{box-sizing:border-box;}  
+    body{font-family:Inter,Arial,Helvetica,sans-serif;margin:0;background:var(--bg);color:#111;line-height:1.6}  
+    header{background:linear-gradient(135deg,var(--blue-1),var(--blue-2));color:#fff;padding:28px 18px;text-align:center}  
+    header svg{width:72px;height:72px;display:block;margin:0 auto 8px}  
+    main{max-width:1100px;margin:20px auto;padding:20px;background:var(--card);border-radius:12px;box-shadow:0 8px 24px rgba(16,24,40,0.08)}  
+    h1,h2,h3{color:var(--accent);margin-top:0}  
+    p.lead{color:var(--muted);margin-top:6px}  
+    .grid{display:grid;grid-template-columns:2fr 1fr;gap:18px}  
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}  
+    aside.card{background:#fbfdff;border-radius:10px;padding:14px;box-shadow:0 6px 16px rgba(2,6,23,0.03)}  
+    section{margin-bottom:18px}  
+    pre{background:#f1f5fb;padding:12px;border-radius:8px;overflow:auto;max-width:100%}  
+    code,pre{font-family:Menlo,Consolas,monospace;font-size:14px;white-space:pre-wrap;word-break:break-word}  
+    .endpoint{background:#eaf4ff;border-left:5px solid var(--blue-1);padding:14px;border-radius:8px;margin:12px 0}  
+    ul{margin:8px 0 8px 18px}  
+    .note{background:#fff3e0;border-left:4px solid #ffa726;padding:10px;border-radius:8px}  
+    .warning{background:#ffebee;border-left:4px solid #ef5350;padding:10px;border-radius:8px}  
+    .tip{background:#e8f5e9;border-left:4px solid #43a047;padding:10px;border-radius:8px}  
+    .meta{font-size:13px;color:var(--muted)}  
+    .kbd{background:#eef3ff;border-radius:6px;padding:4px 8px;font-family:monospace;color:var(--accent)}  
+    footer{max-width:1100px;margin:18px auto;text-align:center;color:var(--muted);font-size:13px}  
+  </style>  
+</head>  
+<body>  
+  <header>  
+    <!-- Ícone azul -->  
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden>  
+      <defs>  
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">  
+          <stop offset="0%" style="stop-color:#1E88E5;stop-opacity:1"/>  
+          <stop offset="100%" style="stop-color:#42A5F5;stop-opacity:1"/>  
+        </linearGradient>  
+      </defs>  
+      <circle cx="32" cy="32" r="30" fill="url(#grad)"/>  
+      <path d="M20 25h24v4H20zm0 10h24v4H20zm0 10h16v4H20z" fill="#fff"/>  
+    </svg>  
+    <h1>StorageFile</h1>  
+    <p class="lead">API de armazenamento de arquivos simples e rápida — segura com path embaralhado, senha na URL e criptografia</p>  
+  </header>    
+
+  <main class="grid">  
+    <div>  
+      <section>  
+        <h2>📌 Visão Geral</h2>  
+        <p>O <strong>StorageFile</strong> permite salvar (<code>POST</code>) e ler (<code>GET</code>) arquivos.    
+        Cada URL representa o caminho completo no servidor (pasta + arquivo).    
+        Para maior segurança, recomenda-se usar <strong>path embaralhado</strong> e/ou <strong>senha dentro da URL</strong>:</p>  
+        <pre><code>https://api-storagefile.onrender.com/${SENHA}/arquivo.txt</code></pre>  
+        <div class="warning">  
+          ⚠️ <strong>Importante:</strong> O uso de senha no path não substitui autenticação real, mas adiciona uma camada de segurança.  
+          Combine com <strong>HTTPS</strong>, <strong>tokens</strong> e <strong>criptografia (AES + Base64)</strong> para máxima proteção.  
+        </div>  
+      </section>  
+
+      <section>  
+        <h2>🔒 Segurança Interna</h2>  
+        <p>O StorageFile conta com múltiplas camadas de segurança:</p>  
+        <ul>  
+          <li><strong>Path embaralhado</strong>: pastas podem ter nomes randômicos para impedir adivinhação.</li>  
+          <li><strong>Senha na URL</strong>: adiciona chave de acesso extra (<code>/API_KEY/arquivo.txt</code>).</li>  
+          <li><strong>Criptografia</strong>: arquivos podem ser armazenados com <code>AES</code> e transferidos em <code>Base64</code>.</li>  
+          <li><strong>Checksums</strong>: verificação de integridade evita alterações maliciosas.</li>  
+        </ul>  
+        <div class="note">  
+          🔑 Exemplo de caminho seguro:  
+          <pre><code>https://api-storagefile.onrender.com/AB12xyZ9/${SENHA}/dados_usuario.txt</code></pre>  
+        </div>  
+      </section>  
+
+      <section>  
+        <h2>⚙️ Endpoints</h2>  
+        <div class="endpoint">  
+          <h3>POST — Upload</h3>  
+          <p><code>POST https://api-storagefile.onrender.com/&lt;SENHA&gt;/&lt;arquivo&gt;.txt</code></p>  
+          <p><strong>Body:</strong> Arquivo binário (UTF-8 ou qualquer formato) até <strong>5 GB</strong>.</p>  
+        </div>  
+        <div class="endpoint">  
+          <h3>GET — Download</h3>  
+          <p><code>GET https://api-storagefile.onrender.com/&lt;SENHA&gt;/&lt;arquivo&gt;.txt</code></p>  
+          <p>Retorna <code>application/octet-stream</code> ou <code>text/plain</code> dependendo do arquivo.</p>  
+        </div>  
+      </section>  
+
+      <section>  
+        <h2>🛠️ Exemplos em várias linguagens</h2>  
+        <h3>cURL</h3>  
+        <pre><code># Upload
+curl -X POST "https://api-storagefile.onrender.com/SEGREDO/nota.txt" --data-binary @meuarquivo.txt
+
+# Download
+curl "https://api-storagefile.onrender.com/SEGREDO/nota.txt" -o baixado.txt
+</code></pre>  
+
+        <h3>JavaScript (fetch)</h3>  
+        <pre><code>const formData = new FormData();
+formData.append("file", fileInput.files[0]);
+await fetch("https://api-storagefile.onrender.com/SEGREDO/nota.txt", {
+  method:"POST",
+  body: formData
+});</code></pre>  
+
+        <h3>Node.js (fs stream)</h3>  
+        <pre><code>import fs from "fs";
+import fetch from "node-fetch";
+const stream = fs.createReadStream("meuarquivo.txt");
+const form = new FormData();
+form.append("file", stream);
+await fetch("https://api-storagefile.onrender.com/SEGREDO/nota.txt", { method:"POST", body: form });</code></pre>  
+
+        <h3>Python (requests)</h3>  
+        <pre><code>import requests
+with open("meuarquivo.txt","rb") as f:
+    requests.post("https://api-storagefile.onrender.com/SEGREDO/nota.txt", files={"file": f})
+</code></pre>  
+
+        <h3>PHP (cURL)</h3>  
+        <pre><code>&lt;?php
+$ch = curl_init("https://api-storagefile.onrender.com/SEGREDO/nota.txt");
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, ["file" => new CURLFile("meuarquivo.txt")]);
+curl_exec($ch);
+?></code></pre>  
+
+        <h3>Java (HttpClient)</h3>  
+        <pre><code>HttpRequest req = HttpRequest.newBuilder()
+  .uri(URI.create("https://api-storagefile.onrender.com/SEGREDO/nota.txt"))
+  .POST(HttpRequest.BodyPublishers.ofFile(Paths.get("meuarquivo.txt")))
+  .build();
+</code></pre>  
+
+        <h3>Go</h3>  
+        <pre><code>file, _ := os.Open("meuarquivo.txt")
+defer file.Close()
+body := &bytes.Buffer{}
+writer := multipart.NewWriter(body)
+part, _ := writer.CreateFormFile("file","meuarquivo.txt")
+io.Copy(part, file)
+writer.Close()
+http.Post("https://api-storagefile.onrender.com/SEGREDO/nota.txt", writer.FormDataContentType(), body)</code></pre>  
+
+        <h3>C#</h3>  
+        <pre><code>using var form = new MultipartFormDataContent();
+form.Add(new StreamContent(File.OpenRead("meuarquivo.txt")), "file", "meuarquivo.txt");
+await httpClient.PostAsync("https://api-storagefile.onrender.com/SEGREDO/nota.txt", form);</code></pre>  
+
+        <h3>Ruby</h3>  
+        <pre><code>require 'net/http'
+require 'uri'
+uri = URI("https://api-storagefile.onrender.com/SEGREDO/nota.txt")
+req = Net::HTTP::Post::Multipart.new uri.path,
+  "file" => UploadIO.new("meuarquivo.txt","application/octet-stream","meuarquivo.txt")
+Net::HTTP.start(uri.host, uri.port, use_ssl: true) {|http| http.request(req)}</code></pre>  
+      </section>  
+
+      <section>  
+        <h2>✅ Boas Práticas</h2>  
+        <ul>  
+          <li>Use paths embaralhados (<code>UUID</code> ou <code>randomBytes</code>) + senha.</li>  
+          <li>Sempre <strong>HTTPS</strong>.</li>  
+          <li>Arquivos sensíveis: criptografia em repouso (<code>AES</code> + <code>Base64</code>).</li>  
+          <li>Armazene metadados (owner, checksum, data) em DB.</li>  
+          <li>Implemente logs e auditoria se uso profissional.</li>  
+        </ul>  
+      </section>  
+    </div>  
+
+    <aside class="card">  
+      <h3>Resumo Rápido</h3>  
+      <ul>  
+        <li><strong>API:</strong> StorageFile</li>  
+        <li><strong>Upload:</strong> até 5 GB</li>  
+        <li><strong>Path seguro:</strong> <code>/${SENHA}/arquivo.txt</code></li>  
+        <li><strong>Formato:</strong> <code>application/octet-stream</code></li>  
+        <li><strong>Segurança:</strong> Criptografia AES + Base64, checksums</li>  
+      </ul>  
+      <div class="tip">Combine senha + path embaralhado para máxima segurança.</div>  
+    </aside>  
+  </main>    
+
+  <footer>  
+    Documentação oficial da API <strong>StorageFile</strong>.  
+  </footer>  
+</body>  
+</html>

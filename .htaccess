@@ -1,0 +1,33 @@
+# ============================
+# Habilita rewrite e front controller
+# ============================
+RewriteEngine On
+
+# Redireciona tudo para index.php se não for arquivo ou pasta existente
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+
+# ============================
+# Segurança: bloqueia arquivos sensíveis
+# ============================
+<FilesMatch "(\.env|config\.php|db\.php|composer\.json|\.git|\.htaccess|\.htpasswd)$">
+    Require all denied
+</FilesMatch>
+
+# Bloqueia arquivos de backup ou temporários
+<Files ~ "\.(bak|old|sql|swp|~)$">
+    Require all denied
+</Files>
+
+# Desativa listagem de diretório
+Options -Indexes
+
+# ============================
+# Limites PHP (upload/execução)
+# ============================
+php_value upload_max_filesize 3072M
+php_value post_max_size 3072M
+php_value memory_limit 3072M
+php_value max_execution_time 86400
+php_value max_input_time 86400
