@@ -42,7 +42,7 @@ Header always set Content-Security-Policy "default-src 'self' https://amheex.web
 
 # 5. BLOQUEIO DE REFERER (corrigido)
 RewriteCond %{HTTP_REFERER} !^$
-RewriteCond %{HTTP_REFERER} !^https?://(www\.)?(amheex\.web\.app|amheex\.com|api-tacadinhamod\.vercel\.app|api-amheex\.onrender\.com) [NC]
+RewriteCond %{HTTP_REFERER} !^https?://(www\.)?(amheex\.web\.app|amheex\.com|api-amheex\.vercel\.app|api-amheex\.onrender\.com) [NC]
 RewriteRule .* - [F,L]
 
 # 6. BLOQUEIO DE BOT/SCAN
