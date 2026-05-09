@@ -3,43 +3,97 @@ session_start();
 
 /*
 ========================================
-CONFIG AMHEEX
+CARREGA TXT
 ========================================
 */
 
-$allowedDomains = [
-    "amheex.web.app",
-    "amheex.com",
-    "api-amheex.vercel.app",
-    "api-amheex.onrender.com",
-    "localhost"
-];
+$txtFile = __DIR__ . "/dominios.txt";
+$domainsTxt = [];
 
-// host real
-$host = $_SERVER['HTTP_HOST'] ?? '';
-$host = preg_replace('/:\d+$/', '', $host);
-
-/*
-========================================
-VERIFICA DOMÍNIO
-========================================
-*/
-
-$isAllowedDomain = in_array($host, $allowedDomains);
-
-// bloqueia totalmente se não for permitido
-if (!$isAllowedDomain) {
-    http_response_code(403);
-    exit("Domínio não autorizado");
+if (file_exists($txtFile)) {
+    $domainsTxt = file($txtFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
 }
 
 /*
 ========================================
-NÍVEL DE PERMISSÃO
+CARREGA JSON
 ========================================
 */
 
-// domínio dedicado (liberação completa)
+$jsonFile = __DIR__ . "/dominios.json";
+$domainsJson = [];
+
+if (file_exists($jsonFile)) {
+    $data = json_decode(file_get_contents($jsonFile), true);
+
+    if (is_array($data)) {
+        foreach ($data as $item) {
+            if (isset($item['domain'])) {
+                $domainsJson[] = $item['domain'];
+            }
+        }
+    }
+}
+
+/*
+========================================
+COMBINA FONTES
+========================================
+*/
+
+$allowedDomains = array_unique(array_merge($domainsTxt, $domainsJson, [
+    "localhost"
+]));
+
+/*
+========================================
+HOST REAL
+========================================
+*/
+
+$host = strtolower($_SERVER['HTTP_HOST'] ?? '');
+$host = preg_replace('/:\d+$/', '', $host);
+
+/*
+========================================
+VALIDAÇÃO
+========================================
+*/
+
+$isAllowedDomain = false;
+
+foreach ($allowedDomains as $domain) {
+
+    $domain = strtolower(trim($domain));
+
+    if ($host === $domain) {
+        $isAllowedDomain = true;
+        break;
+    }
+
+    if (str_ends_with($host, "." . $domain)) {
+        $isAllowedDomain = true;
+        break;
+    }
+}
+
+/*
+========================================
+BLOQUEIO
+========================================
+*/
+
+if (!$isAllowedDomain) {
+    http_response_code(403);
+    exit("Domínio não autorizado: " . $host);
+}
+
+/*
+========================================
+DOMÍNIOS DEDICADOS (JSON FUTURO)
+========================================
+*/
+
 $dedicatedDomains = [
     "amheex.com",
     "api-amheex.onrender.com"
@@ -49,17 +103,16 @@ $isDedicated = in_array($host, $dedicatedDomains);
 
 /*
 ========================================
-SESSÃO + TEMPO
+SESSÃO
 ========================================
 */
 
-$tempoLiberado = 300; // 5 minutos
+$tempoLiberado = 300;
 
 if (!isset($_SESSION['amheex_start'])) {
     $_SESSION['amheex_start'] = time();
 }
 
-// expiração
 if (time() - $_SESSION['amheex_start'] > $tempoLiberado) {
     http_response_code(403);
     exit("Sessão expirada");
@@ -67,28 +120,13 @@ if (time() - $_SESSION['amheex_start'] > $tempoLiberado) {
 
 /*
 ========================================
-FLAGS DO SISTEMA
+FLAGS
 ========================================
 */
 
 define("AMHEEX_ACTIVE", true);
-
-// liberação padrão
 define("AMHEEX_READ", true);
-
-// liberação extra apenas para domínio dedicado
 define("AMHEEX_UPLOAD", $isDedicated);
 define("AMHEEX_ADVANCED_ACTIONS", $isDedicated);
 
-/*
-========================================
-EXEMPLO DE USO
-========================================
-
-// upload só funciona se:
-if (!AMHEEX_UPLOAD) {
-    exit("Upload bloqueado neste domínio");
-}
-
-*/
 ?>
