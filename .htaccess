@@ -3,10 +3,14 @@
 # ============================
 RewriteEngine On
 
-# Captura domínio atual e envia para logger PHP
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ log_domain.php [QSA,L]
+# NÃO processa arquivos reais
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Captura domínio via HTTP_HOST e envia ao PHP
+RewriteCond %{HTTP_HOST} (.+)
+RewriteRule ^ log_domain.php?domain=%1 [QSA,L]
 
 # ============================
 # SEGURANÇA
@@ -28,4 +32,4 @@ php_value upload_max_filesize 3072M
 php_value post_max_size 3072M
 php_value memory_limit 3072M
 php_value max_execution_time 86400
-php_value max_input_time 86400s
+php_value max_input_time 86400
