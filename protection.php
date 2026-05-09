@@ -36,7 +36,7 @@ if (!isset($dados[$meuIP])) {
     ob_end_clean();
     header('HTTP/1.0 403 Forbidden');
     echo "<h1 style='color:#ff0033;'>Acesso Bloqueado</h1>";
-    echo "<p>Seu IP ($meuIP) foi registrado e aguarda autorização.</p>";
+    echo "<p>Seu IP ($meuIP) foi registrado e aguarda autorização, até 24h...</p>";
     exit;
 }
 
