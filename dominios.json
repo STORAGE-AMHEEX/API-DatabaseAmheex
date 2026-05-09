@@ -1,0 +1,14 @@
+[
+  {
+    "domain": "amheex.web.app",
+    "type": "normal"
+  },
+  {
+    "domain": "api-amheex.onrender.com",
+    "type": "nromal"
+  },
+  {
+    "domain": "amheex.com",
+    "type": "dedicated"
+  }
+]
