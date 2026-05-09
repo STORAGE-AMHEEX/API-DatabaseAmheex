@@ -1,5 +1,5 @@
 # =========================================================
-# TACADINHAMOD - PROTEÇÃO ULTRA (DOMÍNIOS FIXOS)
+# TACADINHAMOD - PROTEÇÃO ULTRA (CORRIGIDA)
 # =========================================================
 
 Options -Indexes
@@ -8,17 +8,17 @@ ServerSignature Off
 RewriteEngine On
 RewriteBase /
 
-# 1. WHITELIST DE DOMÍNIOS (ÚNICOS PERMITIDOS)
-RewriteCond %{HTTP_HOST} !^(amheex\.web\.app|amheex\.com|api-amheex\.vercel\.app|api-amheex\.onrender\.com|localhost)$ [NC]
+# 1. PEGAR HOST COM SEGURANÇA
+RewriteCond %{HTTP_HOST} ^$
+RewriteRule ^ - [L]
+
+# 2. WHITELIST DE DOMÍNIOS (CORRIGIDO + WWW OPCIONAL)
+RewriteCond %{HTTP_HOST} !^(www\.)?(amheex\.web\.app|amheex\.com|api-amheex\.vercel\.app|api-amheex\.onrender\.com|localhost)$ [NC]
 RewriteRule ^ - [F,L]
 
-# 2. RESPOSTA SECA (PÁGINA BRANCA)
-ErrorDocument 403 " "
-ErrorDocument 404 " "
-ErrorDocument 500 " "
-
-# 3. ARQUIVOS DIRETOS
-RewriteCond %{REQUEST_FILENAME} -f
+# 3. NÃO QUEBRAR ARQUIVOS REAIS
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
 RewriteCond %{REQUEST_FILENAME}.php -f
@@ -27,26 +27,24 @@ RewriteRule ^(.*)$ $1.php [L]
 RewriteCond %{REQUEST_FILENAME}.html -f
 RewriteRule ^(.*)$ $1.html [L]
 
-# fallback
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
+# fallback seguro
 RewriteRule ^ index.php [QSA,L]
 
-# 4. SEGURANÇA DE HEADERS
+# 4. HEADERS (SEGURO)
 Header always set X-Frame-Options "SAMEORIGIN"
 Header always set X-Content-Type-Options "nosniff"
 Header always set Referrer-Policy "no-referrer"
 
-# CSP corrigido (mesmos domínios da whitelist)
-Header always set Content-Security-Policy "default-src 'self' https://amheex.web.app https://amheex.com https://api-amheex.vercel.app https://api-amheex.onrender.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src * data: blob:; connect-src *;"
+# CSP (SEM BLOQUEAR API INDEVIDAMENTE)
+Header always set Content-Security-Policy "default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:; style-src 'self' 'unsafe-inline' https:; img-src * data: blob:; connect-src *;"
 
-# 5. BLOQUEIO DE REFERER (corrigido)
+# 5. BLOQUEIO REFERER (MENOS AGRESSIVO)
 RewriteCond %{HTTP_REFERER} !^$
 RewriteCond %{HTTP_REFERER} !^https?://(www\.)?(amheex\.web\.app|amheex\.com|api-amheex\.vercel\.app|api-amheex\.onrender\.com) [NC]
 RewriteRule .* - [F,L]
 
-# 6. BLOQUEIO DE BOT/SCAN
-RewriteCond %{HTTP_USER_AGENT} (HTTrack|Wget|curl|python|nikto|sqlmap|scan) [NC]
+# 6. BLOQUEIO BOT
+RewriteCond %{HTTP_USER_AGENT} (HTTrack|Wget|nikto|sqlmap|scan) [NC]
 RewriteRule .* - [F,L]
 
 # 7. ARQUIVOS SENSÍVEIS
