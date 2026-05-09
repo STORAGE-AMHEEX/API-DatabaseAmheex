@@ -1,5 +1,5 @@
 # =========================================================
-# TACADINHAMOD - PROTEÇÃO ULTRA (BRANCO TOTAL)
+# TACADINHAMOD - PROTEÇÃO ULTRA (DOMÍNIOS FIXOS)
 # =========================================================
 
 Options -Indexes
@@ -8,69 +8,48 @@ ServerSignature Off
 RewriteEngine On
 RewriteBase /
 
-# 1. VALIDAÇÃO DE DOMÍNIO (SÓ CARREGA NAS WEBS PERMITIDAS)
-# ---------------------------------------------------------
-# Se não for um dos domínios abaixo, mata o carregamento (Página Branca)
-RewriteCond %{HTTP_HOST} !^(amheex\.web\.app|amheex\.com|api-tacadinhamod\.vercel\.app|api-amheex\.onrender\.com)$ [NC]
-RewriteCond %{HTTP_HOST} !^localhost$ [NC]
+# 1. WHITELIST DE DOMÍNIOS (ÚNICOS PERMITIDOS)
+RewriteCond %{HTTP_HOST} !^(amheex\.web\.app|amheex\.com|api-amheex\.vercel\.app|api-amheex\.onrender\.com|localhost)$ [NC]
 RewriteRule ^ - [F,L]
 
-# Define erro 403 e 404 como uma string vazia (Página Branca Seca)
+# 2. RESPOSTA SECA (PÁGINA BRANCA)
 ErrorDocument 403 " "
 ErrorDocument 404 " "
 ErrorDocument 500 " "
 
-# 2. SUPORTE PARA .HTML E .PHP (PRIORIDADE AO ARQUIVO FÍSICO)
-# ---------------------------------------------------------
-# Se o arquivo .html ou .php existir fisicamente, carrega ele direto
+# 3. ARQUIVOS DIRETOS
 RewriteCond %{REQUEST_FILENAME} -f
 RewriteRule ^ - [L]
 
-# Se o usuário digitar o nome sem a extensão, tenta achar o arquivo
 RewriteCond %{REQUEST_FILENAME}.php -f
 RewriteRule ^(.*)$ $1.php [L]
 
 RewriteCond %{REQUEST_FILENAME}.html -f
 RewriteRule ^(.*)$ $1.html [L]
 
-# 3. ROTEAMENTO PARA INDEX.PHP (CASO O CAMINHO NÃO EXISTA)
-# ---------------------------------------------------------
+# fallback
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]
 
-# 4. ANTI-CLONE / ANTI-CARREGAMENTO EXTERNO (CSP COMPLETO)
-# ---------------------------------------------------------
-# Isso impede que seus scripts sejam chamados por outros sites
+# 4. SEGURANÇA DE HEADERS
 Header always set X-Frame-Options "SAMEORIGIN"
 Header always set X-Content-Type-Options "nosniff"
-Header always set Referrer-Policy "no-referrer-when-downgrade"
+Header always set Referrer-Policy "no-referrer"
 
-# CSP restrito: Só permite scripts e estilos dos seus domínios
-Header always set Content-Security-Policy "default-src 'self' amheex.web.app amheex.com *.vercel.app *.onrender.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src * data: blob:; connect-src *;"
+# CSP corrigido (mesmos domínios da whitelist)
+Header always set Content-Security-Policy "default-src 'self' https://amheex.web.app https://amheex.com https://api-amheex.vercel.app https://api-amheex.onrender.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src * data: blob:; connect-src *;"
 
-# 5. BLOQUEIO DE REFERER E AGENTES SUSPEITOS
-# ---------------------------------------------------------
+# 5. BLOQUEIO DE REFERER (corrigido)
 RewriteCond %{HTTP_REFERER} !^$
-RewriteCond %{HTTP_REFERER} !^https?://(www\.)?(amheex\.web\.app|amheex\.com|api-amheex\.vercel\.app|api-amheex\.onrender\.com) [NC]
+RewriteCond %{HTTP_REFERER} !^https?://(www\.)?(amheex\.web\.app|amheex\.com|api-tacadinhamod\.vercel\.app|api-amheex\.onrender\.com) [NC]
 RewriteRule .* - [F,L]
 
-# Bloqueia Bots comuns e ferramentas de cópia
-RewriteCond %{HTTP_USER_AGENT} (HTTrack|Wget|curl|libwww|python|nikto|scan|sqlmap) [NC]
+# 6. BLOQUEIO DE BOT/SCAN
+RewriteCond %{HTTP_USER_AGENT} (HTTrack|Wget|curl|python|nikto|sqlmap|scan) [NC]
 RewriteRule .* - [F,L]
 
-# 6. PROTEÇÃO DE DIRETÓRIOS E ARQUIVOS SENSÍVEIS
-# ---------------------------------------------------------
+# 7. ARQUIVOS SENSÍVEIS
 <FilesMatch "\.(env|log|ini|sh|sql|bak|json|yml|lock|git|htaccess)$">
-    Order allow,deny
-    Deny from all
+    Require all denied
 </FilesMatch>
-
-# 7. LIMITES PHP (OTIMIZADOS PARA VERCEL/RENDER)
-# ---------------------------------------------------------
-<IfModule mod_php7.c>
-    php_value upload_max_filesize 256M
-    php_value post_max_size 256M
-    php_value max_execution_time 300
-    php_value memory_limit 512M
-</IfModule>
