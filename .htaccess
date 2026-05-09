@@ -1,14 +1,31 @@
+# ============================
+# AMHEEX - FRONT CONTROLLER
+# ============================
 RewriteEngine On
 
-# Front controller
+# Captura domínio atual e envia para logger PHP
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ index.php [QSA,L]
+RewriteRule ^ log_domain.php [QSA,L]
 
-# Bloqueio de arquivos sensíveis
-<FilesMatch "(^\.|config\.php|db\.php|composer\.json|\.env|\.git|\.htaccess)$">
+# ============================
+# SEGURANÇA
+# ============================
+<FilesMatch "(\.env|config\.php|db\.php|composer\.json|\.git|\.htaccess|\.htpasswd)$">
     Require all denied
 </FilesMatch>
 
-# Desativar listagem
+<Files ~ "\.(bak|old|sql|swp|~)$">
+    Require all denied
+</Files>
+
 Options -Indexes
+
+# ============================
+# LIMITES PHP
+# ============================
+php_value upload_max_filesize 3072M
+php_value post_max_size 3072M
+php_value memory_limit 3072M
+php_value max_execution_time 86400
+php_value max_input_time 86400s
