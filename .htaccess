@@ -1,5 +1,5 @@
 # =========================================================
-# TACADINHAMOD - PROTEÇÃO ULTRA (CORRIGIDA)
+# TACADINHAMOD - FIX 403 (WHITELIST SEGURA)
 # =========================================================
 
 Options -Indexes
@@ -8,46 +8,26 @@ ServerSignature Off
 RewriteEngine On
 RewriteBase /
 
-# 1. PEGAR HOST COM SEGURANÇA
-RewriteCond %{HTTP_HOST} ^$
-RewriteRule ^ - [L]
+# 1. NORMALIZA HOST (REMOVE PORTA)
+RewriteCond %{HTTP_HOST} ^([^:]+):[0-9]+$
+RewriteRule ^ - [E=HOST:%1]
 
-# 2. WHITELIST DE DOMÍNIOS (CORRIGIDO + WWW OPCIONAL)
-RewriteCond %{HTTP_HOST} !^(www\.)?(amheex\.web\.app|amheex\.com|api-amheex\.vercel\.app|api-amheex\.onrender\.com|localhost)$ [NC]
+RewriteCond %{ENV:HOST} ^$
+RewriteRule ^ - [E=HOST:%{HTTP_HOST}]
+
+# 2. WHITELIST SEGURA (COM WWW OPCIONAL)
+RewriteCond %{ENV:HOST} !^(www\.)?(amheex\.web\.app|amheex\.com|api-amheex\.vercel\.app|api-amheex\.onrender\.com|localhost)$ [NC]
 RewriteRule ^ - [F,L]
 
-# 3. NÃO QUEBRAR ARQUIVOS REAIS
+# 3. NÃO BLOQUEAR ARQUIVOS EXISTENTES
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-RewriteCond %{REQUEST_FILENAME}.php -f
-RewriteRule ^(.*)$ $1.php [L]
-
-RewriteCond %{REQUEST_FILENAME}.html -f
-RewriteRule ^(.*)$ $1.html [L]
-
-# fallback seguro
+# fallback
 RewriteRule ^ index.php [QSA,L]
 
-# 4. HEADERS (SEGURO)
+# 4. HEADERS BÁSICOS
 Header always set X-Frame-Options "SAMEORIGIN"
 Header always set X-Content-Type-Options "nosniff"
 Header always set Referrer-Policy "no-referrer"
-
-# CSP (SEM BLOQUEAR API INDEVIDAMENTE)
-Header always set Content-Security-Policy "default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:; style-src 'self' 'unsafe-inline' https:; img-src * data: blob:; connect-src *;"
-
-# 5. BLOQUEIO REFERER (MENOS AGRESSIVO)
-RewriteCond %{HTTP_REFERER} !^$
-RewriteCond %{HTTP_REFERER} !^https?://(www\.)?(amheex\.web\.app|amheex\.com|api-amheex\.vercel\.app|api-amheex\.onrender\.com) [NC]
-RewriteRule .* - [F,L]
-
-# 6. BLOQUEIO BOT
-RewriteCond %{HTTP_USER_AGENT} (HTTrack|Wget|nikto|sqlmap|scan) [NC]
-RewriteRule .* - [F,L]
-
-# 7. ARQUIVOS SENSÍVEIS
-<FilesMatch "\.(env|log|ini|sh|sql|bak|json|yml|lock|git|htaccess)$">
-    Require all denied
-</FilesMatch>
