@@ -2,7 +2,7 @@
 session_start();
 
 $arquivo = 'ips.json';
-$master_key = "2026";
+$master_key = "AMHEEX-2026";
 
 // ============================
 // LOGIN
