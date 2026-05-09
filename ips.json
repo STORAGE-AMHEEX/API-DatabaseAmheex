@@ -1,0 +1,42 @@
+{
+    "::1": {
+        "status": false,
+        "id": "ID1",
+        "ip": "::1",
+        "data_registro": "09\/05\/2026 18:34:16",
+        "ultima_atualizacao": "09\/05\/2026 18:34:16",
+        "ultima_url": "http:\/\/storage-amheex.onrender.com\/"
+    },
+    "34.82.29.197": {
+        "status": false,
+        "id": "ID348229197",
+        "ip": "34.82.29.197",
+        "data_registro": "09\/05\/2026 18:34:24",
+        "ultima_atualizacao": "09\/05\/2026 18:34:24",
+        "ultima_url": "http:\/\/storage-amheex.onrender.com\/"
+    },
+    "74.220.50.246": {
+        "status": false,
+        "id": "ID7422050246",
+        "ip": "74.220.50.246",
+        "data_registro": "09\/05\/2026 18:40:00",
+        "ultima_atualizacao": "09\/05\/2026 19:10:00",
+        "ultima_url": "http:\/\/storage-amheex.onrender.com\/"
+    },
+    "177.87.202.73": {
+        "status": true,
+        "id": "ID1778720273",
+        "ip": "177.87.202.73",
+        "data_registro": "09\/05\/2026 18:45:50",
+        "ultima_atualizacao": "09\/05\/2026 19:16:17",
+        "ultima_url": "http:\/\/storage-amheex.onrender.com\/FTP.php?path=%2Fvar%2Fwww%2Fhtml"
+    },
+    "74.220.48.20": {
+        "status": true,
+        "id": "ID742204820",
+        "ip": "74.220.48.20",
+        "data_registro": "09\/05\/2026 18:45:54",
+        "ultima_atualizacao": "09\/05\/2026 19:15:22",
+        "ultima_url": "http:\/\/storage-amheex.onrender.com\/k\/testejnnn.txt"
+    }
+}
