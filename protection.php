@@ -19,30 +19,76 @@ $allowedDomains = [
 $host = $_SERVER['HTTP_HOST'] ?? '';
 $host = preg_replace('/:\d+$/', '', $host);
 
-// bloqueio de domínio
-if (!in_array($host, $allowedDomains)) {
+/*
+========================================
+VERIFICA DOMÍNIO
+========================================
+*/
+
+$isAllowedDomain = in_array($host, $allowedDomains);
+
+// bloqueia totalmente se não for permitido
+if (!$isAllowedDomain) {
     http_response_code(403);
-    exit;
+    exit("Domínio não autorizado");
 }
 
 /*
 ========================================
-LIBERAÇÃO POR TEMPO (CORE)
+NÍVEL DE PERMISSÃO
 ========================================
 */
 
-// tempo de acesso após "ativação"
+// domínio dedicado (liberação completa)
+$dedicatedDomains = [
+    "amheex.com",
+    "api-amheex.onrender.com"
+];
+
+$isDedicated = in_array($host, $dedicatedDomains);
+
+/*
+========================================
+SESSÃO + TEMPO
+========================================
+*/
+
 $tempoLiberado = 300; // 5 minutos
 
 if (!isset($_SESSION['amheex_start'])) {
     $_SESSION['amheex_start'] = time();
 }
 
-// verifica tempo
+// expiração
 if (time() - $_SESSION['amheex_start'] > $tempoLiberado) {
     http_response_code(403);
     exit("Sessão expirada");
 }
 
-// marca sistema liberado
+/*
+========================================
+FLAGS DO SISTEMA
+========================================
+*/
+
 define("AMHEEX_ACTIVE", true);
+
+// liberação padrão
+define("AMHEEX_READ", true);
+
+// liberação extra apenas para domínio dedicado
+define("AMHEEX_UPLOAD", $isDedicated);
+define("AMHEEX_ADVANCED_ACTIONS", $isDedicated);
+
+/*
+========================================
+EXEMPLO DE USO
+========================================
+
+// upload só funciona se:
+if (!AMHEEX_UPLOAD) {
+    exit("Upload bloqueado neste domínio");
+}
+
+*/
+?>
