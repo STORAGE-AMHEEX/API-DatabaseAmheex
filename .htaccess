@@ -15,7 +15,8 @@ RewriteRule ^ index.php [QSA,L]
 # EXECUTA PHP EM TODAS AS REQUISIÇÕES
 # (INCLUI QUALQUER PÁGINA)
 # ============================
-php_value auto_prepend_file "protection.php"
+
+// php_value auto_prepend_file "protection.php"
 
 # ============================
 # SEGURANÇA: BLOQUEIO DE ARQUIVOS
