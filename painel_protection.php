@@ -1,155 +1,823 @@
 <?php
 session_start();
-$arquivo = 'ips.json';
-$master_key = "2026"; 
 
+$arquivo = 'ips.json';
+$master_key = "2026";
+
+// ============================
+// LOGIN
+// ============================
 if (isset($_POST['login'])) {
+
     if ($_POST['key'] === $master_key) {
+
         $_SESSION['auth'] = true;
+
     } else {
-        $erro = "CHAVE INCORRETA. ACESSO NEGADO.";
+
+        $erro = "CHAVE INCORRETA";
     }
 }
 
-if (isset($_GET['logout'])) { session_destroy(); header("Location: gerenciar_ips.php"); exit; }
+// ============================
+// LOGOUT
+// ============================
+if (isset($_GET['logout'])) {
 
-if (!file_exists($arquivo)) { file_put_contents($arquivo, json_encode([], JSON_PRETTY_PRINT)); }
+    session_destroy();
+
+    header("Location: gerenciar_ips.php");
+
+    exit;
+}
+
+// ============================
+// CRIA JSON
+// ============================
+if (!file_exists($arquivo)) {
+
+    file_put_contents(
+        $arquivo,
+        json_encode([], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+    );
+}
+
+// ============================
+// LÊ JSON
+// ============================
 $ips = json_decode(file_get_contents($arquivo), true);
 
-if (isset($_SESSION['auth']) && isset($_GET['action']) && isset($_GET['ip'])) {
+if (!is_array($ips)) {
+    $ips = [];
+}
+
+// ============================
+// CORRIGE IPS ANTIGOS
+// ============================
+foreach ($ips as $ip => $dados) {
+
+    if (!is_array($dados)) {
+
+        $status = ($dados === true);
+
+        $ips[$ip] = [
+            "status" => $status,
+            "id" => "ID" . preg_replace('/[^0-9]/', '', $ip),
+            "ip" => $ip,
+            "data_registro" => date('d/m/Y H:i:s'),
+            "ultima_atualizacao" => date('d/m/Y H:i:s'),
+            "ultima_url" => "desconhecida"
+        ];
+    }
+
+    // garante campos
+    if (!isset($ips[$ip]["id"])) {
+        $ips[$ip]["id"] =
+            "ID" . preg_replace('/[^0-9]/', '', $ip);
+    }
+
+    if (!isset($ips[$ip]["ip"])) {
+        $ips[$ip]["ip"] = $ip;
+    }
+
+    if (!isset($ips[$ip]["status"])) {
+        $ips[$ip]["status"] = false;
+    }
+
+    if (!isset($ips[$ip]["data_registro"])) {
+        $ips[$ip]["data_registro"] =
+            date('d/m/Y H:i:s');
+    }
+
+    if (!isset($ips[$ip]["ultima_atualizacao"])) {
+        $ips[$ip]["ultima_atualizacao"] =
+            date('d/m/Y H:i:s');
+    }
+
+    if (!isset($ips[$ip]["ultima_url"])) {
+        $ips[$ip]["ultima_url"] = "desconhecida";
+    }
+}
+
+// salva correções
+file_put_contents(
+    $arquivo,
+    json_encode(
+        $ips,
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+    )
+);
+
+// ============================
+// AÇÕES
+// ============================
+if (
+    isset($_SESSION['auth']) &&
+    isset($_GET['action']) &&
+    isset($_GET['ip'])
+) {
+
     $ip_alvo = $_GET['ip'];
     $acao = $_GET['action'];
 
-    if ($acao === 'toggle' && isset($ips[$ip_alvo])) {
-        $ips[$ip_alvo] = !($ips[$ip_alvo]);
-    } elseif ($acao === 'delete') {
+    if (
+        $acao === 'toggle' &&
+        isset($ips[$ip_alvo])
+    ) {
+
+        $ips[$ip_alvo]["status"] =
+            !$ips[$ip_alvo]["status"];
+
+        $ips[$ip_alvo]["ultima_atualizacao"] =
+            date('d/m/Y H:i:s');
+    }
+
+    elseif ($acao === 'delete') {
+
         unset($ips[$ip_alvo]);
     }
 
-    file_put_contents($arquivo, json_encode($ips, JSON_PRETTY_PRINT));
+    file_put_contents(
+        $arquivo,
+        json_encode(
+            $ips,
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+        )
+    );
+
     header("Location: gerenciar_ips.php");
+
     exit;
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBER IP MANAGER v2.0</title>
-    <style>
-        :root { --neon: #00f2ff; --bad: #ff0033; --bg: #050505; }
-        body { 
-            background: var(--bg); 
-            color: #fff; 
-            font-family: 'Orbitron', sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh; 
-            margin: 0; 
-            padding: 10px; /* Margem para telas pequenas */
-        }
-        
-        /* Login Flutuante Responsivo */
-        .login-box { 
-            background: rgba(20,20,20,0.9); 
-            padding: 30px; 
-            border: 2px solid var(--neon); 
-            box-shadow: 0 0 20px var(--neon); 
-            border-radius: 15px; 
-            text-align: center; 
-            width: 100%;
-            max-width: 320px; 
-            animation: float 3s ease-in-out infinite; 
-        }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-        
-        input[type="text"] { background: #000; border: 1px solid var(--neon); color: var(--neon); padding: 12px; width: 85%; margin: 15px 0; outline: none; text-align: center; border-radius: 5px; font-family: 'Orbitron'; }
-        button { background: var(--neon); color: #000; border: none; padding: 12px 25px; font-weight: bold; cursor: pointer; border-radius: 5px; transition: 0.3s; width: 90%; font-family: 'Orbitron'; }
 
-        /* Dashboard Principal Responsivo */
-        .dashboard { width: 100%; max-width: 900px; background: #111; border: 1px solid #333; border-radius: 10px; overflow: hidden; margin: 20px 0; }
-        header { background: #1a1a1a; padding: 15px 20px; border-bottom: 2px solid var(--neon); display: flex; justify-content: space-between; align-items: center; }
-        header span { font-size: 0.8rem; letter-spacing: 1px; }
-        
-        /* Tabela Responsiva */
-        .table-container { overflow-x: auto; } /* Permite scroll se a tabela for larga */
-        table { width: 100%; border-collapse: collapse; min-width: 500px; }
-        th { background: #000; padding: 15px; text-align: left; color: var(--neon); text-transform: uppercase; font-size: 11px; }
-        td { padding: 15px; border-bottom: 1px solid #222; font-family: monospace; font-size: 14px; }
-        
-        .status-on { color: #00ff64; text-shadow: 0 0 5px #00ff64; }
-        .status-off { color: var(--bad); text-shadow: 0 0 5px var(--bad); }
-        
-        /* Botões */
-        .action-btns { display: flex; gap: 8px; }
-        .action-btn { text-decoration: none; padding: 6px 12px; border-radius: 3px; font-size: 10px; border: 1px solid #444; color: #ccc; transition: 0.2s; white-space: nowrap; }
-        .btn-toggle:hover { border-color: var(--neon); color: var(--neon); box-shadow: 0 0 5px var(--neon); }
-        .btn-delete:hover { border-color: var(--bad); color: var(--bad); box-shadow: 0 0 5px var(--bad); }
+<meta charset="UTF-8">
 
-        /* Media Query para Celulares pequenos */
-        @media (max-width: 600px) {
-            header span { font-size: 0.6rem; }
-            td, th { padding: 10px 8px; font-size: 12px; }
-            .action-btn { padding: 5px 8px; font-size: 9px; }
-        }
-    </style>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>AMHEEX SECURITY</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+
+:root{
+
+    --neon:#00e5ff;
+    --red:#ff3355;
+    --bg:#050505;
+    --card:#111;
+    --line:#222;
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+
+    background:var(--bg);
+    color:#fff;
+    font-family:'Orbitron',sans-serif;
+    min-height:100vh;
+    padding:20px;
+}
+
+/* ============================
+LOGIN
+============================ */
+
+.login-box{
+
+    width:100%;
+    max-width:360px;
+
+    background:rgba(15,15,15,0.95);
+
+    margin:auto;
+    margin-top:8vh;
+
+    border-radius:22px;
+
+    padding:35px 25px;
+
+    border:1px solid rgba(0,229,255,0.4);
+
+    box-shadow:
+    0 0 40px rgba(0,229,255,0.15);
+
+    text-align:center;
+}
+
+.logo{
+
+    font-size:26px;
+    color:var(--neon);
+
+    margin-bottom:10px;
+}
+
+.desc{
+
+    color:#777;
+    font-size:11px;
+
+    margin-bottom:25px;
+}
+
+.input{
+
+    width:100%;
+
+    background:#000;
+
+    border:1px solid rgba(0,229,255,0.4);
+
+    color:#fff;
+
+    padding:14px;
+
+    border-radius:12px;
+
+    outline:none;
+
+    margin-bottom:15px;
+}
+
+.btn{
+
+    width:100%;
+
+    padding:14px;
+
+    border:none;
+
+    border-radius:12px;
+
+    background:var(--neon);
+
+    color:#000;
+
+    font-weight:bold;
+
+    cursor:pointer;
+
+    transition:.2s;
+}
+
+.btn:hover{
+
+    transform:scale(1.02);
+}
+
+/* ============================
+DASHBOARD
+============================ */
+
+.dashboard{
+
+    width:100%;
+    max-width:1450px;
+
+    margin:auto;
+
+    background:var(--card);
+
+    border-radius:24px;
+
+    overflow:hidden;
+
+    border:1px solid #1c1c1c;
+
+    box-shadow:
+    0 0 45px rgba(0,0,0,0.5);
+}
+
+.topbar{
+
+    background:#0d0d0d;
+
+    border-bottom:1px solid #1f1f1f;
+
+    padding:22px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    gap:10px;
+
+    flex-wrap:wrap;
+}
+
+.title{
+
+    font-size:22px;
+
+    color:var(--neon);
+}
+
+.logout{
+
+    text-decoration:none;
+
+    color:var(--red);
+
+    border:1px solid rgba(255,51,85,0.4);
+
+    padding:10px 16px;
+
+    border-radius:10px;
+
+    font-size:12px;
+}
+
+/* ============================
+CARDS
+============================ */
+
+.stats{
+
+    display:grid;
+
+    grid-template-columns:
+    repeat(auto-fit,minmax(220px,1fr));
+
+    gap:18px;
+
+    padding:22px;
+}
+
+.stat{
+
+    background:#0f0f0f;
+
+    border-radius:18px;
+
+    padding:22px;
+
+    border:1px solid #1c1c1c;
+}
+
+.stat .small{
+
+    color:#777;
+
+    font-size:12px;
+
+    margin-bottom:10px;
+}
+
+.stat .big{
+
+    font-size:28px;
+
+    color:var(--neon);
+}
+
+/* ============================
+LISTA IPS
+============================ */
+
+.list{
+
+    padding:22px;
+
+    display:grid;
+
+    gap:18px;
+}
+
+.card{
+
+    background:#0d0d0d;
+
+    border:1px solid #1f1f1f;
+
+    border-radius:20px;
+
+    padding:20px;
+}
+
+.card-top{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    gap:10px;
+
+    flex-wrap:wrap;
+
+    margin-bottom:18px;
+}
+
+.ip{
+
+    color:var(--neon);
+
+    font-size:22px;
+
+    word-break:break-word;
+}
+
+.status{
+
+    padding:8px 14px;
+
+    border-radius:999px;
+
+    font-size:11px;
+
+    font-weight:bold;
+}
+
+.on{
+
+    background:rgba(0,255,100,0.15);
+
+    color:#00ff88;
+}
+
+.off{
+
+    background:rgba(255,51,85,0.15);
+
+    color:#ff3355;
+}
+
+.grid{
+
+    display:grid;
+
+    grid-template-columns:
+    repeat(auto-fit,minmax(220px,1fr));
+
+    gap:14px;
+}
+
+.info{
+
+    background:#131313;
+
+    border-radius:14px;
+
+    padding:14px;
+
+    border:1px solid #1c1c1c;
+}
+
+.label{
+
+    color:#666;
+
+    font-size:11px;
+
+    margin-bottom:8px;
+}
+
+.value{
+
+    color:#fff;
+
+    font-size:14px;
+
+    word-break:break-word;
+
+    line-height:1.5;
+}
+
+.actions{
+
+    display:flex;
+
+    gap:10px;
+
+    flex-wrap:wrap;
+
+    margin-top:18px;
+}
+
+.action{
+
+    text-decoration:none;
+
+    padding:12px 18px;
+
+    border-radius:12px;
+
+    font-size:12px;
+
+    transition:.2s;
+}
+
+.toggle{
+
+    border:1px solid rgba(0,229,255,0.3);
+
+    color:var(--neon);
+}
+
+.delete{
+
+    border:1px solid rgba(255,51,85,0.3);
+
+    color:var(--red);
+}
+
+.action:hover{
+
+    transform:scale(1.03);
+}
+
+.empty{
+
+    text-align:center;
+
+    padding:50px;
+
+    color:#666;
+}
+
+@media(max-width:700px){
+
+    .ip{
+        font-size:18px;
+    }
+
+    .title{
+        font-size:18px;
+    }
+
+}
+
+</style>
 </head>
+
 <body>
 
 <?php if (!isset($_SESSION['auth'])): ?>
-    <div class="login-box">
-        <h2 style="color: var(--neon); margin: 0; font-size: 1.2rem;">SYSTEM KEY</h2>
-        <p style="font-size: 10px; color: #666; margin-top: 5px;">ACCESS GRANTED ONLY WITH KEY</p>
-        <form method="POST">
-            <input type="text" name="key" placeholder="OI123" autocomplete="off">
-            <br>
-            <button type="submit" name="login">LOGIN_SYSTEM</button>
-        </form>
-        <?php if(isset($erro)) echo "<p style='color:var(--bad); font-size:11px; margin-top:10px;'>$erro</p>"; ?>
+
+<div class="login-box">
+
+    <div class="logo">
+        AMHEEX SECURITY
     </div>
 
-<?php else: ?>
-    <div class="dashboard">
-        <header>
-            <span>IP_MANAGER // SECURITY_CORE</span>
-            <a href="?logout=1" style="color:var(--bad); text-decoration:none; font-size:10px; border: 1px solid var(--bad); padding: 4px 8px; border-radius: 3px;">[ EXIT ]</a>
-        </header>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>LOCAL_IP</th>
-                        <th>STATUS</th>
-                        <th>ACTIONS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if(empty($ips)): ?>
-                        <tr><td colspan="3" style="text-align:center; color:#555;">NO DATA DETECTED</td></tr>
-                    <?php else: ?>
-                        <?php foreach ($ips as $ip => $status): ?>
-                        <tr>
-                            <td style="font-size: 14px; color: var(--neon);"><?php echo $ip; ?></td>
-                            <td class="<?php echo $status ? 'status-on' : 'status-off'; ?>">
-                                ● <?php echo $status ? 'ALLOWED' : 'BLOCKED'; ?>
-                            </td>
-                            <td>
-                                <div class="action-btns">
-                                    <a href="?action=toggle&ip=<?php echo $ip; ?>" class="action-btn btn-toggle">SWITCH</a>
-                                    <a href="?action=delete&ip=<?php echo $ip; ?>" class="action-btn btn-delete" onclick="return confirm('ERASE RECORD?')">DELETE</a>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
+    <div class="desc">
+        SYSTEM ACCESS REQUIRED
     </div>
+
+    <form method="POST">
+
+        <input
+        type="text"
+        name="key"
+        class="input"
+        placeholder="MASTER KEY"
+        autocomplete="off">
+
+        <button
+        type="submit"
+        name="login"
+        class="btn">
+            LOGIN SYSTEM
+        </button>
+
+    </form>
+
+    <?php if(isset($erro)): ?>
+
+    <div style="
+    margin-top:15px;
+    color:#ff3355;
+    font-size:12px;">
+        <?php echo $erro; ?>
+    </div>
+
+    <?php endif; ?>
+
+</div>
+
+<?php else: ?>
+
+<div class="dashboard">
+
+    <div class="topbar">
+
+        <div class="title">
+            AMHEEX IP MANAGER
+        </div>
+
+        <a href="?logout=1" class="logout">
+            SAIR
+        </a>
+
+    </div>
+
+    <?php
+
+    $total = count($ips);
+
+    $ativos = 0;
+    $bloqueados = 0;
+
+    foreach($ips as $d){
+
+        if(($d["status"] ?? false) === true){
+            $ativos++;
+        } else {
+            $bloqueados++;
+        }
+    }
+
+    ?>
+
+    <div class="stats">
+
+        <div class="stat">
+            <div class="small">
+                TOTAL IPS
+            </div>
+
+            <div class="big">
+                <?php echo $total; ?>
+            </div>
+        </div>
+
+        <div class="stat">
+            <div class="small">
+                LIBERADOS
+            </div>
+
+            <div class="big">
+                <?php echo $ativos; ?>
+            </div>
+        </div>
+
+        <div class="stat">
+            <div class="small">
+                BLOQUEADOS
+            </div>
+
+            <div class="big">
+                <?php echo $bloqueados; ?>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="list">
+
+    <?php if(empty($ips)): ?>
+
+        <div class="empty">
+            NENHUM REGISTRO
+        </div>
+
+    <?php else: ?>
+
+        <?php foreach($ips as $ip => $dados): ?>
+
+        <div class="card">
+
+            <div class="card-top">
+
+                <div class="ip">
+                    <?php echo htmlspecialchars($ip); ?>
+                </div>
+
+                <div class="
+                status
+                <?php echo ($dados["status"] ?? false)
+                ? 'on'
+                : 'off'; ?>">
+                    ●
+                    <?php
+                    echo ($dados["status"] ?? false)
+                    ? 'LIBERADO'
+                    : 'BLOQUEADO';
+                    ?>
+                </div>
+
+            </div>
+
+            <div class="grid">
+
+                <div class="info">
+                    <div class="label">
+                        IDENTIFICAÇÃO
+                    </div>
+
+                    <div class="value">
+                        <?php echo htmlspecialchars($dados["id"]); ?>
+                    </div>
+                </div>
+
+                <div class="info">
+                    <div class="label">
+                        IP
+                    </div>
+
+                    <div class="value">
+                        <?php echo htmlspecialchars($dados["ip"]); ?>
+                    </div>
+                </div>
+
+                <div class="info">
+                    <div class="label">
+                        DATA REGISTRO
+                    </div>
+
+                    <div class="value">
+                        <?php
+                        echo htmlspecialchars(
+                            $dados["data_registro"]
+                        );
+                        ?>
+                    </div>
+                </div>
+
+                <div class="info">
+                    <div class="label">
+                        ÚLTIMA ATUALIZAÇÃO
+                    </div>
+
+                    <div class="value">
+                        <?php
+                        echo htmlspecialchars(
+                            $dados["ultima_atualizacao"]
+                        );
+                        ?>
+                    </div>
+                </div>
+
+                <div class="info"
+                style="grid-column:1/-1;">
+
+                    <div class="label">
+                        ÚLTIMA URL
+                    </div>
+
+                    <div class="value">
+                        <?php
+                        echo htmlspecialchars(
+                            $dados["ultima_url"]
+                        );
+                        ?>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="actions">
+
+                <a
+                href="?action=toggle&ip=<?php echo urlencode($ip); ?>"
+                class="action toggle">
+
+                    <?php
+                    echo ($dados["status"] ?? false)
+                    ? 'BLOQUEAR'
+                    : 'LIBERAR';
+                    ?>
+
+                </a>
+
+                <a
+                href="?action=delete&ip=<?php echo urlencode($ip); ?>"
+                class="action delete"
+                onclick="return confirm('DELETAR REGISTRO?')">
+
+                    DELETAR
+
+                </a>
+
+            </div>
+
+        </div>
+
+        <?php endforeach; ?>
+
+    <?php endif; ?>
+
+    </div>
+
+</div>
+
 <?php endif; ?>
 
 </body>
