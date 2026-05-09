@@ -1,6 +1,15 @@
 <?php
 ob_start();
 
+// ============================
+// BYPASS PARA ESTE ARQUIVO
+// ============================
+$arquivoAtual = basename($_SERVER['SCRIPT_NAME']);
+if ($arquivoAtual === 'painel_protection.php') {
+    ob_end_flush();
+    return; // não aplica proteção
+}
+
 function get_client_ip() {
     $ip = '0.0.0.0';
     if (!empty($_SERVER['HTTP_CLIENT_IP'])) $ip = $_SERVER['HTTP_CLIENT_IP'];
@@ -21,10 +30,9 @@ $dados = json_decode(file_get_contents($arquivo), true);
 
 // LÓGICA DE AUTO-REGISTRO
 if (!isset($dados[$meuIP])) {
-    // Se o IP não existe no JSON, adiciona como FALSE
     $dados[$meuIP] = false;
     file_put_contents($arquivo, json_encode($dados, JSON_PRETTY_PRINT));
-    
+
     ob_end_clean();
     header('HTTP/1.0 403 Forbidden');
     echo "<h1 style='color:#ff0033;'>Acesso Bloqueado</h1>";
@@ -32,7 +40,7 @@ if (!isset($dados[$meuIP])) {
     exit;
 }
 
-// LÓGICA DE VALIDAÇÃO (TRUE/FALSE)
+// LÓGICA DE VALIDAÇÃO
 if ($dados[$meuIP] !== true) {
     ob_end_clean();
     header('HTTP/1.0 403 Forbidden');
@@ -41,6 +49,5 @@ if ($dados[$meuIP] !== true) {
     exit;
 }
 
-// Se chegou aqui, o IP está no JSON e é TRUE.
 ob_end_flush();
 ?>
