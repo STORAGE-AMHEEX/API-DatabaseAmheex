@@ -3,7 +3,7 @@
 // 🔧 AJUSTES PHP — SUPORTE A ARQUIVOS GRANDES E UPLOADS LONGOS
 // ===============================================
 
-require_once "protection.php";
+// require_once "protection.php";
 
 @ini_set('upload_max_filesize', '16000M');
 @ini_set('post_max_size', '16000M');
