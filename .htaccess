@@ -1,33 +1,76 @@
-# ============================
-# Habilita rewrite e front controller
-# ============================
-RewriteEngine On
+# =========================================================
+# TACADINHAMOD - PROTEÇÃO ULTRA (BRANCO TOTAL)
+# =========================================================
 
-# Redireciona tudo para index.php se não for arquivo ou pasta existente
+Options -Indexes
+ServerSignature Off
+
+RewriteEngine On
+RewriteBase /
+
+# 1. VALIDAÇÃO DE DOMÍNIO (SÓ CARREGA NAS WEBS PERMITIDAS)
+# ---------------------------------------------------------
+# Se não for um dos domínios abaixo, mata o carregamento (Página Branca)
+RewriteCond %{HTTP_HOST} !^(amheex\.web\.app|amheex\.com|api-tacadinhamod\.vercel\.app|api-amheex\.onrender\.com)$ [NC]
+RewriteCond %{HTTP_HOST} !^localhost$ [NC]
+RewriteRule ^ - [F,L]
+
+# Define erro 403 e 404 como uma string vazia (Página Branca Seca)
+ErrorDocument 403 " "
+ErrorDocument 404 " "
+ErrorDocument 500 " "
+
+# 2. SUPORTE PARA .HTML E .PHP (PRIORIDADE AO ARQUIVO FÍSICO)
+# ---------------------------------------------------------
+# Se o arquivo .html ou .php existir fisicamente, carrega ele direto
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Se o usuário digitar o nome sem a extensão, tenta achar o arquivo
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.*)$ $1.php [L]
+
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.*)$ $1.html [L]
+
+# 3. ROTEAMENTO PARA INDEX.PHP (CASO O CAMINHO NÃO EXISTA)
+# ---------------------------------------------------------
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]
 
-# ============================
-# Segurança: bloqueia arquivos sensíveis
-# ============================
-<FilesMatch "(\.env|config\.php|db\.php|composer\.json|\.git|\.htaccess|\.htpasswd)$">
-    Require all denied
+# 4. ANTI-CLONE / ANTI-CARREGAMENTO EXTERNO (CSP COMPLETO)
+# ---------------------------------------------------------
+# Isso impede que seus scripts sejam chamados por outros sites
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set X-Content-Type-Options "nosniff"
+Header always set Referrer-Policy "no-referrer-when-downgrade"
+
+# CSP restrito: Só permite scripts e estilos dos seus domínios
+Header always set Content-Security-Policy "default-src 'self' amheex.web.app amheex.com *.vercel.app *.onrender.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline'; img-src * data: blob:; connect-src *;"
+
+# 5. BLOQUEIO DE REFERER E AGENTES SUSPEITOS
+# ---------------------------------------------------------
+RewriteCond %{HTTP_REFERER} !^$
+RewriteCond %{HTTP_REFERER} !^https?://(www\.)?(amheex\.web\.app|tacadinha\.com|api-amheex\.vercel\.app|api-amheex\.onrender\.com) [NC]
+RewriteRule .* - [F,L]
+
+# Bloqueia Bots comuns e ferramentas de cópia
+RewriteCond %{HTTP_USER_AGENT} (HTTrack|Wget|curl|libwww|python|nikto|scan|sqlmap) [NC]
+RewriteRule .* - [F,L]
+
+# 6. PROTEÇÃO DE DIRETÓRIOS E ARQUIVOS SENSÍVEIS
+# ---------------------------------------------------------
+<FilesMatch "\.(env|log|ini|sh|sql|bak|json|yml|lock|git|htaccess)$">
+    Order allow,deny
+    Deny from all
 </FilesMatch>
 
-# Bloqueia arquivos de backup ou temporários
-<Files ~ "\.(bak|old|sql|swp|~)$">
-    Require all denied
-</Files>
-
-# Desativa listagem de diretório
-Options -Indexes
-
-# ============================
-# Limites PHP (upload/execução)
-# ============================
-php_value upload_max_filesize 3072M
-php_value post_max_size 3072M
-php_value memory_limit 3072M
-php_value max_execution_time 86400
-php_value max_input_time 86400
+# 7. LIMITES PHP (OTIMIZADOS PARA VERCEL/RENDER)
+# ---------------------------------------------------------
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 256M
+    php_value post_max_size 256M
+    php_value max_execution_time 300
+    php_value memory_limit 512M
+</IfModule>
