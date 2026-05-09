@@ -1,35 +1,12 @@
-# ============================
-# AMHEEX - FRONT CONTROLLER
-# ============================
 RewriteEngine On
 
-# NÃO processa arquivos reais
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
-
-# Captura domínio via HTTP_HOST e envia ao PHP
-RewriteCond %{HTTP_HOST} (.+)
-RewriteRule ^ log_domain.php?domain=%1 [QSA,L]
-
-# ============================
-# SEGURANÇA
-# ============================
-<FilesMatch "(\.env|config\.php|db\.php|composer\.json|\.git|\.htaccess|\.htpasswd)$">
-    Require all denied
-</FilesMatch>
-
-<Files ~ "\.(bak|old|sql|swp|~)$">
-    Require all denied
+# Impede o acesso direto ao seu arquivo de domínios
+<Files "dominios.json">
+    Order allow,deny
+    Deny from all
 </Files>
 
-Options -Indexes
-
-# ============================
-# LIMITES PHP
-# ============================
-php_value upload_max_filesize 3072M
-php_value post_max_size 3072M
-php_value memory_limit 3072M
-php_value max_execution_time 86400
-php_value max_input_time 86400
+# Se for uma tentativa de Upload (ex: upload.php ou pasta /uploads)
+# O Apache redireciona internamente para validar antes
+RewriteCond %{REQUEST_URI} ^/up [NC]
+RewriteRule .* protection.php [L]
