@@ -1,53 +1,14 @@
-# ============================
-# AMHEEX - FRONT CONTROLLER
-# ============================
 RewriteEngine On
 
-# Força HTTPS (recomendado)
-RewriteCond %{HTTPS} !=on
-RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-
-# Redireciona tudo para index.php (SPA / API)
+# Front controller
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]
 
-# ============================
-# BLOQUEIO DE ARQUIVOS SENSÍVEIS
-# ============================
-<FilesMatch "(^\.|config\.php|db\.php|composer\.json|\.env|\.git|\.htaccess|\.htpasswd)$">
+# Bloqueio de arquivos sensíveis
+<FilesMatch "(^\.|config\.php|db\.php|composer\.json|\.env|\.git|\.htaccess)$">
     Require all denied
 </FilesMatch>
 
-# Backups e temporários
-<FilesMatch "\.(bak|old|sql|swp|tmp|~)$">
-    Require all denied
-</FilesMatch>
-
-# ============================
-# BLOQUEIO DE ACESSO DIRETO FORA DO DOMÍNIO
-# ============================
-RewriteCond %{HTTP_REFERER} !^$
-RewriteCond %{HTTP_REFERER} !^https?://(storage-amheex\.onrender\.com|api-amheex\.onrender\.com|amheex\.onrender\.com)/ [NC]
-RewriteRule .* - [F]
-
-# ============================
-# PROTEÇÃO DE HOTLINK (imagens/scripts)
-# ============================
-RewriteCond %{HTTP_REFERER} !^$
-RewriteCond %{HTTP_REFERER} !^https?://(storage-amheex\.onrender\.com|api-amheex\.onrender\.com|amheex\.onrender\.com)/ [NC]
-RewriteRule \.(jpg|jpeg|png|gif|css|js)$ - [F,NC]
-
-# ============================
-# DESATIVAR LISTAGEM DE DIRETÓRIO
-# ============================
+# Desativar listagem
 Options -Indexes
-
-# ============================
-# LIMITES PHP
-# ============================
-php_value upload_max_filesize 3072M
-php_value post_max_size 3072M
-php_value memory_limit 3072M
-php_value max_execution_time 86400
-php_value max_input_time 86400
