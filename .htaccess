@@ -1,33 +1,19 @@
-# =========================================================
-# TACADINHAMOD - FIX 403 (WHITELIST SEGURA)
-# =========================================================
-
 Options -Indexes
 ServerSignature Off
 
 RewriteEngine On
 RewriteBase /
 
-# 1. NORMALIZA HOST (REMOVE PORTA)
-RewriteCond %{HTTP_HOST} ^([^:]+):[0-9]+$
-RewriteRule ^ - [E=HOST:%1]
-
-RewriteCond %{ENV:HOST} ^$
-RewriteRule ^ - [E=HOST:%{HTTP_HOST}]
-
-# 2. WHITELIST SEGURA (COM WWW OPCIONAL)
-RewriteCond %{ENV:HOST} !^(www\.)?(amheex\.web\.app|amheex\.com|api-amheex\.vercel\.app|api-amheex\.onrender\.com|localhost)$ [NC]
-RewriteRule ^ - [F,L]
-
-# 3. NÃO BLOQUEAR ARQUIVOS EXISTENTES
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
-
-# fallback
+# tudo passa pelo PHP
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]
 
-# 4. HEADERS BÁSICOS
-Header always set X-Frame-Options "SAMEORIGIN"
-Header always set X-Content-Type-Options "nosniff"
-Header always set Referrer-Policy "no-referrer"
+# bloqueio de bots
+RewriteCond %{HTTP_USER_AGENT} (HTTrack|Wget|curl|python|nikto|sqlmap|scan) [NC]
+RewriteRule .* - [F,L]
+
+# arquivos sensíveis
+<FilesMatch "\.(env|log|ini|sh|sql|bak|git|htaccess)$">
+    Require all denied
+</FilesMatch>
