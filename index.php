@@ -193,9 +193,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             exit;
         }
     }
-
+    // Aruqivo não encontrado...
     http_response_code(404);
-    echo "Arquivo não encontrado.";
+    echo "null";
     exit;
 }
 
