@@ -16,9 +16,7 @@ RewriteRule ^ index.php [QSA,L]
 # (INCLUI QUALQUER PÁGINA)
 # ============================
 
-php_value auto_prepend_file "online.php"
-
-php_value auto_prepend_file "protection.php"
+php_value auto_prepend_file "autoload_vars.php"
 
 # ============================
 # SEGURANÇA: BLOQUEIO DE ARQUIVOS
