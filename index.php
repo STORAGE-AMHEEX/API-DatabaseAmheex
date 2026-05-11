@@ -1,6 +1,6 @@
 <?php
 // ===============================================
-// 🚀 SMART FRAGMENT STORAGE - VICTOR DEV
+// Ã°ÂÂÂ SMART FRAGMENT STORAGE - VICTOR DEV
 // ===============================================
 
 @ini_set('memory_limit', '16000M');
@@ -12,11 +12,11 @@ header("Content-Type: application/octet-stream");
 $indexJson = __DIR__ . '/index.json';
 $logins = is_file($indexJson) ? json_decode(file_get_contents($indexJson), true) ?: [] : [];
 
-// 1. CAPTURA DO PATH DINÂMICO (O que estiver na frente do script na URL)
-// Exemplo: se chamar /script.php/meu/arquivo.bin -> $path será "meu/arquivo.bin"
+// 1. CAPTURA DO PATH DINÃÂMICO (O que estiver na frente do script na URL)
+// Exemplo: se chamar /script.php/meu/arquivo.bin -> $path serÃÂ¡ "meu/arquivo.bin"
 $path = ltrim($_SERVER['PATH_INFO'] ?? '', '/');
 
-// Se não houver PATH_INFO, tenta pegar pela REQUEST_URI (removendo o nome do script)
+// Se nÃÂ£o houver PATH_INFO, tenta pegar pela REQUEST_URI (removendo o nome do script)
 if (!$path) {
     $scriptName = $_SERVER['SCRIPT_NAME'];
     $path = ltrim(str_replace($scriptName, '', $_SERVER['REQUEST_URI']), '/');
@@ -25,10 +25,10 @@ if (!$path) {
 
 if (!$path) exit("ERRO: DEFINA_UM_PATH_NA_URL");
 
-$max_chunk_size = 1024; // 1024 caracteres por arquivo .txt
+$max_chunk_size = 1024 * 1024; // 1024 caracteres por arquivo .txt
 
 // ======================================================
-// 📤 UPLOAD: RECEBE BINÁRIO OU TEXTO (POST)
+// Ã°ÂÂÂ¤ UPLOAD: RECEBE BINÃÂRIO OU TEXTO (POST)
 // ======================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $inputData = file_get_contents('php://input');
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($c && @ftp_login($c, $cfg['user'], $cfg['pass'])) {
                 ftp_pasv($c, true);
                 
-                // Navegação e criação de pastas no FTP
+                // NavegaÃÂ§ÃÂ£o e criaÃÂ§ÃÂ£o de pastas no FTP
                 @ftp_chdir($c, "htdocs") || @ftp_chdir($c, "public_html");
                 if (!@ftp_chdir($c, "X")) { @ftp_mkdir($c, "X"); @ftp_chdir($c, "X"); }
 
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ======================================================
-// 📥 DOWNLOAD: RECONSTRÓI O BINÁRIO ORIGINAL (GET)
+// Ã°ÂÂÂ¥ DOWNLOAD: RECONSTRÃÂI O BINÃÂRIO ORIGINAL (GET)
 // ======================================================
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $fullContent = "";
@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             if ($c && @ftp_login($c, $cfg['user'], $cfg['pass'])) {
                 ftp_pasv($c, true);
                 
-                // Tenta localizar a parte nos diretórios padrão
+                // Tenta localizar a parte nos diretÃÂ³rios padrÃÂ£o
                 $targets = ["htdocs/X/$path/$partName", "public_html/X/$path/$partName", "X/$path/$partName"];
                 $tmp = fopen('php://temp', 'r+b');
 
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if ($foundPart) {
             $part++;
         } else {
-            $foundAny = false; // Não há mais partes
+            $foundAny = false; // NÃÂ£o hÃÂ¡ mais partes
         }
     }
 
