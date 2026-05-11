@@ -16,6 +16,7 @@ Options -Indexes
 
 # 3. FORÇA O PHP A CONTROLAR TUDO
 # Redireciona tudo que não for diretório para o index.php
+RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_URI} !index\.php
 RewriteRule ^(.*)$ index.php [QSA,L]
