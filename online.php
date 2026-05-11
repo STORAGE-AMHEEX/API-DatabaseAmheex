@@ -1,80 +1,42 @@
 <?php
 // ======================================================
-// 🚀 SMART SYNC SYSTEM V5 - LOCAL CACHE & BLOB UI
+// 🚀 ULTRA SYNC SYSTEM V6 - FUTURISTIC 3D & AUTO-REFRESH
 // ======================================================
 
 @ini_set('memory_limit', '16000M');
 @set_time_limit(0);
 
-// Limpa buffers para não corromper o binário
 while (ob_get_level()) ob_end_clean();
 
 header("Access-Control-Allow-Origin: *");
-header("X-Powered-By: Victor-Dev-Sync-Engine");
+header("X-Powered-By: Cyber-Sync-Core");
 
 $indexJson = __DIR__ . '/index.json';
 $logins = is_file($indexJson) ? json_decode(file_get_contents($indexJson), true) ?: [] : [];
 
-// Identificação do caminho do arquivo
 $path = ltrim($_SERVER['PATH_INFO'] ?? '', '/');
 if (!$path) {
     $uri = explode('?', $_SERVER['REQUEST_URI'])[0];
     $path = ltrim(str_replace($_SERVER['SCRIPT_NAME'], '', $uri), '/');
 }
 
-if (!$path || $path === 'index.php') exit("ERRO: CAMINHO_INVALIDO");
+if (!$path || $path === 'index.php') exit("CORE_ERROR: INVALID_PATH");
 
 $localPath = __DIR__ . '/' . $path;
 $fileName = basename($path);
 
 // ======================================================
-// 📤 UPLOAD (MANTIDO)
-// ======================================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $inputData = file_get_contents('php://input');
-    if (empty($inputData)) exit("ERRO: EMPTY");
-    
-    // Invalida cache local no novo upload
-    if (file_exists($localPath)) @unlink($localPath);
-
-    $chunks = str_split($inputData, 1024 * 512);
-    $total = count($chunks);
-    $success = 0;
-    foreach ($chunks as $idx => $chunk) {
-        $partName = "part_" . ($idx + 1) . ".txt";
-        foreach ($logins as $cfg) {
-            $c = @ftp_connect($cfg['host'], 21, 10);
-            if ($c && @ftp_login($c, $cfg['user'], $cfg['pass'])) {
-                ftp_pasv($c, true);
-                @ftp_chdir($c, "htdocs") || @ftp_chdir($c, "public_html");
-                if (!@ftp_chdir($c, "X")) { @ftp_mkdir($c, "X"); @ftp_chdir($c, "X"); }
-                foreach (explode('/', $path) as $d) { if (!empty($d) && !@ftp_chdir($c, $d)) { if (@ftp_mkdir($c, $d)) @ftp_chdir($c, $d); } }
-                $tmp = tmpfile(); fwrite($tmp, $chunk); rewind($tmp);
-                if (@ftp_fput($c, $partName, $tmp, FTP_BINARY)) { $success++; @ftp_close($c); break; }
-                @ftp_close($c);
-            }
-        }
-    }
-    exit($success === $total ? "OK" : "ERROR");
-}
-
-// ======================================================
-// 📥 DOWNLOAD (GET) - LÓGICA LOCAL + BLOB
+// 📥 DOWNLOAD (GET) - LÓGICA LOCAL + INTERFACE 3D
 // ======================================================
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
-    // 1. REQUISIÇÃO DE DADOS (STREAM BINÁRIO)
-    if (isset($_GET['sync_internal']) || strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/octet-stream') !== false) {
-        
-        // Se NÃO existe localmente, baixa do FTP e monta
+    // 1. ENTREGA DO BINÁRIO (Para o Fetch do JS)
+    if (isset($_GET['sync_internal'])) {
         if (!file_exists($localPath)) {
             $fullContent = "";
-            $part = 1;
-            $foundAny = true;
-
+            $part = 1; $foundAny = true;
             while ($foundAny) {
-                $partName = "part_$part.txt";
-                $foundPart = false;
+                $partName = "part_$part.txt"; $foundPart = false;
                 foreach ($logins as $cfg) {
                     $conn = @ftp_connect($cfg['host'], 21, 10);
                     if ($conn && @ftp_login($conn, $cfg['user'], $cfg['pass'])) {
@@ -83,11 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                         foreach ($targets as $t) {
                             $tmp = fopen('php://temp', 'r+b');
                             if (@ftp_fget($conn, $tmp, $t, FTP_BINARY)) {
-                                rewind($tmp);
-                                $fullContent .= stream_get_contents($tmp);
-                                $foundPart = true;
-                                fclose($tmp);
-                                break;
+                                rewind($tmp); $fullContent .= stream_get_contents($tmp);
+                                $foundPart = true; fclose($tmp); break;
                             }
                             fclose($tmp);
                         }
@@ -96,104 +55,158 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 }
                 if ($foundPart) $part++; else $foundAny = false;
             }
-
             if ($fullContent !== "") {
                 $localDir = dirname($localPath);
                 if (!is_dir($localDir)) @mkdir($localDir, 0777, true);
                 @file_put_contents($localPath, $fullContent);
-            } else {
-                http_response_code(404);
-                exit("ERRO: ARQUIVO_NAO_ENCONTRADO");
-            }
+            } else { http_response_code(404); exit; }
         }
-
-        // Entrega o arquivo do disco local
         header("Content-Type: application/octet-stream");
-        header("Content-Disposition: attachment; filename=\"$fileName\"");
         header("Content-Length: " . filesize($localPath));
         readfile($localPath);
         exit;
     }
 
-    // 2. INTERFACE VISUAL (BLOB UI)
+    // 2. INTERFACE VISUAL ULTRA-FUTURISTA
     ?>
     <!DOCTYPE html>
     <html lang="pt-br">
     <head>
         <meta charset="UTF-8">
-        <title>SYNC // <?php echo strtoupper($fileName); ?></title>
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+        <title>CORE SYNC // <?php echo strtoupper($fileName); ?></title>
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
         <style>
-            body { background: #000; color: #00f2ff; font-family: 'Orbitron', sans-serif; height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-            .ui-box { width: 350px; padding: 40px; border: 1px solid #00f2ff; box-shadow: 0 0 30px #00f2ff33; text-align: center; border-radius: 2px; position: relative; }
-            .bar-bg { width: 100%; height: 2px; background: #111; margin: 25px 0; position: relative; overflow: hidden; }
-            .bar-fill { width: 0%; height: 100%; background: #00f2ff; box-shadow: 0 0 15px #00f2ff; transition: width 0.1s; }
-            .pct { font-size: 3rem; font-weight: 700; text-shadow: 0 0 20px #00f2ff; margin: 10px 0; }
-            .info { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.6; }
-            .filename { color: #fff; font-size: 11px; margin-top: 10px; word-break: break-all; }
+            :root { --main-blue: #0044ff; --neon-blue: #00d2ff; --dark-bg: #020205; }
+            body { background: var(--dark-bg); color: var(--neon-blue); font-family: 'Orbitron', sans-serif; height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; perspective: 1000px; }
+            
+            /* Background 3D Grid */
+            body::before { content: ""; position: absolute; width: 200%; height: 200%; top: -50%; left: -50%; background-image: linear-gradient(var(--main-blue) 1px, transparent 1px), linear-gradient(90deg, var(--main-blue) 1px, transparent 1px); background-size: 50px 50px; transform: rotateX(60deg) translateY(0); animation: gridMove 10s linear infinite; opacity: 0.15; z-index: -1; }
+            @keyframes gridMove { from { transform: rotateX(60deg) translateY(0); } to { transform: rotateX(60deg) translateY(50px); } }
+
+            .container { position: relative; width: 400px; transform-style: preserve-3d; animation: float 4s ease-in-out infinite; }
+            @keyframes float { 0%, 100% { transform: translateY(0px) rotateY(0deg); } 50% { transform: translateY(-20px) rotateY(5deg); } }
+
+            .glass-card { background: rgba(0, 20, 50, 0.6); backdrop-filter: blur(15px); border: 2px solid var(--main-blue); padding: 50px; border-radius: 5px; box-shadow: 0 0 50px rgba(0, 68, 255, 0.4); text-align: center; border-left: 10px solid var(--neon-blue); }
+            
+            .pct-text { font-size: 5rem; font-weight: 900; letter-spacing: -5px; text-shadow: 0 0 30px var(--main-blue); margin-bottom: 10px; }
+            
+            .progress-frame { width: 100%; height: 8px; background: rgba(0,0,0,0.5); border: 1px solid var(--main-blue); border-radius: 10px; overflow: hidden; margin: 20px 0; }
+            .progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, var(--main-blue), var(--neon-blue)); box-shadow: 0 0 15px var(--neon-blue); transition: width 0.2s cubic-bezier(0.1, 0.7, 1.0, 0.1); }
+            
+            .label { font-size: 10px; letter-spacing: 5px; text-transform: uppercase; color: #fff; opacity: 0.8; }
+            .file-info { font-size: 11px; margin-top: 15px; color: var(--neon-blue); opacity: 0.5; font-weight: 400; }
+
+            /* Scanner Effect */
+            .scanner { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: var(--neon-blue); box-shadow: 0 0 20px var(--neon-blue); animation: scan 3s linear infinite; }
+            @keyframes scan { 0% { top: 0%; opacity: 0; } 50% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
         </style>
     </head>
     <body>
-        <div class="ui-box">
-            <div class="info" id="status">Sincronizando Sistema</div>
-            <div class="pct" id="pct">0%</div>
-            <div class="bar-bg"><div class="bar-fill" id="fill"></div></div>
-            <div class="filename"><?php echo $fileName; ?></div>
+
+        <div class="container">
+            <div class="scanner"></div>
+            <div class="glass-card">
+                <div class="label" id="status">Iniciando Protocolo</div>
+                <div class="pct-text" id="pct">0%</div>
+                <div class="progress-frame">
+                    <div class="progress-bar" id="bar"></div>
+                </div>
+                <div class="file-info"><?php echo $fileName; ?></div>
+            </div>
         </div>
 
+        <!-- Som de Processamento Futurista -->
+        <audio id="beep" src="https://www.soundjay.com/buttons/sounds/button-20.mp3"></audio>
+        <audio id="success" src="https://www.soundjay.com/buttons/sounds/button-09.mp3"></audio>
+
         <script>
-            async function startSync() {
+            async function startCoreSync() {
+                const beep = document.getElementById('beep');
+                const successSnd = document.getElementById('success');
                 const url = window.location.href + (window.location.search ? '&' : '?') + 'sync_internal=1';
                 
-                const response = await fetch(url, {
-                    headers: { 'Accept': 'application/octet-stream' }
-                });
-                
-                if (!response.ok) throw new Error();
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error();
 
-                const reader = response.body.getReader();
-                const total = +response.headers.get('Content-Length');
-                let loaded = 0;
-                let chunks = [];
+                    const reader = response.body.getReader();
+                    const total = +response.headers.get('Content-Length');
+                    let loaded = 0;
+                    let chunks = [];
 
-                while(true) {
-                    const {done, value} = await reader.read();
-                    if (done) break;
-                    chunks.push(value);
-                    loaded += value.length;
-                    
-                    if (total) {
-                        let p = Math.round((loaded / total) * 100);
-                        document.getElementById('fill').style.width = p + '%';
-                        document.getElementById('pct').innerText = p + '%';
+                    document.getElementById('status').innerText = "Sincronizando Dados";
+                    beep.play();
+
+                    while(true) {
+                        const {done, value} = await reader.read();
+                        if (done) break;
+                        chunks.push(value);
+                        loaded += value.length;
+                        
+                        if (total) {
+                            let p = Math.round((loaded / total) * 100);
+                            document.getElementById('bar').style.width = p + '%';
+                            document.getElementById('pct').innerText = p + '%';
+                            if(p % 10 === 0) beep.cloneNode(true).play();
+                        }
                     }
-                }
 
-                document.getElementById('status').innerText = "Processando Blob...";
-                const blob = new Blob(chunks);
-                const blobUrl = URL.createObjectURL(blob);
-                
-                const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = "<?php echo $fileName; ?>";
-                document.body.appendChild(a);
-                a.click();
-                
-                document.getElementById('pct').innerText = "DONE";
-                document.getElementById('status').innerText = "Sincronia Completa";
-                
-                setTimeout(() => {
-                    URL.revokeObjectURL(blobUrl);
-                }, 100);
+                    document.getElementById('status').innerText = "Gerando Blob...";
+                    const blob = new Blob(chunks);
+                    const bUrl = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = bUrl;
+                    a.download = "<?php echo $fileName; ?>";
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    document.getElementById('status').innerText = "CONCLUÍDO";
+                    successSnd.play();
+
+                    // Reinicia a página após 2 segundos do download concluído
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2500);
+
+                } catch (e) {
+                    document.getElementById('pct').innerText = "ERR";
+                    document.getElementById('status').innerText = "Falha no Núcleo";
+                }
             }
 
-            startSync().catch(() => { 
-                document.getElementById('pct').innerText = "ERR"; 
-                document.getElementById('status').innerText = "Falha na Conexão";
-                document.getElementById('status').style.color = "red";
-            });
+            // Inicia após interação ou carregamento
+            window.onload = startCoreSync;
         </script>
     </body>
     </html>
     <?php
+    exit;
+}
+
+// ======================================================
+// 📤 UPLOAD (MANTIDO)
+// ======================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $inputData = file_get_contents('php://input');
+    if (empty($inputData)) exit("ERROR_EMPTY");
+    if (file_exists($localPath)) @unlink($localPath);
+    $chunks = str_split($inputData, 1024 * 512);
+    $total = count($chunks); $success = 0;
+    foreach ($chunks as $idx => $chunk) {
+        $pName = "part_" . ($idx + 1) . ".txt";
+        foreach ($logins as $cfg) {
+            $c = @ftp_connect($cfg['host'], 21, 10);
+            if ($c && @ftp_login($c, $cfg['user'], $cfg['pass'])) {
+                ftp_pasv($c, true);
+                @ftp_chdir($c, "htdocs") || @ftp_chdir($c, "public_html");
+                if (!@ftp_chdir($c, "X")) { @ftp_mkdir($c, "X"); @ftp_chdir($c, "X"); }
+                foreach (explode('/', $path) as $d) { if (!empty($d) && !@ftp_chdir($c, $d)) { if (@ftp_mkdir($c, $d)) @ftp_chdir($c, $d); } }
+                $tmp = tmpfile(); fwrite($tmp, $chunk); rewind($tmp);
+                if (@ftp_fput($c, $pName, $tmp, FTP_BINARY)) { $success++; @ftp_close($c); break; }
+                @ftp_close($c);
+            }
+        }
+    }
+    exit($success === $total ? "OK" : "ERROR");
 }
