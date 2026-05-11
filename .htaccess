@@ -2,14 +2,17 @@
 # AMHEEX - EXECUÇÃO PHP GLOBAL
 # ============================
 
+# ============================
+# AMHEEX - FORÇA PROCESSAMENTO PHP
+# ============================
+
 RewriteEngine On
 
-# ============================
-# FORÇA FRONT CONTROLLER
-# ============================
-RewriteCond %{REQUEST_FILENAME} !-f
+# Se NÃO for um diretório, manda para o script, 
+# MESMO QUE O ARQUIVO EXISTA (removendo a condição !-f)
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ index.php [QSA,L]
+RewriteCond %{REQUEST_URI} !index\.php
+RewriteRule ^(.*)$ index.php [QSA,L]
 
 # ============================
 # EXECUTA PHP EM TODAS AS REQUISIÇÕES
