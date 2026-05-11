@@ -1,11 +1,12 @@
 <?php
 // ======================================================
-// 🚀 SMART FRAGMENT STORAGE - LOCAL SYNC & DOWNLOAD
+// 🚀 SMART FRAGMENT STORAGE - V2 (LOCAL CACHE & SYNC)
 // ======================================================
 
 @ini_set('memory_limit', '16000M');
 @set_time_limit(0);
 
+// Limpa buffers para permitir download de arquivos grandes
 while (ob_get_level()) ob_end_clean();
 
 header("Access-Control-Allow-Origin: *");
@@ -13,27 +14,29 @@ header("Access-Control-Allow-Origin: *");
 $indexJson = __DIR__ . '/index.json';
 $logins = is_file($indexJson) ? json_decode(file_get_contents($indexJson), true) ?: [] : [];
 
-// Identifica o PATH da URL (ex: caminho/arquivo.txt)
+// Identificação precisa do PATH
 $path = ltrim($_SERVER['PATH_INFO'] ?? '', '/');
 if (!$path) {
-    $scriptName = $_SERVER['SCRIPT_NAME'];
-    $path = ltrim(str_replace($scriptName, '', $_SERVER['REQUEST_URI']), '/');
-    $path = explode('?', $path)[0];
+    $uri = explode('?', $_SERVER['REQUEST_URI'])[0];
+    $path = ltrim(str_replace($_SERVER['SCRIPT_NAME'], '', $uri), '/');
 }
 
-if (!$path) exit("ERRO: DEFINA_UM_PATH_NA_URL");
+if (!$path || $path === 'index.php') exit("ERRO: CAMINHO_INVALIDO");
 
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
-$baseUrl = $protocol . $_SERVER['HTTP_HOST'] . explode('?', $_SERVER['REQUEST_URI'])[0];
+$localPath = __DIR__ . '/' . $path;
+$fileName = basename($path);
 
 // ======================================================
-// 📤 UPLOAD: RETORNA APENAS A URL DO PATH
+// 📤 UPLOAD (POST)
 // ======================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $inputData = file_get_contents('php://input');
     if (empty($inputData)) exit("ERRO: SEM_CONTEUDO");
+
+    // 🔥 Limpa cache local antes de novo upload
+    if (file_exists($localPath)) @unlink($localPath);
     
-    $chunks = str_split($inputData, 1024);
+    $chunks = str_split($inputData, 1024 * 1024); // Chunks de 1MB para eficiência
     $total = count($chunks);
     $successCount = 0;
 
@@ -63,21 +66,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($successCount === $total) {
-        exit($baseUrl); 
-    } else {
-        exit("ERRO: FALHA_FRAGMENTO_PARTIAL_$successCount");
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+        exit($protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']); 
     }
+    exit("ERRO: FALHA_PARCIAL");
 }
 
 // ======================================================
-// 📥 DOWNLOAD + SALVAMENTO LOCAL (AUTO-DOWNLOAD NO PHP)
+// 📥 DOWNLOAD (GET) - LÓGICA DE SINCRONIA
 // ======================================================
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    
+    // 1. Se já existe localmente, apenas entrega
+    if (file_exists($localPath)) {
+        header("Content-Type: application/octet-stream");
+        header("Content-Disposition: attachment; filename=\"$fileName\"");
+        header("Content-Length: " . filesize($localPath));
+        readfile($localPath);
+        exit;
+    }
+
+    // 2. Se não existe, reconstrói do FTP
     $fullContent = "";
     $part = 1;
     $foundAny = true;
 
-    // 1. Reconstrói a partir dos fragmentos FTP
     while ($foundAny) {
         $partName = "part_$part.txt";
         $foundPart = false;
@@ -103,23 +116,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     if ($fullContent === "") {
         http_response_code(404);
-        exit("ERRO_ARQUIVO_INEXISTENTE");
+        exit("ERRO: ARQUIVO_NAO_ENCONTRADO");
     }
 
-    // --- NOVA LÓGICA: SALVAR NO SERVIDOR LOCAL ---
-    $localPath = __DIR__ . '/' . $path;
+    // 3. Salva localmente para o próximo acesso ser instantâneo
     $localDir = dirname($localPath);
-
-    // Cria as pastas locais se não existirem
-    if (!is_dir($localDir)) {
-        @mkdir($localDir, 0777, true);
-    }
-
-    // Salva o arquivo no disco do servidor PHP
+    if (!is_dir($localDir)) @mkdir($localDir, 0777, true);
     @file_put_contents($localPath, $fullContent);
 
-    // --- ENTREGA O DOWNLOAD PARA O USUÁRIO ---
-    $fileName = basename($path);
+    // 4. Entrega o download
     header("Content-Type: application/octet-stream");
     header("Content-Length: " . strlen($fullContent));
     header("Content-Disposition: attachment; filename=\"$fileName\"");
