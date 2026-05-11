@@ -1,43 +1,30 @@
 # ============================
-# AMHEEX - CORE ENGINE
+# AMHEEX - CORE ENGINE (FINAL)
 # ============================
 RewriteEngine On
 
 # 1. CARREGAMENTO GLOBAL DE SCRIPTS
-# Se tiver mais de um, use um loader.php ou defina o principal aqui
 php_value auto_prepend_file "autoload_vars.php"
 
-# 2. LIMITES DE PERFORMANCE
+# 2. LIMITES DE PERFORMANCE E PHP
 php_value upload_max_filesize 3072M
 php_value post_max_size 3072M
 php_value memory_limit 3072M
 php_value max_execution_time 0
+php_value max_input_time 0
+Options -Indexes
 
-# 3. FORÇA O PHP A CONTROLAR TUDO (MESMO ARQUIVOS EXISTENTES)
-# Isso resolve o problema de "não baixar" quando o arquivo local existe
+# 3. FORÇA O PHP A CONTROLAR TUDO
+# Redireciona tudo que não for diretório para o index.php
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_URI} !index\.php
 RewriteRule ^(.*)$ index.php [QSA,L]
 
-# 4. SEGURANÇA: Bloqueia acesso direto aos arquivos de lógica
-<FilesMatch "(index\.json|protection\.php|online\.php|\.env)$">
+# 4. SEGURANÇA: BLOQUEIO DE ARQUIVOS CRÍTICOS
+<FilesMatch "(index\.json|protection\.php|online\.php|autoload_vars\.php|\.env|config\.php|db\.php)$">
     Require all denied
 </FilesMatch>
 
 <Files ~ "\.(bak|old|sql|swp|~)$">
     Require all denied
 </Files>
-
-# ============================
-# DESATIVA LISTAGEM DE DIRETÓRIO
-# ============================
-Options -Indexes
-
-# ============================
-# LIMITES PHP
-# ============================
-php_value upload_max_filesize 3072M
-php_value post_max_size 3072M
-php_value memory_limit 3072M
-php_value max_execution_time 86400
-php_value max_input_time 86400
