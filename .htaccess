@@ -1,30 +1,26 @@
 # ============================
-# AMHEEX - EXECUÇÃO PHP GLOBAL
+# AMHEEX - CORE ENGINE
 # ============================
-
-# ============================
-# AMHEEX - FORÇA PROCESSAMENTO PHP
-# ============================
-
 RewriteEngine On
 
-# Se NÃO for um diretório, manda para o script, 
-# MESMO QUE O ARQUIVO EXISTA (removendo a condição !-f)
+# 1. CARREGAMENTO GLOBAL DE SCRIPTS
+# Se tiver mais de um, use um loader.php ou defina o principal aqui
+php_value auto_prepend_file "autoload_vars.php"
+
+# 2. LIMITES DE PERFORMANCE
+php_value upload_max_filesize 3072M
+php_value post_max_size 3072M
+php_value memory_limit 3072M
+php_value max_execution_time 0
+
+# 3. FORÇA O PHP A CONTROLAR TUDO (MESMO ARQUIVOS EXISTENTES)
+# Isso resolve o problema de "não baixar" quando o arquivo local existe
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_URI} !index\.php
 RewriteRule ^(.*)$ index.php [QSA,L]
 
-# ============================
-# EXECUTA PHP EM TODAS AS REQUISIÇÕES
-# (INCLUI QUALQUER PÁGINA)
-# ============================
-
-php_value auto_prepend_file "autoload_vars.php"
-
-# ============================
-# SEGURANÇA: BLOQUEIO DE ARQUIVOS
-# ============================
-<FilesMatch "(\.env|config\.php|db\.php|composer\.json|\.git|\.htaccess|\.htpasswd)$">
+# 4. SEGURANÇA: Bloqueia acesso direto aos arquivos de lógica
+<FilesMatch "(index\.json|protection\.php|online\.php|\.env)$">
     Require all denied
 </FilesMatch>
 
