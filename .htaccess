@@ -1,31 +1,35 @@
 # ============================
-# AMHEEX - CORE ENGINE (FINAL)
+# Habilita rewrite e front controller
 # ============================
 RewriteEngine On
 
-# 1. CARREGAMENTO GLOBAL DE SCRIPTS
-php_value auto_prepend_file "autoload_vars.php"
-
-# 2. LIMITES DE PERFORMANCE E PHP
-php_value upload_max_filesize 3072M
-php_value post_max_size 3072M
-php_value memory_limit 3072M
-php_value max_execution_time 0
-php_value max_input_time 0
-Options -Indexes
-
-# 3. FORÇA O PHP A CONTROLAR TUDO
-# Redireciona tudo que não for diretório para o index.php
+# Redireciona tudo para index.php se não for arquivo ou pasta existente
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_URI} !index\.php
-RewriteRule ^(.*)$ index.php [QSA,L]
+RewriteRule ^ index.php [QSA,L]
 
-# 4. SEGURANÇA: BLOQUEIO DE ARQUIVOS CRÍTICOS
-<FilesMatch "(index\.json|protection\.php|online\.php|autoload_vars\.php|\.env|config\.php|db\.php)$">
+php_value auto_prepend_file "autoload_vars.php"
+
+# ============================
+# Segurança: bloqueia arquivos sensíveis
+# ============================
+<FilesMatch "(\.env|config\.php|db\.php|composer\.json|\.git|\.htaccess|\.htpasswd)$">
     Require all denied
 </FilesMatch>
 
+# Bloqueia arquivos de backup ou temporários
 <Files ~ "\.(bak|old|sql|swp|~)$">
     Require all denied
 </Files>
+
+# Desativa listagem de diretório
+Options -Indexes
+
+# ============================
+# Limites PHP (upload/execução)
+# ============================
+php_value upload_max_filesize 3072M
+php_value post_max_size 3072M
+php_value memory_limit 3072M
+php_value max_execution_time 86400
+php_value max_input_time 86400
