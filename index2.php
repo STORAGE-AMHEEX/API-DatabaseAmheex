@@ -223,7 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // cria arquivo se não existir
     if (!file_exists($localPath)) {
 
-        $defaultContent = '1';
+        $defaultContent = 'Aguardando...';
 
         $create = @file_put_contents(
             $localPath,
