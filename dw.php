@@ -1,5 +1,7 @@
 <?php
 
+include_once "exc_re.php"; 
+
 // 1. Performance e Supressão de Erros
 @error_reporting(0);
 @ini_set('display_errors', 0);
