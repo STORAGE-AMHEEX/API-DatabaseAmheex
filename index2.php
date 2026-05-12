@@ -67,8 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         // 1. Cria o diretório se necessário
         if (!is_dir($localDir)) @mkdir($localDir, 0777, true);
         
-        // 2. Cria o arquivo com o conteúdo padrão
-        $defaultText = "teste";
+        // 2. Cria o arquivo com o conteúdo padrão"teste"
+        $defaultText = "";
         if (@file_put_contents($localPath, $defaultText)) {
             // 3. Redireciona após criar
             header("Location: " . $targetUrl, true, 302);
