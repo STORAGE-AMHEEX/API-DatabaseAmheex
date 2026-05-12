@@ -1,45 +1,44 @@
 <?php
 /**
- * Redirect Only If Not Empty - Corrigido
+ * Silent Redirector Logic
+ * Ação: Redireciona apenas se o arquivo existir. Caso contrário, morre em silêncio.
  */
 
-@ini_set('memory_limit', '128M'); // Redirecionamento não gasta quase nada de RAM
+// 1. Silêncio e Performance
+@error_reporting(0);
+@ini_set('display_errors', 0);
+@ini_set('memory_limit', '64M'); 
 
-// 1. Configuração de URL e Caminho
+// 2. Configuração de Host e Base
 $protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')) ? 'https://' : 'http://';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$baseDir = rtrim(str_replace(basename($_SERVER['SCRIPT_NAME']), '', $_SERVER['SCRIPT_NAME']), '/');
 
-// Captura o diretório base onde este script está (importante se não estiver na raiz)
-$baseDir = str_replace(basename($_SERVER['SCRIPT_NAME']), '', $_SERVER['SCRIPT_NAME']);
-$baseDir = rtrim($baseDir, '/');
-
+// 3. Captura do Path
 $path = '';
 if (!empty($_SERVER['PATH_INFO'])) {
     $path = trim($_SERVER['PATH_INFO'], '/');
 } else {
     $uri = explode('?', $_SERVER['REQUEST_URI'])[0];
-    $scriptName = $_SERVER['SCRIPT_NAME'];
-    $path = trim(str_replace($scriptName, '', $uri), '/');
+    $path = trim(str_replace($_SERVER['SCRIPT_NAME'], '', $uri), '/');
 }
 
 // Limpeza de segurança
 $path = str_replace(['../', '..\\', "\0"], '', urldecode($path));
 $localPath = __DIR__ . '/X/' . $path;
 
-// 2. Lógica de Verificação
-if (!empty($path) && file_exists($localPath) && !is_dir($localPath)) {
+// 4. Validação e Redirecionamento
+if (!empty($path) && @file_exists($localPath) && !is_dir($localPath)) {
     
-    // clearstatcache garante que o PHP não leia um tamanho antigo em cache
-    clearstatcache(true, $localPath);
+    @clearstatcache(true, $localPath);
     $size = @filesize($localPath);
 
+    // Só redireciona se o arquivo for maior que 0 bytes
     if ($size !== false && $size > 0) {
         
-        // 3. Montagem da URL de Redirecionamento
-        // Usamos o $baseDir para garantir que a pasta /X/ seja encontrada em relação ao script
         $targetUrl = $protocol . $host . $baseDir . '/X/' . str_replace('\\', '/', $path);
         
-        // Remove barras duplas acidentais (exceto a do protocolo)
+        // Limpa a URL de barras duplas extras
         $targetUrl = preg_replace('/([^:])(\/{2,})/', '$1/', $targetUrl);
 
         header('Location: ' . $targetUrl, true, 302);
@@ -47,6 +46,5 @@ if (!empty($path) && file_exists($localPath) && !is_dir($localPath)) {
     }
 }
 
-// 4. Fallback (0 bytes ou não existe)
-http_response_code(404);
+// 5. Se falhar, termina sem renderizar nada e sem disparar código de erro visível
 exit;
