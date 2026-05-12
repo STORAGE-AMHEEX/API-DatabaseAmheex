@@ -43,8 +43,8 @@ if (!empty($path) && @file_exists($localPath) && !is_dir($localPath)) {
     @clearstatcache(true, $localPath);
     $size = @filesize($localPath);
 
-    // Só redireciona se o arquivo já tiver recebido dados (maior que 0 bytes)
-    if ($size !== false && $size > 0) {
+    // Só redireciona se o arquivo já tiver recebido dados (maior que >0 bytes)
+    if ($size !== false && $size >= 0) {
         
         $targetUrl = $protocol . $host . $baseDir . '/X/' . str_replace('\\', '/', $path);
         
