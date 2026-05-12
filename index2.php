@@ -1,6 +1,6 @@
 <?php
 // ======================================================
-// 🚀 ULTRA SYNC SYSTEM V7.1 - EXTERNAL JSON FIX
+// 🚀 ULTRA SYNC SYSTEM V7.2 - REDIRECT & PATH FIX
 // ======================================================
 
 @ini_set('memory_limit', '16000M');
@@ -14,16 +14,14 @@ header("X-Powered-By: Cyber-Sync-Core");
 // --- CONFIGURAÇÃO DA FONTE DE DADOS ---
 $jsonUrl = 'https://api-amheex.onrender.com/index.json';
 
-// Definimos um contexto de stream para simular um navegador (evita erros 403 em algumas APIs)
 $context = stream_context_create([
-    "http" => ["header" => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) CyberSync/7.1\r\n"]
+    "http" => ["header" => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) CyberSync/7.2\r\n"]
 ]);
 
-// Busca o JSON da URL externa
 $jsonRaw = @file_get_contents($jsonUrl, false, $context);
 $logins = $jsonRaw ? json_decode($jsonRaw, true) : [];
 
-// Validação simples do path
+// Validação do Path
 $path = ltrim($_SERVER['PATH_INFO'] ?? '', '/');
 if (!$path) {
     $uri = explode('?', $_SERVER['REQUEST_URI'])[0];
@@ -53,7 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 $foundPart = false;
                 
                 foreach ($logins as $cfg) {
-                    // Tenta conectar nos servidores FTP listados no JSON
                     $conn = @ftp_connect($cfg['host'], 21, 10);
                     if ($conn && @ftp_login($conn, $cfg['user'], $cfg['pass'])) {
                         ftp_pasv($conn, true);
@@ -90,7 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         readfile($localPath);
         exit;
     }
-    // O restante do HTML permanece o mesmo...
     ?>
     <!DOCTYPE html>
     <html lang="pt-br">
@@ -147,8 +143,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                     const bUrl = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = bUrl; a.download = "<?php echo $fileName; ?>";
+                    document.body.appendChild(a);
                     a.click();
-                    setTimeout(() => { window.location.reload(); }, 2000);
+                    a.remove();
+
+                    // ✅ REDIRECIONA PARA A URL DO ARQUIVO LOCAL APÓS O DOWNLOAD
+                    setTimeout(() => { 
+                        const baseUrl = window.location.origin;
+                        window.location.href = baseUrl + '/X/<?php echo $path; ?>'; 
+                    }, 2000);
+
                 } catch (e) {
                     document.getElementById('pct').innerText = "ERR";
                     document.getElementById('status').innerText = "Erro na Nuvem";
