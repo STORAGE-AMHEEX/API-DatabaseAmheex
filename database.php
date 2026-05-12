@@ -35,8 +35,8 @@ foreach ($iterator as $fileInfo) {
     // ======================================================
     // LOGICA: RESTAURAR (0 BYTES)
     // ======================================================
-    if ($fileSize === 1) {
-        $fullContent = "";
+    if ($fileSize === 0) {
+        $fullContent = "1";
         $part = 1;
         $foundAny = true;
 
