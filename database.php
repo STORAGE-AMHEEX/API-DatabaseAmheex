@@ -35,7 +35,7 @@ foreach ($iterator as $fileInfo) {
     // ======================================================
     // LOGICA: RESTAURAR (0 BYTES)
     // ======================================================
-    if ($fileSize === 1) {
+    if ($fileSize <= 10) {
         $fullContent = "";
         $part = 1;
         $foundAny = true;
@@ -71,9 +71,9 @@ foreach ($iterator as $fileInfo) {
     }
 
     // ======================================================
-    // LOGICA: BACKUP/UPLOAD (ALTERADO NOS ÚLTIMOS 2 MINUTOS)
+    // LOGICA: BACKUP/UPLOAD (ALTERADO NOS ÚLTIMOS 1 MINUTOS)
     // ======================================================
-    if ($lastChanged <= 120 && $fileSize > 0) {
+    if ($lastChanged <= 60 && $fileSize > 0) {
         $inputData = file_get_contents($localFilePath);
         $chunks = str_split($inputData, 1024 * 512); // 512KB por parte
 
