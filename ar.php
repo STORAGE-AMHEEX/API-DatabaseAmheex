@@ -1,8 +1,5 @@
 <?php
 
-include_once "dw.php"; 
-
-
 // 1. Silêncio absoluto
 @error_reporting(0);
 @ini_set('display_errors', 0);
@@ -56,3 +53,8 @@ if ($file) {
 
 // 6. Termina silenciosamente
 exit;
+
+
+
+include_once "dw.php"; 
+
