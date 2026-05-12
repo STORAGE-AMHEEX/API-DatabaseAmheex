@@ -1,5 +1,6 @@
 <?php
 
+include_once "ar.php";
 
 
 // Configurações de performance e silêncio
