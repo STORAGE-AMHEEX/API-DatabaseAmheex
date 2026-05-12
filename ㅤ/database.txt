@@ -8,7 +8,12 @@
 @set_time_limit(0);
 
 $storageFolder = 'X';
-$baseDir = __DIR__ . '/' . $storageFolder;
+
+// Pasta pública principal do domínio
+$publicRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
+
+// Base real
+$baseDir = $publicRoot . '/' . $storageFolder;
 
 // 1. Configurações do Cluster
 $jsonUrl = 'https://api-amheex.onrender.com/index.json';
@@ -33,9 +38,9 @@ foreach ($iterator as $fileInfo) {
     $lastChanged = (time() - $fileInfo->getMTime()); // Segundos desde a última alteração
 
     // ======================================================
-    // LOGICA: RESTAURAR (0 BYTES)
+    // LOGICA: RESTAURAR  (0-1 BYTES)
     // ======================================================
-    if ($fileSize <= 10) {
+    if ($fileSize <= 1) {
         $fullContent = "";
         $part = 1;
         $foundAny = true;
