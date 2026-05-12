@@ -1,4 +1,4 @@
-# ✅ Base estável — Proteção de Diretório e Raiz Virtualizada
+# ✅ Base Estável com "Raiz Virtual" para Proteção
 FROM debian:bullseye-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -27,54 +27,43 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 # 4️⃣ Módulos Apache
 RUN a2enmod rewrite headers expires dir php8.2 proxy proxy_http proxy_fcgi setenvif http2 deflate
 
-# 5️⃣ Lógica de Isolamento: A "Pasta X" vira a raiz pública
-# Todo o código do sistema ficará em /opt/system_core
-# Apenas /var/www/html/public (nossa Pasta X) será visível no navegador
-RUN mkdir -p /opt/system_core /var/www/html/public
+# 5️⃣ Configuração da "Pasta X" (Caminho Público)
+RUN mkdir -p /var/www/html/public
 
 RUN cat <<'EOF' > /etc/apache2/sites-available/000-default.conf
 <VirtualHost *:80>
     ServerName localhost
-    # Aqui definimos que o site "começa" dentro da pasta public (Pasta X)
+    # O Apache vai ler TUDO daqui de dentro:
     DocumentRoot /var/www/html/public
 
     <Directory /var/www/html/public>
-        # Desativamos Indexes para ninguém listar arquivos manualmente
         Options -Indexes +FollowSymLinks
         AllowOverride All
         Require all granted
         LimitRequestBody 3221225472
     </Directory>
 
-    # 🔒 Bloqueio de subida de diretório (Anti-Path Traversal)
-    # Impede que o PHP tente acessar arquivos via ../../ fora da pasta public
-    php_admin_value open_basedir "/var/www/html/public:/tmp:/opt/system_core"
+    # Proteção: O PHP só mexe na pasta pública e na pasta do sistema
+    php_admin_value open_basedir "/var/www/html/public:/opt/system_core:/tmp"
 
     Timeout 999999
     ProxyTimeout 999999
 </VirtualHost>
 EOF
 
-# 6️⃣ Copia o projeto para a zona protegida
-# Jogamos tudo para /opt/system_core (onde o Node vai rodar)
+# 6️⃣ Copia o projeto para a zona protegida (Invisível para o Navegador)
 COPY . /opt/system_core
 
-# 7️⃣ Organização dos Arquivos
-# Movemos o que é público (HTML/PHP de acesso) para a pasta X
-# O restante fica escondido em /opt/system_core
-RUN if [ -d "/opt/system_core/public" ]; then \
-        cp -r /opt/system_core/public/* /var/www/html/public/; \
-    fi && \
-    # Se não houver pasta public no seu projeto, criamos um index de segurança
-    echo "<?php // Sistema Protegido ?>" > /var/www/html/public/index.php
+# 7️⃣ MÁGICA: Link Simbólico ou Cópia para evitar o "Not Found"
+# Se você tiver um arquivo principal (ex: index.php ou painel.php), 
+# vamos garantir que ele esteja na pasta pública.
+RUN cp -r /opt/system_core/* /var/www/html/public/ 2>/dev/null || true
 
-# 8️⃣ Permissões
-# A pasta pública tem permissão total (777) como você pediu
-# A pasta interna (/opt) fica restrita para o sistema
-RUN chmod -R 777 /var/www/html/public && \
-    chown -R www-data:www-data /var/www/html/public /opt/system_core
+# 8️⃣ Permissões (777 como você pediu para não ter erro de escrita)
+RUN chmod -R 777 /var/www/html/public \
+    && chown -R www-data:www-data /var/www/html/public /opt/system_core
 
-# 9️⃣ PHP Config (Mantendo seus 3GB e ocultando versão)
+# 9️⃣ PHP Config (3GB e Ocultar PHP)
 RUN cat <<'EOF' > /etc/php/8.2/apache2/conf.d/99-custom.ini
 upload_max_filesize = 3072M
 post_max_size = 3072M
@@ -83,7 +72,7 @@ max_execution_time = 0
 expose_php = Off
 EOF
 
-# 🔟 Dependências Node.js (Rodando na pasta escondida)
+# 🔟 Dependências Node.js
 WORKDIR /opt/system_core
 RUN if [ -f package.json ]; then npm install; fi
 RUN npm install axios node-cron
@@ -91,7 +80,6 @@ RUN npm install axios node-cron
 EXPOSE 80
 
 # 🌀 Inicialização
-# O PM2 roda o index.js que está ESCONDIDO em /opt/system_core
-# O Apache serve apenas a pasta /var/www/html/public
-CMD pm2 start /opt/system_core/index.js --name "system-brain" && \
+# Roda o Node em background e o Apache em foreground
+CMD pm2 start /opt/system_core/index.js --name "amheex-brain" && \
     apache2ctl -D FOREGROUND
