@@ -1,5 +1,6 @@
 <?php
 
+include_once "re.php";
 
 
 // 1. Silêncio absoluto e Performance
