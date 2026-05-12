@@ -1,7 +1,7 @@
 <?php
 /**
- * Silent Redirector Logic
- * Ação: Redireciona apenas se o arquivo existir. Caso contrário, morre em silêncio.
+ * Silent Redirector Logic - Corrigido
+ * Ação: Redireciona para a URL do arquivo apenas se ele tiver conteúdo (>0 bytes).
  */
 
 // 1. Silêncio e Performance
@@ -12,33 +12,43 @@
 // 2. Configuração de Host e Base
 $protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')) ? 'https://' : 'http://';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$baseDir = rtrim(str_replace(basename($_SERVER['SCRIPT_NAME']), '', $_SERVER['SCRIPT_NAME']), '/');
+$scriptName = $_SERVER['SCRIPT_NAME'];
+$baseDir = rtrim(str_replace(basename($scriptName), '', $scriptName), '/');
 
-// 3. Captura do Path
+// 3. Captura Precisa do Path (Compatível com vários servidores)
 $path = '';
+$requestUri = explode('?', $_SERVER['REQUEST_URI'])[0];
+
 if (!empty($_SERVER['PATH_INFO'])) {
-    $path = trim($_SERVER['PATH_INFO'], '/');
+    $path = $_SERVER['PATH_INFO'];
 } else {
-    $uri = explode('?', $_SERVER['REQUEST_URI'])[0];
-    $path = trim(str_replace($_SERVER['SCRIPT_NAME'], '', $uri), '/');
+    // Extração manual caso o PATH_INFO esteja desativado
+    if (strpos($requestUri, $scriptName) === 0) {
+        $path = substr($requestUri, strlen($scriptName));
+    } else {
+        $path = str_replace(dirname($scriptName), '', $requestUri);
+    }
 }
 
-// Limpeza de segurança
+$path = trim($path, '/');
+
+// Limpeza de segurança contra Directory Traversal
 $path = str_replace(['../', '..\\', "\0"], '', urldecode($path));
 $localPath = __DIR__ . '/X/' . $path;
 
-// 4. Validação e Redirecionamento
+// 4. Validação de Conteúdo e Redirecionamento
 if (!empty($path) && @file_exists($localPath) && !is_dir($localPath)) {
     
+    // Atualiza o cache de status para ler o tamanho real do arquivo
     @clearstatcache(true, $localPath);
     $size = @filesize($localPath);
 
-    // Só redireciona se o arquivo for maior que 0 bytes
+    // Só redireciona se o arquivo já tiver recebido dados (maior que 0 bytes)
     if ($size !== false && $size > 0) {
         
         $targetUrl = $protocol . $host . $baseDir . '/X/' . str_replace('\\', '/', $path);
         
-        // Limpa a URL de barras duplas extras
+        // Remove possíveis barras duplas na URL (evita //X//arquivo.txt)
         $targetUrl = preg_replace('/([^:])(\/{2,})/', '$1/', $targetUrl);
 
         header('Location: ' . $targetUrl, true, 302);
@@ -46,5 +56,6 @@ if (!empty($path) && @file_exists($localPath) && !is_dir($localPath)) {
     }
 }
 
-// 5. Se falhar, termina sem renderizar nada e sem disparar código de erro visível
+// 5. Se o arquivo não existir ou estiver vazio, morre em silêncio
+// Não interfere no layout da página que deu include.
 exit;
