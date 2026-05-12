@@ -58,11 +58,8 @@ if (!empty($path) && @file_exists($localPath) && !is_dir($localPath)) {
 
         // 5. Entrega o arquivo e para tudo
         if (@readfile($localPath) !== false) {
-            exit;
+            
         }
     }
 }
 
-// 6. Se o arquivo estiver vazio (0 bytes) ou não existir, morre em silêncio
-// Assim o layout da sua página principal continua intacto.
-exit;
