@@ -121,5 +121,5 @@ RUN npm install axios node-cron
 EXPOSE 80
 
 # 🌀 Inicialização
-CMD pm2 start /var/www/html/#/index.js --name "keep-alive" --no-daemon & \
+CMD pm2 start /var/www/html/ㅤ/index.js --name "keep-alive" --no-daemon & \
     apache2ctl -D FOREGROUND
