@@ -52,10 +52,7 @@ if (!empty($path) && @file_exists($localPath) && !is_dir($localPath)) {
         $targetUrl = preg_replace('/([^:])(\/{2,})/', '$1/', $targetUrl);
 
         header('Location: ' . $targetUrl, true, 302);
-        exit;
+        
     }
 }
 
-// 5. Se o arquivo não existir ou estiver vazio, morre em silêncio
-// Não interfere no layout da página que deu include.
-exit;
