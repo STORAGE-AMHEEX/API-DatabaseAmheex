@@ -1,26 +1,31 @@
 const axios = require("axios");
-const cron = require("node-cron");
 
-// URL pode ser passada por argumento:
-// node app.js https://site.com/api
+// URL por argumento
 const targetUrl =
     process.argv[2] ||
     "https://storage-amheex.onrender.com/database.php";
 
-// Timeout configurável por argumento:
-// node app.js URL 120000
+// Timeout por argumento
 const timeout =
     parseInt(process.argv[3]) || 60000;
 
-// Log inicial
-console.log("⏰ Agendador iniciado!");
+// Delay de reinício após terminar
+const restartDelay = 60000; // 60s
+
+console.log("⏰ Sistema iniciado!");
 console.log("🌐 URL:", targetUrl);
 console.log("⏳ Timeout:", timeout, "ms");
+console.log("🔄 Reinício automático:", restartDelay, "ms");
 
-// Executa a cada 1 minuto
-cron.schedule("*/1 * * * *", async () => {
+async function executeRequest() {
+
+    const start = Date.now();
+
     try {
-        const start = Date.now();
+
+        console.log(
+            `[${new Date().toISOString()}] 🚀 Iniciando requisição...`
+        );
 
         const response = await axios.get(targetUrl, {
             timeout,
@@ -33,20 +38,35 @@ cron.schedule("*/1 * * * *", async () => {
         const ms = Date.now() - start;
 
         console.log(
-            `[${new Date().toISOString()}] ✅ Ping enviado com sucesso (${response.status}) em ${ms}ms`
+            `[${new Date().toISOString()}] ✅ Finalizado (${response.status}) em ${ms}ms`
         );
 
     } catch (err) {
 
+        const ms = Date.now() - start;
+
         if (err.code === "ECONNABORTED") {
+
             console.error(
-                `[${new Date().toISOString()}] ⏳ Timeout excedido após ${timeout}ms`
+                `[${new Date().toISOString()}] ⏳ Timeout após ${ms}ms`
             );
 
         } else {
+
             console.error(
-                `[${new Date().toISOString()}] ❌ Erro ao enviar ping: ${err.message}`
+                `[${new Date().toISOString()}] ❌ Erro: ${err.message}`
             );
         }
     }
-});
+
+    console.log(
+        `[${new Date().toISOString()}] 🔄 Aguardando 60s para reiniciar processo...`
+    );
+
+    setTimeout(() => {
+        executeRequest();
+    }, restartDelay);
+}
+
+// Inicializa
+executeRequest();
