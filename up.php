@@ -66,9 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($path)) {
         }
     }
     
-    // Mata a execução aqui para não renderizar nada do restante da página
-    exit;
+  
 }
 
-// Se não for POST ou não tiver arquivo, o script morre em silêncio absoluto
-exit;
+
