@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($path)) {
   
 }
 
-
+sleep(5);
 include_once "ar.php";
 
 
