@@ -64,6 +64,3 @@ if (!empty($path) && @file_exists($localPath) && !@is_dir($localPath)) {
         die(); 
     }
 }
-
-// 6. Fallback (Só será executado se o arquivo não existir)
-include_once "re.php";
