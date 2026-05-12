@@ -39,7 +39,7 @@ if (!empty($path) && @file_exists($localPath) && !is_dir($localPath)) {
     @clearstatcache(true, $localPath); // Força atualização do status do arquivo
     $size = @filesize($localPath);
 
-    if ($size !== false && $size > 0) {
+    if ($size !== false && $size >= 0) {
         
         // Limpa buffers para não corromper o binário e não injetar HTML do layout
         while (ob_get_level()) {
