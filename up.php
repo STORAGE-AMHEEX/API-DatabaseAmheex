@@ -1,7 +1,5 @@
 <?php
 
-include_once "ar.php";
-
 
 // Configurações de performance e silêncio
 @error_reporting(0);
@@ -67,5 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($path)) {
     
   
 }
+
+
+include_once "ar.php";
+
 
 
