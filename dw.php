@@ -1,53 +1,62 @@
 <?php
 /**
- * Silent Downloader Logic
- * - Verifica tamanho (ignora 0 bytes)
- * - Força download via headers
- * - Sem output visual, apenas binário
+ * Silent Downloader Logic - Corrigido
  */
 
-@ini_set('memory_limit', '16000M');
+// 1. Configurações de Segurança e Performance
+// Cuidado: 16GB de memória pode travar o servidor se houver muitos acessos.
+// Para readfile(), o PHP não carrega o arquivo na memória, então '128M' basta.
+@ini_set('memory_limit', '256M'); 
 @set_time_limit(0);
 
-// 1. Identifica o arquivo pelo Path
+// 2. Identifica o arquivo pelo Path
 $path = '';
 if (!empty($_SERVER['PATH_INFO'])) {
     $path = trim($_SERVER['PATH_INFO'], '/');
 } else {
-    $uri = explode('?', $_SERVER['REQUEST_URI'])[0];
-    $path = trim(str_replace($_SERVER['SCRIPT_NAME'], '', $uri), '/');
+    // Melhor forma de capturar o path após o .php
+    $scriptName = $_SERVER['SCRIPT_NAME'];
+    $requestUri = explode('?', $_SERVER['REQUEST_URI'])[0];
+    $path = str_replace($scriptName, '', $requestUri);
+    $path = trim($path, '/');
 }
 
+// Higienização rigorosa contra Directory Traversal
 $path = str_replace(['../', '..\\', "\0"], '', urldecode($path));
 $localPath = __DIR__ . '/X/' . $path;
 
-// 2. Validação de existência e tamanho
+// 3. Validação de existência e tamanho
 if (!empty($path) && file_exists($localPath) && !is_dir($localPath)) {
     
-    $size = filesize($localPath);
+    $size = @filesize($localPath);
 
-    // Só prossegue se for maior que 0 bytes
-    if ($size > 0) {
+    if ($size !== false && $size > 0) {
         
-        // Limpa qualquer lixo no buffer de saída
-        if (ob_get_level()) ob_end_clean();
+        // Limpa buffers para não corromper o arquivo binário
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
 
-        // 3. Cabeçalhos de Download
+        // 4. Cabeçalhos de Download
         header('Content-Description: File Transfer');
         header('Content-Type: application/octet-stream');
         header('Content-Disposition: attachment; filename="' . basename($localPath) . '"');
         header('Content-Transfer-Encoding: binary');
         header('Expires: 0');
-        header('Cache-Control: must-revalidate');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
         header('Pragma: public');
         header('Content-Length: ' . $size);
 
-        // 4. Entrega o arquivo e para a execução
-        readfile($localPath);
+        // 5. Entrega o arquivo de forma eficiente
+        // readfile é melhor que file_get_contents para arquivos grandes
+        if (readfile($localPath) === false) {
+            http_response_code(500);
+        }
         exit;
     }
 }
 
-// Se chegar aqui (0 bytes ou não existe), morre em silêncio
+// 6. Fallback caso o arquivo não exista ou tenha 0 bytes
 http_response_code(404);
+echo "Arquivo não encontrado ou vazio."; // Remova o echo se quiser silêncio total
 exit;
