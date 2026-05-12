@@ -45,6 +45,17 @@ if (file_exists($localPath)) {
     /**
      * MODO UPLOAD: Fragmenta e envia
      */
+    $conn = connectSync($        }
+    }
+    return false;
+}
+
+// --- EXECUÇÃO ---
+
+if (file_exists($localPath)) {
+    /**
+     * MODO UPLOAD: Fragmenta e envia
+     */
     $conn = connectSync($/**
  * Tenta conectar em um servidor FTP válido da lista
  */
