@@ -1,40 +1,51 @@
 <?php
 @ini_set('memory_limit', '16000M');
 @set_time_limit(0);
-
-// Limpa buffers de saída para evitar corromper downloads
 while (ob_get_level()) ob_end_clean();
 
-header("Access-Control-Allow-Origin: *");
-header("X-Powered-By: Cyber-Sync-Core-v8");
+header("Content-Type: text/plain");
+header("X-System: Cyber-Sync-V9-Diagnostic");
 
-// 1. Configuração de Logins via API
+// 1. Configuração de Logins (API Externa)
 $jsonUrl = 'https://api-amheex.onrender.com/index.json';
-$context = stream_context_create([
-    "http" => ["header" => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) CyberSync/8.0\r\n"]
-]);
-
+$context = stream_context_create(["http" => ["header" => "User-Agent: CyberSync/9.0\r\n"]]);
 $jsonRaw = @file_get_contents($jsonUrl, false, $context);
-$logins = $jsonRaw ? json_decode($jsonRaw, true) : [];
+$logins = json_decode($jsonRaw, true);
 
-if (empty($logins)) exit("CORE_ERROR: NO_SERVERS_CONFIGURED");
+if (empty($logins)) exit("CRITICAL_ERROR: NO_SERVERS_IN_API");
 
-// 2. Captura do Path via URL (ex: index.php/pasta/foto.jpg)
+// 2. Definição de Paths
 $path = ltrim($_SERVER['PATH_INFO'] ?? '', '/');
 if (!$path) {
     $uri = explode('?', $_SERVER['REQUEST_URI'])[0];
     $path = ltrim(str_replace($_SERVER['SCRIPT_NAME'], '', $uri), '/');
 }
+if (!$path || $path === 'index.php') exit("PATH_NOT_DEFINED");
 
-if (!$path || $path === 'index.php') exit("CORE_ERROR: PATH_EMPTY");
+$localPath = __DIR__ . '/X/' . $path;
+$remoteDir = 'X/' . dirname($path);
 
-// Define o caminho local dentro da pasta 'X'
-$relativeDir = 'X/' . dirname($path);
-$fileName = basename($path);
-$localPath = __DIR__ . '/' . 'X/' . $path;
-$chunkSize = 1024 * 512; // Tamanho do fragmento: 512KB
+// --- FUNÇÃO DE CONEXÃO ROBUSTA ---
+function connectSync($logins) {
+    foreach ($logins as $cfg) {
+        $c = @ftp_connect($cfg['host'], 21, 15);
+        if ($c && @ftp_login($c, $cfg['user'], $cfg['pass'])) {
+            ftp_pasv($c, true);
+            // Tenta localizar a raiz do servidor web
+            @ftp_chdir($c, "htdocs") || @ftp_chdir($c, "public_html") || @ftp_chdir($c, "/");
+            return $c;
+        }
+    }
+    return false;
+}
 
-/**
+// --- EXECUÇÃO ---
+
+if (file_exists($localPath)) {
+    /**
+     * MODO UPLOAD: Fragmenta e envia
+     */
+    $conn = connectSync($/**
  * Tenta conectar em um servidor FTP válido da lista
  */
 function getActiveFtp($logins) {
