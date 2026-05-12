@@ -38,9 +38,9 @@ foreach ($iterator as $fileInfo) {
     $lastChanged = (time() - $fileInfo->getMTime()); // Segundos desde a última alteração
 
     // ======================================================
-    // LOGICA: RESTAURAR (0 BYTES)
+    // LOGICA: RESTAURAR  (0-1 BYTES)
     // ======================================================
-    if ($fileSize <= 10) {
+    if ($fileSize <= 1) {
         $fullContent = "";
         $part = 1;
         $foundAny = true;
