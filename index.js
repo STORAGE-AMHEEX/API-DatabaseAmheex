@@ -10,7 +10,7 @@ cron.schedule("*/1 * * * *", async () => {
         const response = await axios.get(
             "https://storage-amheex.onrender.com/database.php",
             {
-                timeout: 2000
+                timeout: 60000
             }
         );
 
