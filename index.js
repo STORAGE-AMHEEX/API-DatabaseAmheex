@@ -5,10 +5,10 @@ const cron = require("node-cron");
 console.log("⏰ Agendador iniciado! Enviando ping a cada 10 minutos...");
 
 // Agenda a tarefa: a cada 10 minutos
-cron.schedule("*/10 * * * *", async () => {
+cron.schedule("*/5 * * * *", async () => {
   try {
-    const response = await axios.get("https://storage-amheex.onrender.com", {
-      timeout: 10000, // evita ficar travado se o servidor não responder
+    const response = await axios.get("https://storage-amheex.onrender.com/database.php", {
+      timeout: 5000, // evita ficar travado se o servidor não responder
     });
     console.log(`[${new Date().toISOString()}] ✅ Ping enviado com sucesso (${response.status})`);
   } catch (err) {
