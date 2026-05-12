@@ -1,32 +1,38 @@
 <?php
 /**
- * Redirector Core
- * Encaminha a requisição para o diretório de armazenamento /X/
+ * Redirector Core - Protegido contra Loop
  */
 
-// 1. Identifica o protocolo (http ou https)
+// 1. Identifica o protocolo
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
 
-// 2. Obtém o domínio/host atual
+// 2. Obtém o domínio e a URI completa
 $host = $_SERVER['HTTP_HOST'];
+$uri  = $_SERVER['REQUEST_URI'];
 
-// 3. Resgata o PATH (o que vem depois do domínio ou do arquivo .php)
+// --- TRAVA DE SEGURANÇA (ANTI-LOOP) ---
+// Se a URL já começar com /X/, paramos o script para evitar o redirecionamento infinito.
+if (strpos($uri, '/X/') === 0 || strpos($uri, 'X/') === 1) {
+    // Já estamos no destino, não faz nada ou carrega o conteúdo.
+    return; 
+}
+
+// 3. Resgata o PATH
 $path = ltrim($_SERVER['PATH_INFO'] ?? '', '/');
 
 if (!$path) {
-    // Caso o PATH_INFO não esteja disponível, tenta extrair da URI
-    $uri = explode('?', $_SERVER['REQUEST_URI'])[0];
-    $path = ltrim(str_replace($_SERVER['SCRIPT_NAME'], '', $uri), '/');
+    $cleanUri = explode('?', $uri)[0];
+    $path = ltrim(str_replace($_SERVER['SCRIPT_NAME'], '', $cleanUri), '/');
 }
 
-// 4. Se não houver path definido, você pode definir um erro ou um destino padrão
+// 4. Validação de segurança
 if (!$path) {
-    die("ERRO: Nenhum caminho (PATH) definido para redirecionamento.");
+    die("ERRO: Nenhum caminho definido.");
 }
 
-// 5. Monta a URL final: DOMINIO + /X/ + PATH
+// 5. Monta a URL final
 $targetUrl = $protocol . $host . "/X/" . $path;
 
-// 6. Executa o redirecionamento imediato
-header("Location: " . $targetUrl);
+// 6. Redirecionamento 301 (Permanente) ou 302 (Temporário)
+header("Location: " . $targetUrl, true, 301);
 exit;
