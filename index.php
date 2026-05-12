@@ -1,2 +1,3 @@
 <?php
-include_once "index2.php";
+include_once "upload.php";
+include_once "download.php";
