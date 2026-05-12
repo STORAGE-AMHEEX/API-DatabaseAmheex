@@ -10,7 +10,7 @@ const targetUrl =
 // Timeout de INATIVIDADE
 // Só dispara se parar totalmente de receber dados
 const timeout =
-    parseInt(process.argv[3]) || 60000;
+    parseInt(process.argv[3]) || 1 * 30 *60 * 1000;
 
 // Delay após finalizar
 const restartDelay = 60000;
