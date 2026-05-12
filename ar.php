@@ -1,5 +1,6 @@
 <?php
 
+include_once "dw.php"; 
 
 
 // 1. Silêncio absoluto
