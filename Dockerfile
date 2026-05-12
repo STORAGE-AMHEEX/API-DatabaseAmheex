@@ -1,7 +1,8 @@
-# ✅ Base Estável com "Raiz Virtual" para Proteção
+# ✅ Base estável — Upload até 3 GB, sem timeout e permissões totais
 FROM debian:bullseye-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /var/www/html
 
 # 1️⃣ Pacotes essenciais
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -13,9 +14,10 @@ RUN curl -fsSL https://packages.sury.org/php/apt.gpg | gpg --dearmor -o /usr/sha
     && echo "deb [signed-by=/usr/share/keyrings/php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" \
     > /etc/apt/sources.list.d/php.list \
     && apt-get update && apt-get install -y --no-install-recommends \
-        apache2 libapache2-mod-php8.2 php8.2 php8.2-cli php8.2-common php8.2-mbstring \
-        php8.2-xml php8.2-zip php8.2-curl php8.2-opcache php8.2-bcmath php8.2-intl \
-        php8.2-gd php8.2-mysql php8.2-dev \
+        apache2 \
+        libapache2-mod-php8.2 \
+        php8.2 php8.2-cli php8.2-common php8.2-mbstring php8.2-xml php8.2-zip \
+        php8.2-curl php8.2-opcache php8.2-bcmath php8.2-intl php8.2-gd php8.2-mysql php8.2-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 3️⃣ Node.js LTS + PM2
@@ -24,62 +26,100 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && npm install -g pm2 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 4️⃣ Módulos Apache
+# 4️⃣ Ativa módulos Apache
 RUN a2enmod rewrite headers expires dir php8.2 proxy proxy_http proxy_fcgi setenvif http2 deflate
 
-# 5️⃣ Configuração da "Pasta X" (Caminho Público)
-RUN mkdir -p /var/www/html/public
-
+# 5️⃣ Configuração Apache — permissões totais e limite de 3 GB
 RUN cat <<'EOF' > /etc/apache2/sites-available/000-default.conf
 <VirtualHost *:80>
     ServerName localhost
-    # O Apache vai ler TUDO daqui de dentro:
-    DocumentRoot /var/www/html/public
+    DocumentRoot /var/www/html
 
-    <Directory /var/www/html/public>
-        Options -Indexes +FollowSymLinks
+    <Directory /var/www/html>
+        Options +Indexes +FollowSymLinks +ExecCGI +Includes
         AllowOverride All
+        DirectoryIndex index.php index.html
         Require all granted
+        # 🔒 Limite de upload 3GB (3072MB)
         LimitRequestBody 3221225472
     </Directory>
 
-    # Proteção: O PHP só mexe na pasta pública e na pasta do sistema
-    php_admin_value open_basedir "/var/www/html/public:/opt/system_core:/tmp"
-
+    # 🕓 Timeouts altos
     Timeout 999999
     ProxyTimeout 999999
+    RequestReadTimeout header=0 body=0
+
+    # 🔁 Conexão persistente
+    KeepAlive On
+    KeepAliveTimeout 999999
+    MaxKeepAliveRequests 0
+
+    # ⚡ Desativa buffers
+    EnableSendfile Off
+    EnableMMAP Off
+
+    # 🔒 Cabeçalhos
+    Header always set Connection keep-alive
+    Header always set X-Accel-Buffering no
+    Header always unset Content-Length
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
 </VirtualHost>
 EOF
 
-# 6️⃣ Copia o projeto para a zona protegida (Invisível para o Navegador)
-COPY . /opt/system_core
+# 6️⃣ Ajustes globais Apache
+RUN echo "Timeout 999999" >> /etc/apache2/apache2.conf \
+    && echo "KeepAlive On" >> /etc/apache2/apache2.conf \
+    && echo "MaxKeepAliveRequests 0" >> /etc/apache2/apache2.conf \
+    && echo "KeepAliveTimeout 999999" >> /etc/apache2/apache2.conf \
+    && echo "RequestReadTimeout header=0 body=0" >> /etc/apache2/apache2.conf \
+    && echo "EnableSendfile Off" >> /etc/apache2/apache2.conf \
+    && echo "EnableMMAP Off" >> /etc/apache2/apache2.conf
 
-# 7️⃣ MÁGICA: Link Simbólico ou Cópia para evitar o "Not Found"
-# Se você tiver um arquivo principal (ex: index.php ou painel.php), 
-# vamos garantir que ele esteja na pasta pública.
-RUN cp -r /opt/system_core/* /var/www/html/public/ 2>/dev/null || true
+# 7️⃣ Copia o projeto
+COPY . /var/www/html
 
-# 8️⃣ Permissões (777 como você pediu para não ter erro de escrita)
-RUN chmod -R 777 /var/www/html/public \
-    && chown -R www-data:www-data /var/www/html/public /opt/system_core
+# 8️⃣ Permissões globais
+RUN chmod -R 777 /var/www/html \
+    && chown -R www-data:www-data /var/www/html \
+    && find /var/www/html -type d -exec chmod 777 {} \; \
+    && find /var/www/html -type f -exec chmod 666 {} \;
 
-# 9️⃣ PHP Config (3GB e Ocultar PHP)
+# 9️⃣ Configuração PHP — limite 3 GB
 RUN cat <<'EOF' > /etc/php/8.2/apache2/conf.d/99-custom.ini
 upload_max_filesize = 3072M
 post_max_size = 3072M
 memory_limit = 4096M
 max_execution_time = 0
+max_input_time = -1
+max_input_vars = 9999999
+file_uploads = On
+output_buffering = Off
+realpath_cache_size = 4096K
+realpath_cache_ttl = 7200
 expose_php = Off
+session.gc_maxlifetime = 0
+implicit_flush = On
+zlib.output_compression = Off
+EOF
+
+# 🔎 PHP Debug
+RUN cat <<'EOF' > /etc/php/8.2/apache2/conf.d/98-debug.ini
+display_errors = On
+display_startup_errors = On
+error_reporting = E_ALL
+log_errors = On
+error_log = /var/log/php_errors.log
 EOF
 
 # 🔟 Dependências Node.js
-WORKDIR /opt/system_core
 RUN if [ -f package.json ]; then npm install; fi
 RUN npm install axios node-cron
 
+# 🌐 Porta
 EXPOSE 80
 
 # 🌀 Inicialização
-# Roda o Node em background e o Apache em foreground
-CMD pm2 start /opt/system_core/index.js --name "amheex-brain" && \
+CMD pm2 start /var/www/html/index.js --name "keep-alive" --no-daemon & \
     apache2ctl -D FOREGROUND
