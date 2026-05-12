@@ -8,7 +8,12 @@
 @set_time_limit(0);
 
 $storageFolder = 'X';
-$baseDir = __DIR__ . '/' . $storageFolder;
+
+// Pasta pública principal do domínio
+$publicRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
+
+// Base real
+$baseDir = $publicRoot . '/' . $storageFolder;
 
 // 1. Configurações do Cluster
 $jsonUrl = 'https://api-amheex.onrender.com/index.json';
