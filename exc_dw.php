@@ -1,4 +1,4 @@
 <?php
-sleep(5);
+sleep(10);
 include_once "dw.php"; 
 
