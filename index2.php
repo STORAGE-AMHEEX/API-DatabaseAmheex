@@ -23,7 +23,9 @@ if (!$path) {
 
 if (!$path || $path === 'index.php') exit("CORE_ERROR: INVALID_PATH");
 
-$localPath = __DIR__ . '/X/' . $path;
+// Caminho local onde o arquivo será salvo
+$relativeFilePath = 'X/' . $path;
+$localPath = __DIR__ . '/' . $relativeFilePath;
 
 // ======================================================
 // 📥 PROCESSAMENTO GET (DOWNLOAD / SYNC)
@@ -73,15 +75,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
     }
 
-    // Retorno do arquivo puro
-    header("Content-Type: application/octet-stream");
-    header("Content-Length: " . filesize($localPath));
-    readfile($localPath);
+    // ======================================================
+    // 🔄 REDIRECIONAMENTO PARA O ARQUIVO
+    // ======================================================
+    // Descobre o protocolo (http ou https)
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+    // Descobre o host (ex: seu-site.com)
+    $host = $_SERVER['HTTP_HOST'];
+    // Descobre o diretório base (onde o script está rodando)
+    $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+    $basePath = rtrim($scriptDir, '/');
+
+    // Constrói a URL final para o arquivo na pasta /X/
+    $redirectUrl = $protocol . $host . $basePath . '/' . $relativeFilePath;
+
+    // Executa o redirecionamento
+    header("Location: " . $redirectUrl);
     exit;
 }
 
 // ======================================================
-// 📤 PROCESSAMENTO POST (UPLOAD)
+// 📤 PROCESSAMENTO POST (UPLOAD) - Mantido igual
 // ======================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $inputData = file_get_contents('php://input');
