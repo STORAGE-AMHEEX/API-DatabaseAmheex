@@ -2,6 +2,7 @@
 @ini_set('memory_limit', '16000M');
 @set_time_limit(0);
 
+// Limpa buffers de saída para garantir que o HTML de espera seja enviado imediatamente
 while (ob_get_level()) ob_end_clean();
 
 header("Access-Control-Allow-Origin: *");
@@ -76,26 +77,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     // ======================================================
-    // 🔄 REDIRECIONAMENTO PARA O ARQUIVO
+    // 🔄 REDIRECIONAMENTO COM DELAY (10 SEGUNDOS)
     // ======================================================
-    // Descobre o protocolo (http ou https)
+    
+    // Constrói a URL de redirecionamento
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
-    // Descobre o host (ex: seu-site.com)
     $host = $_SERVER['HTTP_HOST'];
-    // Descobre o diretório base (onde o script está rodando)
     $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
     $basePath = rtrim($scriptDir, '/');
-
-    // Constrói a URL final para o arquivo na pasta /X/
     $redirectUrl = $protocol . $host . $basePath . '/' . $relativeFilePath;
 
-    // Executa o redirecionamento
-    header("Location: " . $redirectUrl);
+    // Envia o cabeçalho de atualização para 10 segundos
+    header("Refresh: 10; url=" . $redirectUrl);
+    
+    // Interface visual de espera
+    echo "<!DOCTYPE html>
+    <html lang='pt-br'>
+    <head>
+        <meta charset='UTF-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <title>Sincronizando Arquivo</title>
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #0f172a; color: #f8fafc; }
+            .container { text-align: center; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid #334155; max-width: 400px; }
+            .loader { border: 4px solid #334155; border-top: 4px solid #38bdf8; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+            h2 { margin-bottom: 10px; color: #38bdf8; }
+            p { color: #94a3b8; font-size: 0.9rem; line-height: 1.5; }
+            .timer { font-weight: bold; color: #facc15; }
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            a { color: #38bdf8; text-decoration: none; font-size: 0.8rem; opacity: 0.7; }
+            a:hover { opacity: 1; text-decoration: underline; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <div class='loader'></div>
+            <h2>Processando Download</h2>
+            <p>O arquivo foi reconstruído com sucesso!<br>Aguarde <span class='timer'>10 segundos</span> para liberar o link de acesso direto.</p>
+            <br>
+            <a href='$redirectUrl'>Clique aqui se não for redirecionado automaticamente</a>
+        </div>
+    </body>
+    </html>";
     exit;
 }
 
 // ======================================================
-// 📤 PROCESSAMENTO POST (UPLOAD) - Mantido igual
+// 📤 PROCESSAMENTO POST (UPLOAD)
 // ======================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $inputData = file_get_contents('php://input');
