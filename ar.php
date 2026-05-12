@@ -1,6 +1,6 @@
 <?php
 
-include_once "dw.php"; 
+include_once "exc_dw.php"; 
 
 // 1. Silêncio absoluto
 @error_reporting(0);
