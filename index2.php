@@ -1,7 +1,7 @@
 <?php
 /**
  * Unified Cyber-Redirector & Local Writer
- * Integração: Redirecionamento Automático + Criação de Arquivo Inexistente
+ * Correção: criação automática de arquivos e pastas
  */
 
 @ini_set('memory_limit', '16000M');
@@ -10,72 +10,189 @@
 header("Access-Control-Allow-Origin: *");
 header("X-Powered-By: Cyber-Unified-Core");
 
-// 1. Identificação do Protocolo e Host
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
-$host = $_SERVER['HTTP_HOST'];
-$uri  = $_SERVER['REQUEST_URI'];
+// ===============================
+// 1. PROTOCOLO E HOST
+// ===============================
+$protocol =
+(
+    (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || ($_SERVER['SERVER_PORT'] ?? 80) == 443
+)
+? "https://"
+: "http://";
 
-// --- TRAVA DE SEGURANÇA (ANTI-LOOP) ---
-if (strpos($uri, '/X/') === 0 || strpos($uri, 'X/') === 1) {
-    return; 
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$uri  = $_SERVER['REQUEST_URI'] ?? '/';
+
+// ===============================
+// 2. ANTI LOOP
+// ===============================
+if (
+    strpos($uri, '/X/') === 0
+    || strpos($uri, 'X/') === 1
+) {
+    exit;
 }
 
-// 2. Resgate do PATH
-$path = ltrim($_SERVER['PATH_INFO'] ?? '', '/');
+// ===============================
+// 3. CAPTURA PATH
+// ===============================
+$path = trim($_SERVER['PATH_INFO'] ?? '', '/');
+
 if (!$path) {
+
     $cleanUri = explode('?', $uri)[0];
-    $path = ltrim(str_replace($_SERVER['SCRIPT_NAME'], '', $cleanUri), '/');
+
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+
+    $path = trim(
+        str_replace($scriptName, '', $cleanUri),
+        '/'
+    );
 }
 
 if (!$path || $path === 'index.php') {
-    die("LOCAL_ERROR: NO_PATH");
+    http_response_code(400);
+    exit("LOCAL_ERROR: NO_PATH");
 }
 
-// 3. Definição de Caminhos Locais
-$localPath = __DIR__ . '/X/' . $path;
-$localDir = dirname($localPath);
-$targetUrl = $protocol . $host . "/X/" . $path;
+// ===============================
+// 4. SEGURANÇA PATH
+// ===============================
+$path = str_replace(
+    ['../', '..\\', "\0"],
+    '',
+    $path
+);
 
-// --- LÓGICA DE RECEBIMENTO (POST) ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $inputData = file_get_contents('php://input');
-    
-    if (empty($inputData)) exit("ERROR: EMPTY_DATA");
+// ===============================
+// 5. CAMINHOS
+// ===============================
+$baseDir   = __DIR__ . '/X/';
+$localPath = $baseDir . $path;
+$localDir  = dirname($localPath);
 
-    if (!is_dir($localDir)) @mkdir($localDir, 0777, true);
+$targetUrl = $protocol . $host . '/X/' . $path;
 
-    if (@file_put_contents($localPath, $inputData)) {
-        // Gatilho para atualização do banco em segundo plano
-        $cmd = "cd " . __DIR__ . " && php database.php > /dev/null 2>&1 &";
-        shell_exec($cmd);
+// ===============================
+// 6. CRIAR PASTA AUTOMÁTICA
+// ===============================
+if (!is_dir($localDir)) {
 
-        echo "SUCCESS: Saved to /X/$path and updated database";
-    } else {
+    if (!@mkdir($localDir, 0777, true)) {
         http_response_code(500);
-        echo "ERROR: PERMISSION_DENIED";
+        exit("ERROR: CREATE_DIR_FAILED");
     }
-    exit;
 }
 
-// --- LÓGICA DE LEITURA E REDIRECIONAMENTO (GET) ---
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    if (file_exists($localPath)) {
-        // Se o arquivo já existe, redireciona direto para a URL final
-        header("Location: " . $targetUrl, true, 301);
-    } else {
-        // Se não for upload e o arquivo NÃO existir:
-        // 1. Cria o diretório se necessário
-        if (!is_dir($localDir)) @mkdir($localDir, 0777, true);
-        
-        // 2. Cria o arquivo com o conteúdo padrão"teste"
-        $defaultText = "1";
-        if (@file_put_contents($localPath, $defaultText)) {
-            // 3. Redireciona após criar
-            header("Location: " . $targetUrl, true, 302);
-        } else {
-            http_response_code(500);
-            echo "ERROR: COULD_NOT_CREATE_FILE";
+// ===============================
+// 7. POST = SALVAR ARQUIVO
+// ===============================
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $inputData = file_get_contents('php://input');
+
+    // fallback multipart/form-data
+    if (
+        empty($inputData)
+        && !empty($_FILES)
+    ) {
+
+        $firstFile = reset($_FILES);
+
+        if (
+            isset($firstFile['tmp_name'])
+            && is_uploaded_file($firstFile['tmp_name'])
+        ) {
+            $inputData = file_get_contents($firstFile['tmp_name']);
         }
     }
+
+    if ($inputData === '' || $inputData === false) {
+        http_response_code(400);
+        exit("ERROR: EMPTY_DATA");
+    }
+
+    // cria arquivo automaticamente
+    $save = @file_put_contents(
+        $localPath,
+        $inputData,
+        LOCK_EX
+    );
+
+    if ($save === false) {
+        http_response_code(500);
+        exit("ERROR: WRITE_FAILED");
+    }
+
+    // permissão
+    @chmod($localPath, 0777);
+
+    // atualização database em background
+    if (file_exists(__DIR__ . '/database.php')) {
+
+        if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
+
+            $cmd =
+                'cd ' . escapeshellarg(__DIR__) .
+                ' && php database.php > /dev/null 2>&1 &';
+
+            @shell_exec($cmd);
+
+        } else {
+
+            @pclose(
+                @popen(
+                    'start /B php "' . __DIR__ . '/database.php"',
+                    'r'
+                )
+            );
+        }
+    }
+
+    echo json_encode([
+        "status" => "success",
+        "file"   => "/X/" . $path,
+        "size"   => filesize($localPath),
+        "url"    => $targetUrl
+    ]);
+
     exit;
 }
+
+// ===============================
+// 8. GET = CRIAR + REDIRECIONAR
+// ===============================
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+
+    // se arquivo não existe -> cria
+    if (!file_exists($localPath)) {
+
+        $defaultContent = "1";
+
+        $create = @file_put_contents(
+            $localPath,
+            $defaultContent,
+            LOCK_EX
+        );
+
+        if ($create === false) {
+            http_response_code(500);
+            exit("ERROR: CREATE_FILE_FAILED");
+        }
+
+        @chmod($localPath, 0777);
+    }
+
+    // redireciona
+    header("Location: " . $targetUrl, true, 302);
+    exit;
+}
+
+// ===============================
+// 9. MÉTODOS NÃO SUPORTADOS
+// ===============================
+http_response_code(405);
+echo "ERROR: METHOD_NOT_ALLOWED";
+exit;
+?>
