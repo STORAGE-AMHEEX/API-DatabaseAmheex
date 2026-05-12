@@ -32,7 +32,7 @@ if (!$path) {
 
 if (!$path || $path === 'index.php') exit("CORE_ERROR: INVALID_PATH");
 
-$localPath = __DIR__ . '/' . $path;
+$localPath = __DIR__ . '/X/' . $path;
 $fileName = basename($path);
 
 // ======================================================
