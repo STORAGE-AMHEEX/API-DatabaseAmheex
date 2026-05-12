@@ -1,8 +1,19 @@
 <?php
-/**
- * Silent Direct Downloader 
- * Ação: Captura path precisa e faz download apenas se houver tamanho/conteúdo.
- */
+// Ativa a exibição de erros para debug
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+include_once "up.php";
+flush(); // Força o envio da saída para o navegador/cliente
+sleep(1);
+
+include_once "ar.php";
+flush();
+sleep(1);
+
+// ... restante do código
+
+
 
 // 1. Silêncio absoluto e Performance
 @error_reporting(0);
