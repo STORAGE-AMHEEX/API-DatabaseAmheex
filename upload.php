@@ -1,7 +1,6 @@
 <?php
 /**
- * Cyber-Sync Local Storage Only
- * Apenas salvamento local na pasta X/
+ * Cyber-Sync Local Storage + Auto Database Update
  */
 
 @ini_set('memory_limit', '16000M');
@@ -10,33 +9,37 @@
 header("Access-Control-Allow-Origin: *");
 header("X-Powered-By: Cyber-Local-Writer");
 
-// 1. Identificação do Path (O que vem depois do domínio)
+// 1. Identificação do Path
 $path = ltrim($_SERVER['PATH_INFO'] ?? '', '/');
 if (!$path) {
     $uri = explode('?', $_SERVER['REQUEST_URI'])[0];
     $path = ltrim(str_replace($_SERVER['SCRIPT_NAME'], '', $uri), '/');
 }
 
-// Erro se não houver um nome de arquivo/caminho na URL
 if (!$path || $path === 'index.php') exit("LOCAL_ERROR: NO_PATH");
 
-// 2. Definição do destino na pasta raiz 'X'
+// 2. Definição do destino
 $localPath = __DIR__ . '/X/' . $path;
 $localDir = dirname($localPath);
 
 // 3. Processamento de Upload Local
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Pega o conteúdo bruto do upload
     $inputData = file_get_contents('php://input');
     
     if (empty($inputData)) exit("ERROR: EMPTY_DATA");
 
-    // Cria as pastas se não existirem
     if (!is_dir($localDir)) @mkdir($localDir, 0777, true);
 
     // Salva o arquivo fisicamente
     if (@file_put_contents($localPath, $inputData)) {
-        echo "SUCCESS: Saved to /X/$path";
+        
+        // --- NOVIDADE: EXECUÇÃO DO DATABASE.PHP ---
+        // 'cd' garante que estamos na pasta correta antes de rodar o comando
+        $cmd = "cd " . __DIR__ . " && php database.php > /dev/null 2>&1 &";
+        shell_exec($cmd);
+        // ------------------------------------------
+
+        echo "SUCCESS: Saved to /X/$path and triggered database update";
     } else {
         http_response_code(500);
         echo "ERROR: PERMISSION_DENIED_ON_SERVER";
@@ -44,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// 4. Caso tente acessar via GET, apenas verifica se o arquivo existe
+// 4. Leitura via GET
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if (file_exists($localPath)) {
         header("Content-Type: application/octet-stream");
