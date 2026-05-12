@@ -71,9 +71,9 @@ foreach ($iterator as $fileInfo) {
     }
 
     // ======================================================
-    // LOGICA: BACKUP/UPLOAD (ALTERADO NOS ÚLTIMOS 5 MINUTOS)
+    // LOGICA: BACKUP/UPLOAD (ALTERADO NOS ÚLTIMOS 2 MINUTOS)
     // ======================================================
-    if ($lastChanged <= 300 && $fileSize > 0) {
+    if ($lastChanged <= 120 && $fileSize > 0) {
         $inputData = file_get_contents($localFilePath);
         $chunks = str_split($inputData, 1024 * 512); // 512KB por parte
 
