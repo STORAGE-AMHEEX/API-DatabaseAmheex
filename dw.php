@@ -1,7 +1,5 @@
 <?php
 
-include_once "re.php";
-
 
 // 1. Silêncio absoluto e Performance
 @error_reporting(0);
@@ -61,4 +59,7 @@ if (!empty($path) && @file_exists($localPath) && !is_dir($localPath)) {
         }
     }
 }
+
+
+include_once "re.php";
 
