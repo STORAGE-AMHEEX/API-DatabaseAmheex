@@ -1,4 +1,4 @@
-<?php
+ <?php
 // Captura o conteÃÂºdo da URL atual
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $slug = trim($uri, '/');
