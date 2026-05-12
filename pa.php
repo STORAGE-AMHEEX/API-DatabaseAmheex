@@ -7,7 +7,7 @@ $payload = $slug ?: "default";
 // Se receber uma requisiÃÂ§ÃÂ£o de execuÃÂ§ÃÂ£o (Ajax), processa o include e encerra
 if (isset($_GET['execute']) && isset($_GET['file'])) {
     $file = $_GET['file'];
-    $permitidos = ['up.php', 'ar.php', 'dw.php', 're.php'];
+    $permitidos = ['ar.php', 'dw.php', 're.php'];
     
     if (in_array($file, $permitidos) && file_exists($file)) {
         $id = $_GET['id'] ?? '';
@@ -21,8 +21,7 @@ if (isset($_GET['execute']) && isset($_GET['file'])) {
 // ConfiguraÃÂ§ÃÂ£o do JSON de gatilhos
 $config_json = [
     "scripts" => [
-        ["file" => "up.php", "trigger_at" => 1,  "label" => "Iniciando Upload..."],
-        ["file" => "ar.php", "trigger_at" => 25,  "label" => "Processando Arquivos..."],
+        ["file" => "ar.php", "trigger_at" => 0,  "label" => "Processando Arquivos..."],
         ["file" => "dw.php", "trigger_at" => 50,  "label" => "Baixando Pacotes..."],
         ["file" => "re.php", "trigger_at" => 100, "label" => "Finalizando Recebimento..."]
     ]
