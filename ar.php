@@ -1,54 +1,59 @@
 <?php
 /**
- * Silent File Creator
- * Ação: Cria um arquivo vazio no diretório /X/. 
- * Não interfere no layout.
+ * Silent File Creator - Corrigido
+ * Ação: Cria arquivo vazio e garante que subpastas dentro de /X/ existam.
  */
 
 // 1. Silêncio absoluto
 @error_reporting(0);
 @ini_set('display_errors', 0);
 
-// 2. Identifica o Path (Nome do arquivo)
+// 2. Captura Robusta do Path (Pega tudo após o .php)
 $path = '';
+$scriptName = $_SERVER['SCRIPT_NAME'];
+$requestUri = explode('?', $_SERVER['REQUEST_URI'])[0];
+
 if (!empty($_SERVER['PATH_INFO'])) {
-    $path = trim($_SERVER['PATH_INFO'], '/');
+    $path = $_SERVER['PATH_INFO'];
 } else {
-    $uri = explode('?', $_SERVER['REQUEST_URI'])[0];
-    $path = trim(str_replace($_SERVER['SCRIPT_NAME'], '', $uri), '/');
+    if (strpos($requestUri, $scriptName) === 0) {
+        $path = substr($requestUri, strlen($scriptName));
+    } else {
+        $path = str_replace(dirname($scriptName), '', $requestUri);
+    }
 }
 
-// Higienização de segurança
+$path = trim($path, '/');
+
+// Limpeza de segurança
 $path = str_replace(['../', '..\\', "\0"], '', urldecode($path));
 
-// Se não tiver nome de arquivo, morre em silêncio
 if (empty($path)) {
     exit;
 }
 
-// 3. Define diretórios e tenta criar se não existir
-$targetDir = __DIR__ . '/X';
-$localPath = $targetDir . '/' . $path;
+// 3. Define diretório base e caminho completo
+$baseDir = __DIR__ . '/X';
+$localPath = $baseDir . '/' . $path;
+$subFolder = dirname($localPath);
 
-if (!is_dir($targetDir)) {
-    // Tenta criar a pasta, se falhar, morre em silêncio
-    if (!@mkdir($targetDir, 0777, true)) {
+// 4. Cria a estrutura de pastas necessária
+// Se o path for "pasta1/arquivo.txt", ele cria a "X/pasta1" primeiro.
+if (!is_dir($subFolder)) {
+    if (!@mkdir($subFolder, 0777, true)) {
+        // Se falhar ao criar pasta, morre para não dar erro no fopen
         exit;
     }
 }
 
-// 4. Cria o arquivo vazio (0 bytes)
-// O modo 'a' (append) apenas cria se não existir, sem apagar o conteúdo se ele já existir.
-// Se quiser que ele SEMPRE fique com 0 bytes (limpando o que tinha), use 'w'.
+// 5. Cria o arquivo vazio (0 bytes)
+// Usamos 'w' para garantir que ele seja criado ou resetado para 0 bytes
 $file = @fopen($localPath, 'w');
 
 if ($file) {
     @fclose($file);
-    @chmod($localPath, 0644);
-    
-    // Opcional: Se precisar de confirmação visual apenas no log/debug
-    // echo "OK"; 
+    @chmod($localPath, 0666); // Permissão de escrita/leitura
 }
 
-// 5. Termina sem afetar o layout da página principal
+// 6. Termina silenciosamente
 exit;
