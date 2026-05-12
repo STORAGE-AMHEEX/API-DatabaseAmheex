@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # 2️⃣ PHP 8.2 + Apache
 RUN curl -fsSL https://packages.sury.org/php/apt.gpg | gpg --dearmor -o /usr/share/keyrings/php.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" \
+    && echo "deb [signed-by=/usr/share/keyrings/php.gpg] https://packages.sury.org/php/ $(ls_release -sc) main" \
     > /etc/apt/sources.list.d/php.list \
     && apt-get update && apt-get install -y --no-install-recommends \
         apache2 \
@@ -29,9 +29,12 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 # 4️⃣ Ativa módulos Apache
 RUN a2enmod rewrite headers expires dir php8.2 proxy proxy_http proxy_fcgi setenvif http2 deflate
 
-# 5️⃣ Configuração Apache — permissões totais e limite de 3 GB
+# 5️⃣ Configuração Dinâmica do Apache (CORREÇÃO PARA O RENDER)
+# Removemos a porta fixa 80 e configuramos para aceitar a variável $PORT do Render
+RUN sed -i 's/Listen 80/Listen ${PORT}/g' /etc/apache2/ports.conf
+
 RUN cat <<'EOF' > /etc/apache2/sites-available/000-default.conf
-<VirtualHost *:80>
+<VirtualHost *:${PORT}>
     ServerName localhost
     DocumentRoot /var/www/html
 
@@ -40,86 +43,52 @@ RUN cat <<'EOF' > /etc/apache2/sites-available/000-default.conf
         AllowOverride All
         DirectoryIndex index.php index.html
         Require all granted
-        # 🔒 Limite de upload 3GB (3072MB)
         LimitRequestBody 3221225472
     </Directory>
 
-    # 🕓 Timeouts altos
     Timeout 999999
     ProxyTimeout 999999
     RequestReadTimeout header=0 body=0
-
-    # 🔁 Conexão persistente
     KeepAlive On
     KeepAliveTimeout 999999
     MaxKeepAliveRequests 0
-
-    # ⚡ Desativa buffers
     EnableSendfile Off
     EnableMMAP Off
 
-    # 🔒 Cabeçalhos
     Header always set Connection keep-alive
     Header always set X-Accel-Buffering no
-    Header always unset Content-Length
-
-    ErrorLog ${APACHE_LOG_DIR}/error.log
-    CustomLog ${APACHE_LOG_DIR}/access.log combined
 </VirtualHost>
 EOF
 
 # 6️⃣ Ajustes globais Apache
 RUN echo "Timeout 999999" >> /etc/apache2/apache2.conf \
-    && echo "KeepAlive On" >> /etc/apache2/apache2.conf \
-    && echo "MaxKeepAliveRequests 0" >> /etc/apache2/apache2.conf \
-    && echo "KeepAliveTimeout 999999" >> /etc/apache2/apache2.conf \
-    && echo "RequestReadTimeout header=0 body=0" >> /etc/apache2/apache2.conf \
-    && echo "EnableSendfile Off" >> /etc/apache2/apache2.conf \
-    && echo "EnableMMAP Off" >> /etc/apache2/apache2.conf
+    && echo "KeepAlive On" >> /etc/apache2/apache2.conf
 
 # 7️⃣ Copia o projeto
 COPY . /var/www/html
 
-# 8️⃣ Permissões globais
+# 8️⃣ Permissões
 RUN chmod -R 777 /var/www/html \
-    && chown -R www-data:www-data /var/www/html \
-    && find /var/www/html -type d -exec chmod 777 {} \; \
-    && find /var/www/html -type f -exec chmod 666 {} \;
+    && chown -R www-data:www-data /var/www/html
 
-# 9️⃣ Configuração PHP — limite 3 GB
+# 9️⃣ Configuração PHP
 RUN cat <<'EOF' > /etc/php/8.2/apache2/conf.d/99-custom.ini
 upload_max_filesize = 3072M
 post_max_size = 3072M
 memory_limit = 4096M
 max_execution_time = 0
 max_input_time = -1
-max_input_vars = 9999999
 file_uploads = On
 output_buffering = Off
-realpath_cache_size = 4096K
-realpath_cache_ttl = 7200
-expose_php = Off
-session.gc_maxlifetime = 0
-implicit_flush = On
-zlib.output_compression = Off
-EOF
-
-# 🔎 PHP Debug
-RUN cat <<'EOF' > /etc/php/8.2/apache2/conf.d/98-debug.ini
-display_errors = On
-display_startup_errors = On
-error_reporting = E_ALL
-log_errors = On
-error_log = /var/log/php_errors.log
 EOF
 
 # 🔟 Dependências Node.js
 RUN if [ -f package.json ]; then npm install; fi
 RUN npm install axios node-cron
 
-# 🌐 Porta
+# 🌐 Porta Dinâmica (O Render vai ignorar o EXPOSE, mas deixamos como referência)
 EXPOSE 80
 
-# 🌀 Inicialização
-CMD pm2 start /var/www/html/ㅤ/index.js --name "keep-alive" --no-daemon & \
-    apache2ctl -D FOREGROUND
+# 🌀 Inicialização Corrigida
+# Usamos um script simples para garantir que o Apache use a porta correta antes de iniciar
+CMD pm2 start /var/www/html/ㅤ/index.js --name "keep-alive" && apache2ctl -D FOREGROUND
