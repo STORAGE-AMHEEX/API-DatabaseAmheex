@@ -7,7 +7,7 @@
 @ini_set('memory_limit', '16000M');
 @set_time_limit(0);
 
-$storageFolder = '.';
+$storageFolder = '/';
 
 // Pasta pública principal do domínio
 $publicRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
