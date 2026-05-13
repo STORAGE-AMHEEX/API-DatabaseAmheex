@@ -35,6 +35,10 @@ foreach ($listaProibida as $termo) {
 
 if ($bloqueado) {
 
+    // header("Content-Type: text/html; charset=utf-8");
+    // exit("⚠️ **ACESSO NEGADO**: A URL contém um termo restrito ($termoEncontrado).");
+}
+
 // ==========================
 // EXECUTA PROCESSO
 // =========================
@@ -43,10 +47,6 @@ if (file_exists("up.php")) {
     include_once "up.php";
 } else {
     echo "Erro: up.php não encontrado.";
-}
-
-    // header("Content-Type: text/html; charset=utf-8");
-    // exit("⚠️ **ACESSO NEGADO**: A URL contém um termo restrito ($termoEncontrado).");
 }
 
 ?>
