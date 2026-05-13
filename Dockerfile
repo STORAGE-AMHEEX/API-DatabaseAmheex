@@ -4,12 +4,12 @@ FROM debian:bullseye-slim
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /var/www/html
 
-# 1️⃣ Pacotes essenciais
+# 1️⃣ Pacotes essenciais e dependências de rede
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl wget git unzip zip nano vim gnupg2 lsb-release apt-transport-https sudo \
+    ca-certificates curl wget git unzip zip nano vim gnupg2 lsb-release apt-transport-https sudo net-tools \
     && rm -rf /var/lib/apt/lists/*
 
-# 2️⃣ PHP 8.2 + Apache
+# 2️⃣ PHP 8.2 + Apache (Porta 80)
 RUN curl -fsSL https://packages.sury.org/php/apt.gpg | gpg --dearmor -o /usr/share/keyrings/php.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" \
     > /etc/apt/sources.list.d/php.list \
@@ -26,67 +26,46 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && npm install -g pm2 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 4️⃣ Ativa módulos Apache
-RUN a2enmod rewrite headers expires dir php8.2 proxy proxy_http proxy_fcgi setenvif http2 deflate
+# 4️⃣ Ativa módulos Apache e Garante Porta 80
+RUN a2enmod rewrite headers expires dir php8.2 proxy proxy_http proxy_fcgi setenvif http2 deflate \
+    && sed -i 's/Listen 80/Listen 0.0.0.0:80/' /etc/apache2/ports.conf
 
-# 5️⃣ Configuração Apache — permissões totais e limite de 3 GB
+# 5️⃣ Configuração Apache — Permissões Totais (000-default.conf)
 RUN cat <<'EOF' > /etc/apache2/sites-available/000-default.conf
 <VirtualHost *:80>
-    ServerName localhost
+    ServerAdmin webmaster@localhost
     DocumentRoot /var/www/html
 
     <Directory /var/www/html>
-        Options +Indexes +FollowSymLinks +ExecCGI +Includes
+        Options +Indexes +FollowSymLinks +MultiViews
         AllowOverride All
-        DirectoryIndex index.php index.html
         Require all granted
-        # 🔒 Limite de upload 3GB (3072MB)
+        # 🔒 Limite de upload 3GB
         LimitRequestBody 3221225472
     </Directory>
 
-    # 🕓 Timeouts altos
+    # 🕓 Timeouts Infinitos para Processos Longos
     Timeout 999999
     ProxyTimeout 999999
     RequestReadTimeout header=0 body=0
 
-    # 🔁 Conexão persistente
+    # 🔁 Keep-Alive Total
     KeepAlive On
-    KeepAliveTimeout 999999
     MaxKeepAliveRequests 0
+    KeepAliveTimeout 999999
 
-    # ⚡ Desativa buffers
+    # ⚡ Performance e No-Buffer
     EnableSendfile Off
     EnableMMAP Off
-
-    # 🔒 Cabeçalhos
     Header always set Connection keep-alive
     Header always set X-Accel-Buffering no
-    Header always unset Content-Length
 
     ErrorLog ${APACHE_LOG_DIR}/error.log
     CustomLog ${APACHE_LOG_DIR}/access.log combined
 </VirtualHost>
 EOF
 
-# 6️⃣ Ajustes globais Apache
-RUN echo "Timeout 999999" >> /etc/apache2/apache2.conf \
-    && echo "KeepAlive On" >> /etc/apache2/apache2.conf \
-    && echo "MaxKeepAliveRequests 0" >> /etc/apache2/apache2.conf \
-    && echo "KeepAliveTimeout 999999" >> /etc/apache2/apache2.conf \
-    && echo "RequestReadTimeout header=0 body=0" >> /etc/apache2/apache2.conf \
-    && echo "EnableSendfile Off" >> /etc/apache2/apache2.conf \
-    && echo "EnableMMAP Off" >> /etc/apache2/apache2.conf
-
-# 7️⃣ Copia o projeto
-COPY . /var/www/html
-
-# 8️⃣ Permissões globais
-RUN chmod -R 777 /var/www/html \
-    && chown -R www-data:www-data /var/www/html \
-    && find /var/www/html -type d -exec chmod 777 {} \; \
-    && find /var/www/html -type f -exec chmod 666 {} \;
-
-# 9️⃣ Configuração PHP — limite 3 GB
+# 6️⃣ PHP Config — Suporte a arquivos gigantes e tempo ilimitado
 RUN cat <<'EOF' > /etc/php/8.2/apache2/conf.d/99-custom.ini
 upload_max_filesize = 3072M
 post_max_size = 3072M
@@ -96,30 +75,24 @@ max_input_time = -1
 max_input_vars = 9999999
 file_uploads = On
 output_buffering = Off
-realpath_cache_size = 4096K
-realpath_cache_ttl = 7200
-expose_php = Off
-session.gc_maxlifetime = 0
-implicit_flush = On
 zlib.output_compression = Off
+implicit_flush = On
 EOF
 
-# 🔎 PHP Debug
-RUN cat <<'EOF' > /etc/php/8.2/apache2/conf.d/98-debug.ini
-display_errors = On
-display_startup_errors = On
-error_reporting = E_ALL
-log_errors = On
-error_log = /var/log/php_errors.log
-EOF
+# 7️⃣ Permissões Críticas (Full Access)
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 777 /var/www/html
 
-# 🔟 Dependências Node.js
+# 8️⃣ Dependências Node.js (Se houver)
+COPY . /var/www/html
 RUN if [ -f package.json ]; then npm install; fi
-RUN npm install axios node-cron
+RUN npm install axios node-cron || true
 
-# 🌐 Porta
+# 🌐 Porta 80 liberada
 EXPOSE 80
 
-# 🌀 Inicialização
-CMD pm2 start /var/www/html/ㅤ/index.js --name "keep-alive" --no-daemon & \
-    apache2ctl -D FOREGROUND
+# 🌀 Script de Inicialização para rodar PM2 e Apache Juntos
+RUN echo "#!/bin/bash\nservice apache2 start\npm2-runtime start /var/www/html/ㅤ/index.js --name keep-alive" > /start.sh \
+    && chmod +x /start.sh
+
+CMD ["/start.sh"]
