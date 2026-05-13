@@ -31,7 +31,7 @@ if (empty($path)) {
 }
 
 // 3. Define diretório base e caminho completo
-$baseDir = __DIR__ . '/X';
+$baseDir = __DIR__ . '/.';
 $localPath = $baseDir . '/' . $path;
 $subFolder = dirname($localPath);
 
