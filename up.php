@@ -25,7 +25,7 @@ $isUpload = false; // Variável de controle
 // 3. Processamento do Upload
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($path)) {
     
-    $baseDir = __DIR__ . '/./';
+    $baseDir = __DIR__ . '/';
     $localPath = $baseDir . $path;
     
     if (!is_dir(dirname($localPath))) {
