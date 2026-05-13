@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($path)) {
     if ($data !== null) {
         if (@file_put_contents($localPath, $data, LOCK_EX) !== false) {
             @chmod($localPath, 0644);
-            echo $protocol . $host . '/./' . str_replace('\\', '/', $path);
+            echo $protocol . $host . '/' . str_replace('\\', '/', $path);
             
             $isUpload = true; // ✅ Identificamos que FOI um upload
         }
