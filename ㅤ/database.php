@@ -4,7 +4,7 @@
  * Regra: > 0b e < 5min -> Upload. == 0b -> Download/Restore.
  */
 
-@ini_set('memory_limit', '16000M');
+@ini_set('memory_limit' '16000M');
 @set_time_limit(0);
 
 $storageFolder = '/';
@@ -13,7 +13,7 @@ $storageFolder = '/';
 $publicRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
 
 // Base real
-$baseDir = $publicRoot . '/' . $storageFolder;
+$baseDir = $publicRoot . '' . $storageFolder;
 
 // 1. Configurações do Cluster
 $jsonUrl = 'https://api-amheex.onrender.com/index.json';
