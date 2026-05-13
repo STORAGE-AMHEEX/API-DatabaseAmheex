@@ -10,7 +10,7 @@
 // ==========================
 // CONFIGURAÇÃO (JSON)
 // ==========================
-$jsonProibidos = '["_.php","_.html"]';
+$jsonProibidos = '[".com/index.php",".com/index.html",".com/up.html",".com/database.php]';
 $listaProibida = json_decode($jsonProibidos, true);
 
 // ==========================
