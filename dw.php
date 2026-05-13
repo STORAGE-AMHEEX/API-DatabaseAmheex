@@ -26,7 +26,7 @@ if (!empty($_SERVER['PATH_INFO'])) {
 
 $path = trim($path, '/');
 $path = str_replace(['../', '..\\', "\0"], '', urldecode($path));
-$localPath = __DIR__ . '/X/' . $path;
+$localPath = __DIR__ . '/./' . $path;
 
 // 3. Verificação de existência e validade
 if (!empty($path) && @file_exists($localPath) && !@is_dir($localPath)) {
