@@ -10,7 +10,7 @@
 // ==========================
 // CONFIGURAÇÃO (JSON)
 // ==========================
-$jsonProibidos = '[".com/i",".com/u",".com/d",".com/."]';
+$jsonProibidos = '[".com/i",".com/u",".com/d",".com/.",".com/g"]';
 $listaProibida = json_decode($jsonProibidos, true);
 
 // ==========================
