@@ -1,26 +1,34 @@
 <?php
 
-
-
 // 1. Silêncio e Performance
 @error_reporting(0);
 @ini_set('display_errors', 0);
-@ini_set('memory_limit', '64M'); 
+@ini_set('memory_limit', '64M');
+@set_time_limit(70);
 
 // 2. Configuração de Host e Base
-$protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')) ? 'https://' : 'http://';
+$protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'))
+    ? 'https://'
+    : 'http://';
+
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $scriptName = $_SERVER['SCRIPT_NAME'];
-$baseDir = rtrim(str_replace(basename($scriptName), '', $scriptName), '/');
 
-// 3. Captura Precisa do Path (Compatível com vários servidores)
+$baseDir = rtrim(
+    str_replace(basename($scriptName), '', $scriptName),
+    '/'
+);
+
+// 3. Captura Precisa do Path
 $path = '';
 $requestUri = explode('?', $_SERVER['REQUEST_URI'])[0];
 
 if (!empty($_SERVER['PATH_INFO'])) {
+
     $path = $_SERVER['PATH_INFO'];
+
 } else {
-    // Extração manual caso o PATH_INFO esteja desativado
+
     if (strpos($requestUri, $scriptName) === 0) {
         $path = substr($requestUri, strlen($scriptName));
     } else {
@@ -30,27 +38,69 @@ if (!empty($_SERVER['PATH_INFO'])) {
 
 $path = trim($path, '/');
 
-// Limpeza de segurança contra Directory Traversal
-$path = str_replace(['../', '..\\', "\0"], '', urldecode($path));
+// Segurança
+$path = str_replace(
+    ['../', '..\\', "\0"],
+    '',
+    urldecode($path)
+);
+
 $localPath = __DIR__ . '/X/' . $path;
 
-// 4. Validação de Conteúdo e Redirecionamento
+// 4. Espera até 60s verificando a cada 1s
 if (!empty($path) && @file_exists($localPath) && !is_dir($localPath)) {
-    
-    // Atualiza o cache de status para ler o tamanho real do arquivo
+
+    $ultimoTamanho = -1;
+    $arquivoAtualizou = false;
+
+    // Verifica por até 60 segundos
+    for ($i = 0; $i < 60; $i++) {
+
+        @clearstatcache(true, $localPath);
+
+        $tamanhoAtual = @filesize($localPath);
+
+        // Se tamanho mudou
+        if ($tamanhoAtual !== false && $tamanhoAtual != $ultimoTamanho) {
+
+            $ultimoTamanho = $tamanhoAtual;
+            $arquivoAtualizou = true;
+
+        } else {
+
+            // Se já teve atualização antes e agora estabilizou
+            if ($arquivoAtualizou && $tamanhoAtual > 0) {
+                break;
+            }
+        }
+
+        sleep(1);
+    }
+
+    // Atualiza novamente antes do redirect
     @clearstatcache(true, $localPath);
+
     $size = @filesize($localPath);
 
-    // Só redireciona se o arquivo já tiver recebido dados (maior que >0 bytes)
-    if ($size !== false && $size >= 0) {
-        
-        $targetUrl = $protocol . $host . $baseDir . '/X/' . str_replace('\\', '/', $path);
-        
-        // Remove possíveis barras duplas na URL (evita //X//arquivo.txt)
-        $targetUrl = preg_replace('/([^:])(\/{2,})/', '$1/', $targetUrl);
+    // Redireciona se existir conteúdo
+    if ($size !== false && $size > 0) {
+
+        $targetUrl =
+            $protocol .
+            $host .
+            $baseDir .
+            '/X/' .
+            str_replace('\\', '/', $path);
+
+        // Corrige barras duplas
+        $targetUrl = preg_replace(
+            '/([^:])(\/{2,})/',
+            '$1/',
+            $targetUrl
+        );
 
         header('Location: ' . $targetUrl, true, 302);
-        
+        exit;
     }
 }
-
+?>
