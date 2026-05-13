@@ -29,7 +29,7 @@ foreach ($listaProibida as $termo) {
 // 4. Fluxo de Execução (Early Return Pattern)
 if ($bloqueado) {
     // Se estiver bloqueado, encerra o script silenciosamente ou redireciona
-    exit(); 
+    // exit(); 
 }
 
 // 5. Inclusão de Dependência com Verificação de Integridade
