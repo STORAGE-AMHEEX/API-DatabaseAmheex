@@ -34,8 +34,8 @@ foreach ($listaProibida as $termo) {
 }
 
 if ($bloqueado) {
-    header("Content-Type: text/html; charset=utf-8");
-    exit("⚠️ **ACESSO NEGADO**: A URL contém um termo restrito ($termoEncontrado).");
+    // header("Content-Type: text/html; charset=utf-8");
+    // exit("⚠️ **ACESSO NEGADO**: A URL contém um termo restrito ($termoEncontrado).");
 }
 
 // ==========================
