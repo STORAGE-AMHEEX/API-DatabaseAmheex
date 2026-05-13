@@ -1,30 +1,46 @@
 <?php
 /**
- * Controle de execução: Bloqueia se existir um arquivo correspondente em .html
+ * Controle de execução: Bloqueia se a URL contiver palavras do JSON
  */
 
 @error_reporting(0);
 @ini_set('display_errors', 0);
 @set_time_limit(0);
 
-// 1. Obtém o nome do arquivo atual (ex: index.php)
-$arquivoAtual = basename(__FILE__);
+// ==========================
+// CONFIGURAÇÃO (JSON)
+// ==========================
+$jsonProibidos = '[".com/index.php", ".com/index.html", "/database.php","/EDITOR_FILES_LOCAL.php","up.html"]';
+$listaProibida = json_decode($jsonProibidos, true);
 
-// 2. Gera o nome do arquivo de "trava" trocando a extensão para .html
-// Exemplo: se rodar 'processo.php', ele vai procurar por 'processo.html'
-$arquivoTrava = pathinfo($arquivoAtual, PATHINFO_FILENAME) . ".html";
+// ==========================
+// CAPTURA A URL ATUAL
+// ==========================
+// Pega tudo que vem depois do domínio (ex: /pasta/index.php?id=teste)
+$urlCompleta = $_SERVER['REQUEST_URI'];
 
-// 3. Verifica se o arquivo .html existe na mesma pasta
-if (file_exists($arquivoTrava)) {
+// ==========================
+// VERIFICAÇÃO DE BLOQUEIO
+// ==========================
+$bloqueado = false;
+
+foreach ($listaProibida as $termo) {
+    // Verifica se o termo do JSON existe dentro da URL
+    if (!empty($termo) && strpos($urlCompleta, $termo) !== false) {
+        $bloqueado = true;
+        $termoEncontrado = $termo;
+        break;
+    }
+}
+
+if ($bloqueado) {
     header("Content-Type: text/html; charset=utf-8");
-    // Mensagem de erro amigável ou apenas o exit
-    exit("休 Bloqueio Ativo: Remova o arquivo <b>$arquivoTrava</b> para executar este PHP.");
+    exit("⚠️ **ACESSO NEGADO**: A URL contém um termo restrito ($termoEncontrado).");
 }
 
 // ==========================
 // EXECUTA PROCESSO
 // ==========================
-// Verifica se o arquivo de upload existe antes de incluir para evitar erro fatal
 if (file_exists("up.php")) {
     include_once "up.php";
 } else {
