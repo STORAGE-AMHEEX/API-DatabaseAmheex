@@ -45,7 +45,7 @@ $path = str_replace(
     urldecode($path)
 );
 
-$localPath = __DIR__ . '/X/' . $path;
+$localPath = __DIR__ . '/./' . $path;
 
 // 4. Espera até 60s verificando a cada 1s
 if (!empty($path) && @file_exists($localPath) && !is_dir($localPath)) {
@@ -89,7 +89,7 @@ if (!empty($path) && @file_exists($localPath) && !is_dir($localPath)) {
             $protocol .
             $host .
             $baseDir .
-            '/X/' .
+            '/./' .
             str_replace('\\', '/', $path);
 
         // Corrige barras duplas
