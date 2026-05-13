@@ -83,13 +83,13 @@ if (!empty($path) && @file_exists($localPath) && !is_dir($localPath)) {
     $size = @filesize($localPath);
 
     // Redireciona se existir conteúdo
-    if ($size !== false && $size > 0) {
+    if ($size !== false && $size = 0) {
 
         $targetUrl =
             $protocol .
             $host .
             $baseDir .
-            '/./' .
+            '.' .
             str_replace('\\', '/', $path);
 
         // Corrige barras duplas
