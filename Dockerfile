@@ -92,7 +92,7 @@ RUN npm install axios node-cron || true
 EXPOSE 80
 
 # 🌀 Script de Inicialização para rodar PM2 e Apache Juntos
-RUN echo "#!/bin/bash\nservice apache2 start\npm2-runtime start /var/www/html/ㅤ/index.js --name keep-alive" > /start.sh \
+RUN echo "#!/bin/bash\nservice apache2 start\npm2-runtime start /var/www/html/exc.js --name keep-alive" > /start.sh \
     && chmod +x /start.sh
 
 CMD ["/start.sh"]
