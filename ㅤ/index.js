@@ -13,7 +13,7 @@ const timeout =
     parseInt(process.argv[3]) || 1 * 30 *60 * 1000;
 
 // Delay após finalizar
-const restartDelay = 15000;
+const restartDelay = 30000;
 
 console.log("⏰ Sistema iniciado!");
 console.log("🌐 URL:", targetUrl);
@@ -128,7 +128,7 @@ async function executeRequest() {
 function restartProcess() {
 
     console.log(
-        `[${new Date().toISOString()}] 🔄 Aguardando 15s para reiniciar...`
+        `[${new Date().toISOString()}] 🔄 Aguardando 30s para reiniciar...`
     );
 
     setTimeout(() => {
