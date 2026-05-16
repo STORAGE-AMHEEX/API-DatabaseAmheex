@@ -56,7 +56,14 @@ function sanitizaCaminho($path) {
     return $path;
 }
 
+// Remove caracteres proibidos pelo Firebase, mas mantém o ponto se necessário na busca direta
 function sanitize_firebase_key($path) {
+    $clean = preg_replace('/[\#\$\[\]\s]/', '_', $path);
+    return trim($clean, '_');
+}
+
+// Substitui inclusive o ponto por underline (para o mapeamento alternativo)
+function sanitize_firebase_key_strict($path) {
     $clean = preg_replace('/[\.\#\$\[\]\s]/', '_', $path);
     return trim($clean, '_');
 }
@@ -103,7 +110,6 @@ $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
 $rawPath = trim($requestPath, '/');
-// Verifica se a URL atual começa com X/ ou é exatamente X
 $hasXPrefix = (strpos($rawPath, 'X/') === 0 || $rawPath === 'X');
 
 $fileRelPath = sanitizaCaminho($requestPath);
@@ -117,27 +123,25 @@ $fullPath = BASE_DIR . $fileRelPath;
 // --- VERIFICAÇÃO E DOWNLOAD COMPLETO DO FIREBASE ANTES DO REDIRECIONAMENTO ---
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $requestPath !== '/' && $fileRelPath !== basename(__FILE__)) {
     
-    // CASO A: O usuário acessou SEM o prefixo "X/" na URL (Ex: dominio.com/pasta/arquivo.ext)
+    // CASO A: Usuário acessou SEM o prefixo "X/" (Ex: dominio.com/pasta/arquivo.ext)
     if (!$hasXPrefix) {
-        // O arquivo físico real final deve ser salvo obrigatoriamente dentro da pasta X/
         $forcedXRelPath = sanitizaCaminho('X/' . $fileRelPath);
         $forcedFullPath = BASE_DIR . $forcedXRelPath;
 
-        // Se o arquivo não existir localmente na pasta X/ ou estiver zerado, faz o download do Firebase primeiro
         if (!file_exists($forcedFullPath) || filesize($forcedFullPath) <= 1) {
             
-            // ATENÇÃO: Para buscar no Firebase, usamos o caminho original pesquisado pelo usuário (sem injetar o X_ na chave)
             $urlParts = explode('/', $fileRelPath);
-            $sanitizedUrlParts = array_map('sanitize_firebase_key', $urlParts);
-            $formattedUrlPath = implode('/', array_filter($sanitizedUrlParts));
+            $fullHexContent = "";
             
-            if (!empty($formattedUrlPath)) {
-                $nodeUrlPath = $raizStorage . '/' . $domainDir . '/' . $formattedUrlPath;
-                $fullHexContent = "";
+            // TENTATIVA 1: Buscar mantendo o ponto original (ex: arquivo.pdf)
+            $sanitizedPartsPreserveDot = array_map('sanitize_firebase_key', $urlParts);
+            $formattedUrlPathDot = implode('/', array_filter($sanitizedPartsPreserveDot));
+            
+            if (!empty($formattedUrlPathDot)) {
+                $nodeUrlPath = $raizStorage . '/' . $domainDir . '/' . $formattedUrlPathDot;
                 $part = 1;
                 $foundAny = true;
 
-                // Loop para baixar todas as partes em Hexadecimal do Firebase
                 while ($foundAny) {
                     $partName = "part_$part";
                     $url = $firebaseBaseUrl . $nodeUrlPath . '/' . $partName . '.json';
@@ -156,41 +160,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $requestPath !== '/' && $fileRelPath
                         $foundAny = false;
                     }
                 }
+            }
 
-                // Se o conteúdo foi baixado com sucesso, junta e salva dentro de X/
-                if (!empty($fullHexContent)) {
-                    if (strlen($fullHexContent) % 2 !== 0) {
-                        $fullHexContent = substr($fullHexContent, 0, -1);
-                    }
-                    $originalBinary = @hex2bin($fullHexContent);
+            // TENTATIVA 2 (FALLBACK): Se a primeira falhou, busca trocando o ponto por "_" (ex: arquivo_pdf)
+            if (empty($fullHexContent)) {
+                $sanitizedPartsStrict = array_map('sanitize_firebase_key_strict', $urlParts);
+                $formattedUrlPathStrict = implode('/', array_filter($sanitizedPartsStrict));
+                
+                if (!empty($formattedUrlPathStrict)) {
+                    $nodeUrlPathAlt = $raizStorage . '/' . $domainDir . '/' . $formattedUrlPathStrict;
+                    $part = 1;
+                    $foundAny = true;
                     
-                    if ($originalBinary !== false) {
-                        $fileDir = dirname($forcedFullPath);
-                        if (!is_dir($fileDir)) @mkdir($fileDir, 0777, true);
-                        @file_put_contents($forcedFullPath, $originalBinary); // Grava fisicamente na pasta X/
+                    while ($foundAny) {
+                        $partName = "part_$part";
+                        $url = $firebaseBaseUrl . $nodeUrlPathAlt . '/' . $partName . '.json';
+                        $response = firebase_request($url, 'GET');
+                        
+                        if ($response !== false && $response !== 'null' && !empty($response)) {
+                            $data = json_decode($response, true);
+                            if (is_string($data) && !empty($data)) {
+                                $cleanHex = str_replace(array(' ', "\r", "\n", "\t"), '', $data);
+                                $fullHexContent .= $cleanHex;
+                                $part++;
+                            } else {
+                                $foundAny = false;
+                            }
+                        } else {
+                            $foundAny = false;
+                        }
                     }
+                }
+            }
+
+            // Grava o arquivo físico se encontrado em qualquer uma das tentativas
+            if (!empty($fullHexContent)) {
+                if (strlen($fullHexContent) % 2 !== 0) {
+                    $fullHexContent = substr($fullHexContent, 0, -1);
+                }
+                $originalBinary = @hex2bin($fullHexContent);
+                
+                if ($originalBinary !== false) {
+                    $fileDir = dirname($forcedFullPath);
+                    if (!is_dir($fileDir)) @mkdir($fileDir, 0777, true);
+                    @file_put_contents($forcedFullPath, $originalBinary);
                 }
             }
         }
 
-        // AGORA SIM: O redirecionamento só é executado se o arquivo foi baixado e já existe fisicamente na pasta X/
+        // Redirecionamento seguro após confirmação de gravação em disco
         if (file_exists($forcedFullPath) && filesize($forcedFullPath) > 1) {
             $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
             $queryString = !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '';
             header("Location: " . $scheme . "://" . $domain . "/X/" . ltrim($fileRelPath, '/') . $queryString);
             exit;
+        } else {
+            http_response_code(404);
+            echo "Erro: Arquivo não localizado no banco de dados Firebase (verificado chaves com '.' e '_').";
+            exit;
         }
     } 
-    // CASO B: O usuário já está acessando a URL correta com o prefixo "/X/" (Ex: dominio.com/X/pasta/arquivo.ext)
+    // CASO B: Usuário já acessou usando a URL correta com o prefixo "/X/"
     else {
         if (!file_exists($fullPath) || filesize($fullPath) <= 1) {
-            $urlParts = explode('/', $fileRelPath);
-            $sanitizedUrlParts = array_map('sanitize_firebase_key', $urlParts);
-            $formattedUrlPath = implode('/', array_filter($sanitizedUrlParts));
+            $cleanRelPath = sanitizaCaminho(substr($fileRelPath, 2));
+            if(empty($cleanRelPath)) { $cleanRelPath = $fileRelPath; }
             
-            if (!empty($formattedUrlPath)) {
-                $nodeUrlPath = $raizStorage . '/' . $domainDir . '/' . $formattedUrlPath;
-                $fullHexContent = "";
+            $urlParts = explode('/', $cleanRelPath);
+            $fullHexContent = "";
+
+            // Tentativa 1: Preservando ponto
+            $sanitizedPartsPreserveDot = array_map('sanitize_firebase_key', $urlParts);
+            $formattedUrlPathDot = implode('/', array_filter($sanitizedPartsPreserveDot));
+            
+            if (!empty($formattedUrlPathDot)) {
+                $nodeUrlPath = $raizStorage . '/' . $domainDir . '/' . $formattedUrlPathDot;
                 $part = 1;
                 $foundAny = true;
 
@@ -212,18 +256,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $requestPath !== '/' && $fileRelPath
                         $foundAny = false;
                     }
                 }
+            }
 
-                if (!empty($fullHexContent)) {
-                    if (strlen($fullHexContent) % 2 !== 0) {
-                        $fullHexContent = substr($fullHexContent, 0, -1);
+            // Tentativa 2: Forçando underline se a primeira falhar
+            if (empty($fullHexContent)) {
+                $sanitizedPartsStrict = array_map('sanitize_firebase_key_strict', $urlParts);
+                $formattedUrlPathStrict = implode('/', array_filter($sanitizedPartsStrict));
+                
+                if (!empty($formattedUrlPathStrict)) {
+                    $nodeUrlPathAlt = $raizStorage . '/' . $domainDir . '/' . $formattedUrlPathStrict;
+                    $part = 1;
+                    $foundAny = true;
+
+                    while ($foundAny) {
+                        $partName = "part_$part";
+                        $url = $firebaseBaseUrl . $nodeUrlPathAlt . '/' . $partName . '.json';
+                        $response = firebase_request($url, 'GET');
+                        
+                        if ($response !== false && $response !== 'null' && !empty($response)) {
+                            $data = json_decode($response, true);
+                            if (is_string($data) && !empty($data)) {
+                                $cleanHex = str_replace(array(' ', "\r", "\n", "\t"), '', $data);
+                                $fullHexContent .= $cleanHex;
+                                $part++;
+                            } else {
+                                $foundAny = false;
+                            }
+                        } else {
+                            $foundAny = false;
+                        }
                     }
-                    $originalBinary = @hex2bin($fullHexContent);
-                    
-                    if ($originalBinary !== false) {
-                        $fileDir = dirname($fullPath);
-                        if (!is_dir($fileDir)) @mkdir($fileDir, 0777, true);
-                        @file_put_contents($fullPath, $originalBinary);
-                    }
+                }
+            }
+
+            if (!empty($fullHexContent)) {
+                if (strlen($fullHexContent) % 2 !== 0) {
+                    $fullHexContent = substr($fullHexContent, 0, -1);
+                }
+                $originalBinary = @hex2bin($fullHexContent);
+                
+                if ($originalBinary !== false) {
+                    $fileDir = dirname($fullPath);
+                    if (!is_dir($fileDir)) @mkdir($fileDir, 0777, true);
+                    @file_put_contents($fullPath, $originalBinary);
                 }
             }
         }
@@ -235,7 +310,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $requestPath !== '/' && $fileRelPath
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     
-    // Entrega em formato de Download Forçado (?download=...)
     if (isset($_GET['download'])) {
         if (is_file($fullPath)) {
             $mime = mime_content_type($fullPath) ?: 'application/octet-stream';
@@ -252,7 +326,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     }
 
-    // Visualização em Iframe / Stream Normal para requisição direta do arquivo
     if (is_file($fullPath)) {
         $cleanRelParam = $hasXPrefix ? substr($fileRelPath, 2) : $fileRelPath;
         $fileUrl = build_public_url($cleanRelParam);
@@ -298,7 +371,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     };
 
-    // --- Upload em partes (Chunks) ---
     if (!empty($_FILES['file'])) {
         $fileId     = $_POST['fileId'] ?? uniqid('upload_', true);
         $chunkIndex = intval($_POST['chunkIndex'] ?? 0);
@@ -343,7 +415,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $json(["status" => "partial", "progress" => $chunkIndex + 1]);
     }
 
-    // --- Upload via php://input (Streaming) ---
     $input = fopen('php://input', 'rb');
     if ($input) {
         $finalRel = $fileRelPath ?: ('upload_' . time());
@@ -383,12 +454,15 @@ if (is_dir(BASE_DIR)) {
         $lastChanged = (time() - $fileInfo->getMTime()); 
 
         $parts = explode(DIRECTORY_SEPARATOR, $relative);
-        $sanitizedParts = array_map('sanitize_firebase_key', $parts);
+        
+        // No ciclo de upload de novos arquivos criados localmente, usa a sanitização restrita para manter compatibilidade
+        $sanitizedParts = array_map('sanitize_firebase_key_strict', $parts);
         $formattedFilePath = implode('/', array_filter($sanitizedParts));
 
         if (empty($formattedFilePath)) continue;
         $nodePath = $raizStorage . '/' . $domainDir . '/' . $formattedFilePath;
 
+        // Recuperação em segundo plano caso o arquivo local esteja zerado
         if ($fileSize <= 1) {
             $fullHexContent = "";
             $part = 1;
