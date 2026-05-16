@@ -19,19 +19,19 @@ function response($status, $data) {
 }
 
 function sanitizaCaminho($path) {
+    // Remove o nome do script atual da URL se ele estiver presente (ex: index.php/meuarquivo -> meuarquivo)
+    $scriptName = basename($_SERVER['SCRIPT_NAME']);
+    $path = str_replace($scriptName, '', $path);
+    
     $path = ltrim($path, '/');
     $path = preg_replace('/[^a-zA-Z0-9_\-\.\@\/]/', '', $path);
     return $path;
 }
 
-// Função para forçar redirecionamento tanto por HTTP quanto por Fallback em HTML/JS
 function redirecionarPara($url) {
-    // Limpa buffers anteriores para evitar conflito de Headers
     if (ob_get_length()) ob_clean(); 
-    
     header("Location: " . $url, true, 301);
     
-    // Fallback caso o cliente ignore o Header Location (Garante redirecionamento no navegador)
     header('Content-Type: text/html; charset=utf-8');
     echo "<!DOCTYPE html><html><head><meta http-equiv='refresh' content='0;url={$url}'></head>";
     echo "<body><script>window.location.href='{$url}';</script></body></html>";
@@ -41,41 +41,51 @@ function redirecionarPara($url) {
 $request_path = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 $fileRelPath = sanitizaCaminho($request_path);
 
-// Se a URL for vazia (ex: apenas a raiz do script), evita processar download indevido
-if ($fileRelPath === '') {
-    response(400, ["erro" => "Nenhum arquivo ou rota especificada na URL."]);
+// ====== CONTEXTO DE GET (DOWNLOAD) ======
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    // Se a rota for vazia ou for um arquivo .php do sistema, NÃO INTERFERE
+    if ($fileRelPath === '' || pathinfo($fileRelPath, PATHINFO_EXTENSION) === 'php') {
+        // Deixa passar. Se houver um sistema de rotas index.php acima, ele continua o fluxo normal do servidor
+        return; 
+    }
+
+    $fullPath = BASE_DIR . '/' . $fileRelPath;
+    $realFullPath = realpath(dirname($fullPath)) . '/' . basename($fullPath);
+
+    // Só interfere e processa se o arquivo realmente existir fisicamente dentro de X
+    if (file_exists($fullPath) && is_file($fullPath)) {
+        // 🔒 Proteção de Diretório
+        if (strpos($realFullPath, BASE_DIR) === 0) {
+            if (ob_get_length()) ob_clean();
+            header('Content-Description: File Transfer');
+            header('Content-Type: application/octet-stream');
+            header('Content-Disposition: attachment; filename="' . basename($fullPath) . '"');
+            header('Content-Length: ' . filesize($fullPath));
+            readfile($fullPath);
+            exit;
+        }
+    }
+    
+    // Se o arquivo NÃO EXISTE na pasta X, não retorna erro 400/403 do script. 
+    // Deixa o fluxo seguir para o servidor entregar o erro 404 padrão do sistema de rotas.
+    return; 
 }
 
-$fullPath = BASE_DIR . '/' . $fileRelPath;
-$realFullPath = realpath(dirname($fullPath)) . '/' . basename($fullPath);
-
-// 🔒 PROTEÇÃO EXTREMA: Garante que o arquivo solicitado está obrigatoriamente dentro da pasta X
-if (strpos($realFullPath, BASE_DIR) !== 0) {
-    response(403, ["erro" => "Acesso proibido. O arquivo solicitado está fora do diretório autorizado."]);
-}
-
-// ====== DOWNLOAD DE ARQUIVO EXISTENTE ======
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && file_exists($fullPath) && is_file($fullPath)) {
-    if (ob_get_length()) ob_clean();
-    header('Content-Description: File Transfer');
-    header('Content-Type: application/octet-stream');
-    header('Content-Disposition: attachment; filename="' . basename($fullPath) . '"');
-    header('Content-Length: ' . filesize($fullPath));
-    readfile($fullPath);
-    exit;
-}
-
-// Determinar o protocolo dinamicamente (HTTP ou HTTPS)
+// Configuração de URLs para respostas de Upload/POST
 $protocolo = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
 $dominio = $_SERVER['HTTP_HOST'];
-
-// Pasta do script para gerar a URL correta apontando para a pasta X
 $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
 if ($scriptDir !== '/') $scriptDir = rtrim($scriptDir, '/') . '/';
 $urlFinal = $protocolo . $dominio . $scriptDir . 'X/' . $fileRelPath;
 
-// ====== UPLOAD DE ARQUIVO ======
+$fullPath = BASE_DIR . '/' . $fileRelPath;
+
+// ====== UPLOAD DE ARQUIVO (POST) ======
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_FILES['file'])) {
+    if ($fileRelPath === '') {
+        response(400, ["erro" => "Defina o caminho final do arquivo na URL."]);
+    }
+    
     if ($_FILES['file']['error'] !== 0) {
         response(400, ["erro" => "Erro no upload: " . $_FILES['file']['error']]);
     }
@@ -83,19 +93,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_FILES['file'])) {
     $arquivoTamanho = $_FILES['file']['size'];
     $espacoLivre = disk_free_space(BASE_DIR);
     if ($arquivoTamanho > $espacoLivre) {
-        response(507, [
-            "erro" => "Espaço insuficiente no servidor.",
-            "tamanho_arquivo" => $arquivoTamanho,
-            "espaco_livre" => $espacoLivre
-        ]);
+        response(507, ["erro" => "Espaço insuficiente no servidor."]);
     }
 
     $dir = dirname($fullPath);
     if (!is_dir($dir)) mkdir($dir, 0777, true);
-
-    if (is_dir($fullPath)) {
-        response(400, ["erro" => "O caminho especificado é um diretório, não um arquivo."]);
-    }
 
     if (move_uploaded_file($_FILES['file']['tmp_name'], $fullPath)) {
         redirecionarPara($urlFinal);
@@ -104,43 +106,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_FILES['file'])) {
     }
 }
 
-// ====== UPLOAD DE TEXTO (OU DOWNLOAD DE LINK) ======
+// ====== UPLOAD DE TEXTO / URL (POST) ======
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_FILES['file'])) {
+    if ($fileRelPath === '') {
+        response(400, ["erro" => "Defina o caminho final do arquivo na URL."]);
+    }
+
     $rawData = trim(file_get_contents("php://input"));
     if (empty($rawData)) {
-        response(400, ["erro" => "Nenhum conteúdo de texto recebido."]);
+        response(400, ["erro" => "Nenhum conteúdo recebido."]);
     }
 
     $dir = dirname($fullPath);
     if (!is_dir($dir)) mkdir($dir, 0777, true);
 
-    if (is_dir($fullPath)) {
-        response(400, ["erro" => "O caminho especificado é um diretório, não um arquivo."]);
-    }
-
-    // Se o texto começar com "https//", trata como URL e faz download
+    // Se for URL externa, baixa e salva em X
     if (preg_match('/^https\/\//i', $rawData)) {
         $url = str_replace('https//', 'https://', $rawData);
-
         $conteudo = @file_get_contents($url);
         if ($conteudo === false) {
-            response(400, ["erro" => "Falha ao baixar conteúdo da URL: {$url}"]);
+            response(400, ["erro" => "Falha ao baixar conteúdo da URL externa."]);
         }
-
-        if (file_put_contents($fullPath, $conteudo) === false) {
-            response(500, ["erro" => "Falha ao salvar conteúdo baixado localmente."]);
-        }
-
+        file_put_contents($fullPath, $conteudo);
         redirecionarPara($urlFinal);
     }
 
-    // Caso contrário, salva texto normalmente
+    // Salvamento de texto comum
     if (file_put_contents($fullPath, $rawData) !== false) {
         redirecionarPara($urlFinal);
     } else {
         response(500, ["erro" => "Falha ao salvar o texto localmente."]);
     }
 }
-
-response(400, ["erro" => "Arquivo não encontrado ou nenhuma operação válida especificada."]);
 ?>
