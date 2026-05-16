@@ -8,7 +8,7 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]
 
-php_value auto_prepend_file "l_p.php"
+# php_value auto_prepend_file "l_p.php"
 
 # ============================
 # Segurança: bloqueia arquivos sensíveis
