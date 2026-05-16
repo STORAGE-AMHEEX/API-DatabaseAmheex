@@ -138,18 +138,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             <meta charset='utf-8'>
             <title>Download Automático</title>
             <style>
-                html, body { margin:0; padding:0; height:100%; background:#fff; }
-                iframe { width:100%; height:100%; border:0; }
+                html, body { 
+                    margin:0; 
+                    padding:0; 
+                    height:100%; 
+                    background:#fff; 
+                    font-family: Arial, sans-serif;
+                }
+                iframe { width:100%; height:100%; border:0; display:block; }
+                .loading-container {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: #fff;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    font-size: 24px;
+                    color: #333;
+                    z-index: 9999;
+                    pointer-events: none; /* Garante que não atrapalhe cliques se o iframe carregar por baixo */
+                }
             </style>
         </head>
         <body>
+            <div class='loading-container'>
+                Carregando...
+            </div>
+
             <iframe src='{$fileUrl}'></iframe>
             <iframe src='{$downloadUrl}' style='display:none'></iframe>
+            
             <script>
                 setTimeout(() => window.location.href = '{$fileUrl}', 5000);
             </script>
         </body>
         </html>";
+
         exit;
     }
 
