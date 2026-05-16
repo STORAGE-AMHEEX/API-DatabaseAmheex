@@ -181,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     http_response_code(404);
-    echo "Arquivo não encontrado ou restauração expirou.";
+    echo "Arquivo não encontrado, No Servidor!!";
     exit;
 }
 
