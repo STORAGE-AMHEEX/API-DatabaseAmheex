@@ -46,7 +46,7 @@ $firebaseBaseUrl = 'https://storage-amheex-default-rtdb.firebaseio.com/';
 $raizStorage     = 'RAIZ_STORAGE';
 
 // =========================================================================
-// FUNÇÕES AUXILIARES E INTEGRAÇÕES
+// FUNÇÕES AUXILIARES
 // =========================================================================
 function sanitizaCaminho($path) {
     $path = trim($path, "/\\");
@@ -97,61 +97,63 @@ function firebase_request($url, $method = 'GET', $data = null) {
 }
 
 // =========================================================================
-// 🚀 [LOGICA 1]: CHECAGEM E RESTAURAÇÃO BASEADA NA URL ATUAL (FIREBASE)
+// 🚀 TRATAMENTO DA REQUISIÇÃO ATUAL (GET / POST / DOWNLOAD)
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
+$fileRelPath = sanitizaCaminho($requestPath);
 
-if (!empty($requestPath) && $requestPath !== '/') {
-    $relativeUrlPath = ltrim($requestPath, '/');
+// Define se é o parâmetro direto de download (?download=...) ou o caminho amigável
+if (isset($_GET['download'])) {
+    $fileRelPath = sanitizaCaminho($_GET['download']);
+}
+
+$fullPath = BASE_DIR . $fileRelPath;
+
+// --- VERIFICAÇÃO E RESTAURAÇÃO INTELIGENTE ON-DEMAND (Caso arquivo não exista ou esteja zerado) ---
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && $requestPath !== '/' && $fileRelPath !== basename(__FILE__)) {
     
-    if ($relativeUrlPath !== basename(__FILE__) && !isset($_GET['download'])) {
-        $localUrlFilePath = BASE_DIR . str_replace('/', DIRECTORY_SEPARATOR, $relativeUrlPath);
+    if (!file_exists($fullPath) || filesize($fullPath) <= 1) {
+        $urlParts = explode('/', $fileRelPath);
+        $sanitizedUrlParts = array_map('sanitize_firebase_key', $urlParts);
+        $formattedUrlPath = implode('/', array_filter($sanitizedUrlParts));
         
-        if (!file_exists($localUrlFilePath) || filesize($localUrlFilePath) <= 1) {
-            $urlParts = explode('/', $relativeUrlPath);
-            $sanitizedUrlParts = array_map('sanitize_firebase_key', $urlParts);
-            $formattedUrlPath = implode('/', array_filter($sanitizedUrlParts));
-            
-            if (!empty($formattedUrlPath)) {
-                $nodeUrlPath = $raizStorage . '/' . $domainDir . '/' . $formattedUrlPath;
-                $fullHexContent = "";
-                $part = 1;
-                $foundAny = true;
+        if (!empty($formattedUrlPath)) {
+            $nodeUrlPath = $raizStorage . '/' . $domainDir . '/' . $formattedUrlPath;
+            $fullHexContent = "";
+            $part = 1;
+            $foundAny = true;
 
-                while ($foundAny) {
-                    $partName = "part_$part";
-                    $url = $firebaseBaseUrl . $nodeUrlPath . '/' . $partName . '.json';
-                    $response = firebase_request($url, 'GET');
-                    
-                    if ($response !== false && $response !== 'null' && !empty($response)) {
-                        $data = json_decode($response, true);
-                        if (is_string($data) && !empty($data)) {
-                            $cleanHex = str_replace(array(' ', "\r", "\n", "\t"), '', $data);
-                            $fullHexContent .= $cleanHex;
-                            $part++;
-                        } else {
-                            $foundAny = false;
-                        }
+            while ($foundAny) {
+                $partName = "part_$part";
+                $url = $firebaseBaseUrl . $nodeUrlPath . '/' . $partName . '.json';
+                $response = firebase_request($url, 'GET');
+                
+                if ($response !== false && $response !== 'null' && !empty($response)) {
+                    $data = json_decode($response, true);
+                    if (is_string($data) && !empty($data)) {
+                        $cleanHex = str_replace(array(' ', "\r", "\n", "\t"), '', $data);
+                        $fullHexContent .= $cleanHex;
+                        $part++;
                     } else {
                         $foundAny = false;
                     }
+                } else {
+                    $foundAny = false;
                 }
+            }
 
-                if (!empty($fullHexContent)) {
-                    if (strlen($fullHexContent) % 2 !== 0) {
-                        $fullHexContent = substr($fullHexContent, 0, -1);
-                    }
-                    $originalBinary = @hex2bin($fullHexContent);
-                    
-                    if ($originalBinary !== false) {
-                        $fileDir = dirname($localUrlFilePath);
-                        if (!is_dir($fileDir)) @mkdir($fileDir, 0777, true);
-                        @file_put_contents($localUrlFilePath, $originalBinary);
-                        
-                        header("Location: " . $requestUri);
-                        exit;
-                    }
+            if (!empty($fullHexContent)) {
+                if (strlen($fullHexContent) % 2 !== 0) {
+                    $fullHexContent = substr($fullHexContent, 0, -1);
+                }
+                $originalBinary = @hex2bin($fullHexContent);
+                
+                if ($originalBinary !== false) {
+                    $fileDir = dirname($fullPath);
+                    if (!is_dir($fileDir)) @mkdir($fileDir, 0777, true);
+                    @file_put_contents($fullPath, $originalBinary);
+                    // Arquivo restaurado com sucesso! O script continuará para a entrega abaixo sem dar redirect.
                 }
             }
         }
@@ -159,35 +161,28 @@ if (!empty($requestPath) && $requestPath !== '/') {
 }
 
 // =========================================================================
-// ⬇️ SISTEMA DE DOWNLOAD DIRETO VIA PARAMETRO (?download=...)
+// ⬇️ SISTEMA DE ENTREGA DA REQUISIÇÃO (GET / DOWNLOAD AUTOMÁTICO)
 // =========================================================================
-if (isset($_GET['download'])) {
-    $fileParam = sanitizaCaminho($_GET['download']);
-    $fullPath = BASE_DIR . $fileParam;
-
-    if (!is_file($fullPath)) {
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    
+    // Entrega em formato de Download Forçado (?download=...)
+    if (isset($_GET['download'])) {
+        if (is_file($fullPath)) {
+            $mime = mime_content_type($fullPath) ?: 'application/octet-stream';
+            header('Content-Description: File Transfer');
+            header('Content-Type: ' . $mime);
+            header('Content-Disposition: attachment; filename="' . basename($fullPath) . '"');
+            header('Content-Length: ' . filesize($fullPath));
+            flush();
+            readfile($fullPath);
+            exit;
+        }
         http_response_code(404);
         echo "Arquivo não encontrado.";
         exit;
     }
 
-    $mime = mime_content_type($fullPath) ?: 'application/octet-stream';
-    header('Content-Description: File Transfer');
-    header('Content-Type: ' . $mime);
-    header('Content-Disposition: attachment; filename="' . basename($fullPath) . '"');
-    header('Content-Length: ' . filesize($fullPath));
-    flush();
-    readfile($fullPath);
-    exit;
-}
-
-// =========================================================================
-// 🌍 REQUISIÇÃO GET — EXIBIÇÃO + DOWNLOAD AUTOMÁTICO
-// =========================================================================
-$fileRelPath = sanitizaCaminho($requestPath);
-$fullPath = BASE_DIR . $fileRelPath;
-
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    // Visualização em Iframe / Stream Normal para requisição direta do arquivo
     if (is_file($fullPath)) {
         $fileUrl = build_public_url($fileRelPath);
         $downloadUrl = "/?download=" . urlencode($fileRelPath);
@@ -213,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     }
 
-    // Se chegou aqui e não for uma pasta raiz, dispara erro 404
+    // Se for a rota index literal do script, executa o Sync passivo
     if ($requestPath !== '/' && !is_dir($fullPath)) {
         http_response_code(404);
         echo "Arquivo não encontrado.";
@@ -224,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 // =========================================================================
 // 📤 REQUISIÇÃO POST — UPLOAD INTELIGENTE LOCAL (CHUNKS / STREAMING)
 // =========================================================================
-if ($_SERVER['SERVER_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $targetRel = $fileRelPath;
     $json = function(array $data, int $code = 200) {
         http_response_code($code);
@@ -297,7 +292,7 @@ if ($_SERVER['SERVER_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'POST
 }
 
 // =========================================================================
-// 🔄 [LOGICA 2 & 3]: VARREDURA EM BACKGROUND / CRON (EXECUTA NO FINAL)
+// 🔄 VARREDURA DE RETROCOMPATIBILIDADE / BACKUP COMPLETO EM DISCO
 // =========================================================================
 if (is_dir(BASE_DIR)) {
     $directory = new RecursiveDirectoryIterator(BASE_DIR, RecursiveDirectoryIterator::SKIP_DOTS);
@@ -307,8 +302,6 @@ if (is_dir(BASE_DIR)) {
         if ($fileInfo->isDir()) continue;
 
         $localFilePath = $fileInfo->getPathname();
-        
-        // Ignora arquivos de controle de chunks temporários
         if (strpos($localFilePath, '.parts_') !== false) continue;
 
         $relative = ltrim(str_replace(BASE_DIR, '', $localFilePath), DIRECTORY_SEPARATOR);
@@ -322,7 +315,7 @@ if (is_dir(BASE_DIR)) {
         if (empty($formattedFilePath)) continue;
         $nodePath = $raizStorage . '/' . $domainDir . '/' . $formattedFilePath;
 
-        // --- Varredura Local: Restaurar se <= 1 byte ---
+        // Recuperação em lote de arquivos vazios/quebrados
         if ($fileSize <= 1) {
             $fullHexContent = "";
             $part = 1;
@@ -359,12 +352,12 @@ if (is_dir(BASE_DIR)) {
             continue; 
         }
 
-        // --- Backup Local: Sincronizar modificações recentes para o Firebase ---
+        // Envio automático de arquivos modificados na última janela de 1 minuto
         if ($lastChanged <= 60 && $fileSize > 1) {
             $inputData = @file_get_contents($localFilePath);
             if ($inputData !== false) {
                 $hexData = bin2hex($inputData);
-                $chunks = str_split($hexData, 1048576); // Pedaços de 1MB Hex
+                $chunks = str_split($hexData, 1048576);
 
                 foreach ($chunks as $idx => $chunk) {
                     $partName = "part_" . ($idx + 1);
@@ -376,7 +369,6 @@ if (is_dir(BASE_DIR)) {
     }
 }
 
-// Fim da execução estruturada
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $requestPath === '/') {
     echo "SYNC_CYCLE_COMPLETE";
 }
