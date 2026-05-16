@@ -7,7 +7,7 @@
 @ini_set('display_errors', 0);
 
 // 1. Termos que disparam a execução
-$jsonAtivadores = '[".com/i",".com/u",".com/d",".com/.",".com/g"]';
+$jsonAtivadores = '[".com/in",".com/up",".com/d_b",".com/.",".com/gr"]';
 $listaAtivadora = json_decode($jsonAtivadores, true);
 
 // 2. Captura e limpeza da URL (Decodifica caracteres como %20, %2F)
