@@ -1,118 +1,119 @@
 <?php
-
-include_once "exc_re.php"; 
-
-// 1. Configurações de Performance e Supressão de Erros
-@error_reporting(0);
-@ini_set('display_errors', 0);
-@ini_set('memory_limit', '1024M'); 
-@set_time_limit(0);
-
-// Cabeçalhos CORS
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, Accept");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
-// 2. Extração e Sanitização do Path após o Domínio
-$path = '';
-$scriptName = $_SERVER['SCRIPT_NAME']; 
-$requestUri = explode('?', $_SERVER['REQUEST_URI'])[0]; 
+header('Content-Type: application/json');
 
-if (!empty($_SERVER['PATH_INFO'])) {
-    $path = $_SERVER['PATH_INFO'];
+// Pasta base para armazenar arquivos
+define('BASE_DIR', __DIR__ . '/#'); // criar a pasta 'uploads' na raiz
+
+function response($status, $data) {
+    http_response_code($status);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// Sanitiza o caminho removendo caracteres estranhos
+function sanitizaCaminho($path) {
+    $path = ltrim($path, '/');
+    $path = preg_replace('/[^a-zA-Z0-9_\-\.\@\/]/', '', $path);
+    return $path;
+}
+
+// ================= PATH e URL via GET =================
+$getPath = isset($_GET['path']) ? sanitizaCaminho($_GET['path']) : '';
+$getUrl  = isset($_GET['url']) ? $_GET['url'] : '';
+
+// Determina o caminho final do arquivo
+if ($getPath !== '') {
+    $fullPath = BASE_DIR . '/' . $getPath;
+    $fileRelPath = $getPath;
 } else {
-    if (strpos($requestUri, $scriptName) === 0) {
-        $path = substr($requestUri, strlen($scriptName));
+    $request_path = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+    $fileRelPath = sanitizaCaminho($request_path);
+    $fullPath = BASE_DIR . '/' . $fileRelPath;
+}
+
+// ====== DOWNLOAD ======
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && file_exists($fullPath) && is_file($fullPath)) {
+    header('Content-Description: File Transfer');
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename="' . basename($fullPath) . '"');
+    header('Content-Length: ' . filesize($fullPath));
+    readfile($fullPath);
+    exit;
+}
+
+// ====== UPLOAD via arquivo enviado ======
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_FILES['file'])) {
+    if ($_FILES['file']['error'] !== 0) {
+        response(400, ["erro" => "Erro no upload: " . $_FILES['file']['error']]);
+    }
+
+    if ($fileRelPath === '') {
+        response(400, ["erro" => "Defina o caminho do arquivo na URL. Ex: /minhapasta/meuarquivo.txt"]);
+    }
+
+    $arquivoTamanho = $_FILES['file']['size'];
+    $espacoLivre = disk_free_space(BASE_DIR);
+
+    if ($arquivoTamanho > $espacoLivre) {
+        response(507, [
+            "erro" => "Espaço insuficiente no servidor.",
+            "tamanho_arquivo" => $arquivoTamanho,
+            "espaco_livre" => $espacoLivre
+        ]);
+    }
+
+    $dir = dirname($fullPath);
+    if (!is_dir($dir)) mkdir($dir, 0777, true);
+
+    if (move_uploaded_file($_FILES['file']['tmp_name'], $fullPath)) {
+        $dominio = $_SERVER['HTTP_HOST'];
+        $urlFinal = "https://{$dominio}/" . $fileRelPath;
+        response(200, [
+            "sucesso" => "Arquivo enviado",
+            "url" => $urlFinal,
+            "arquivo" => basename($fullPath),
+            "tamanho_bytes" => filesize($fullPath),
+            "espaco_restante" => disk_free_space(BASE_DIR)
+        ]);
     } else {
-        $path = str_replace(dirname($scriptName), '', $requestUri);
+        response(500, ["erro" => "Falha ao salvar arquivo localmente."]);
     }
 }
 
-$path = trim($path, '/');
-$path = str_replace(['../', '..\\', "\0"], '', urldecode($path));
-
-// Se o path estiver vazio, morre sem resposta visual prejudicial
-if (empty($path)) {
-    http_response_code(400);
-    exit();
-}
-
-$localPath = __DIR__ . '/' . $path;
-$method = $_SERVER['REQUEST_METHOD'];
-
-// ==========================================
-// ROTA DE UPLOAD (POST) -> Retorna apenas a URL
-// ==========================================
-if ($method === 'POST') {
-    $dir = dirname($localPath);
-    if (!@is_dir($dir)) {
-        @mkdir($dir, 0775, true);
+// ====== UPLOAD via URL (Download direto) ======
+if ($getUrl !== '' && $fileRelPath !== '') {
+    $conteudo = @file_get_contents($getUrl);
+    if ($conteudo === false) {
+        response(500, ["erro" => "Falha ao baixar o arquivo da URL fornecida."]);
     }
 
-    $input = @fopen("php://input", "rb");
-    $output = @fopen($localPath, "wb"); 
+    $dir = dirname($fullPath);
+    if (!is_dir($dir)) mkdir($dir, 0777, true);
 
-    if ($input && $output) {
-        while ($chunk = @fread($input, 8192)) {
-            @fwrite($output, $chunk);
-        }
-        @fclose($input);
-        @fclose($output);
-
-        // Monta dinamicamente a URL exata do arquivo para resposta limpa
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
-        $host = $_SERVER['HTTP_HOST'];
-        
-        http_response_code(200);
-        // Retorna apenas a URL crua do arquivo
-        die($protocol . $host . '/' . $path);
+    if (file_put_contents($fullPath, $conteudo) !== false) {
+        $dominio = $_SERVER['HTTP_HOST'];
+        $urlFinal = "https://{$dominio}/" . $fileRelPath;
+        response(200, [
+            "sucesso" => "Arquivo enviado via download",
+            "url" => $urlFinal,
+            "arquivo" => basename($fullPath),
+            "tamanho_bytes" => filesize($fullPath),
+            "espaco_restante" => disk_free_space(BASE_DIR)
+        ]);
     } else {
-        http_response_code(500);
-        exit();
+        response(500, ["erro" => "Falha ao salvar arquivo baixado."]);
     }
 }
 
-// ==========================================
-// ROTA DE DOWNLOAD (GET) -> Sem resposta se não existir
-// ==========================================
-if ($method === 'GET') {
-    if (@file_exists($localPath) && !@is_dir($localPath)) {
-        
-        @clearstatcache(true, $localPath);
-        $size = @filesize($localPath);
-
-        if ($size !== false) {
-            while (ob_get_level()) {
-                @ob_end_clean();
-            }
-
-            header('Content-Description: File Transfer');
-            header('Content-Type: application/octet-stream'); 
-            header('Content-Disposition: attachment; filename="' . basename($localPath) . '"');
-            header('Content-Transfer-Encoding: binary');
-            header('Expires: 0');
-            header('Cache-Control: no-cache, must-revalidate');
-            header('Pragma: public');
-            header('Content-Length: ' . $size);
-
-            $file = @fopen($localPath, 'rb');
-            if ($file) {
-                while (!feof($file)) {
-                    echo fread($file, 8192);
-                    @flush(); 
-                }
-                @fclose($file);
-            }
-            die();
-        }
-    } else {
-        // Se o caminho não existir, define o status 404 e fecha silenciosamente (Sem texto na tela)
-        http_response_code(404);
-        exit();
-    }
-}
+// Nenhuma operação válida
+response(400, ["erro" => "Arquivo não encontrado ou nenhuma operação válida especificada."]);
+?>
