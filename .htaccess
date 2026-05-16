@@ -1,35 +1,90 @@
-# ============================
-# Habilita rewrite e front controller
-# ============================
+# =========================================
+# PROTEÇÃO E REDIRECIONAMENTO SEGURO
+# =========================================
+
+# Ativa mod_rewrite
 RewriteEngine On
 
-# Redireciona tudo para index.php se não for arquivo ou pasta existente
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ index.php [QSA,L]
+# Evita listing de diretórios
+Options -Indexes
 
-# php_value auto_prepend_file "l_p.php"
+# =========================================
+# PROTEÇÃO CONTRA BUG DE LOOP / RENDER
+# =========================================
 
-# ============================
-# Segurança: bloqueia arquivos sensíveis
-# ============================
-<FilesMatch "(\.env|config\.php|db\.php|composer\.json|\.git|\.htaccess|\.htpasswd)$">
-    Require all denied
-</FilesMatch>
-
-# Bloqueia arquivos de backup ou temporários
-<Files ~ "\.(bak|old|sql|swp|~)$">
+# Bloqueia acesso direto ao .htaccess
+<Files ".htaccess">
     Require all denied
 </Files>
 
-# Desativa listagem de diretório
-Options -Indexes
+# Evita acesso a arquivos sensíveis
+<FilesMatch "(^\.|composer\.(json|lock)|package\.json|Dockerfile|memoria\.json|index\.json)">
+    Require all denied
+</FilesMatch>
 
-# ============================
-# Limites PHP (upload/execução)
-# ============================
-php_value upload_max_filesize 3072M
-php_value post_max_size 3072M
-php_value memory_limit 3072M
-php_value max_execution_time 86400
+# =========================================
+# SE ARQUIVO OU PASTA EXISTIR -> NÃO REDIRECIONA
+# =========================================
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# php_value auto_prepend_file "exc.php"
+
+# =========================================
+# EVITA BUG DE "CARREGANDO" NO APACHE/RENDER
+# =========================================
+
+# Se não existir arquivo, envia para index.php
+RewriteRule ^ index.php [QSA,L]
+
+# =========================================
+# CONFIGURAÇÕES PHP
+# =========================================
+
+php_value upload_max_filesize 1048576M
+php_value post_max_size 1048576M
 php_value max_input_time 86400
+php_value max_execution_time 86400
+php_value memory_limit 16384M
+
+# =========================================
+# PERFORMANCE E TIMEOUT
+# =========================================
+
+php_flag output_buffering On
+php_flag zlib.output_compression On
+
+# =========================================
+# CACHE BÁSICO
+# =========================================
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresDefault "access plus 1 second"
+</IfModule>
+
+# =========================================
+# HEADERS DE PROTEÇÃO
+# =========================================
+
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin"
+</IfModule>
+
+# =========================================
+# FALLBACK SE INDEX NÃO EXISTIR
+# =========================================
+
+ErrorDocument 404 /index.php
+DirectoryIndex index.php index.html
+
+# =========================================
+# IMPEDE LOOP INTERNO
+# =========================================
+
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^index\.php$ - [L]
