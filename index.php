@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // === Configurações ===
-define('BASE_DIR', realpath(__DIR__) . '/');
+define('BASE_DIR', realpath(__DIR__) . '/X');
 if (!is_dir(BASE_DIR)) {
     if (!mkdir(BASE_DIR, 0777, true)) {
         error_log("Falha ao criar BASE_DIR: " . BASE_DIR);
