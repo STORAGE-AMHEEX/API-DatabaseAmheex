@@ -103,6 +103,7 @@ $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
 $rawPath = trim($requestPath, '/');
+// Verifica se a URL atual começa com X/ ou é exatamente X
 $hasXPrefix = (strpos($rawPath, 'X/') === 0 || $rawPath === 'X');
 
 $fileRelPath = sanitizaCaminho($requestPath);
@@ -116,15 +117,17 @@ $fullPath = BASE_DIR . $fileRelPath;
 // --- VERIFICAÇÃO E DOWNLOAD COMPLETO DO FIREBASE ANTES DO REDIRECIONAMENTO ---
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $requestPath !== '/' && $fileRelPath !== basename(__FILE__)) {
     
-    // CASO A: O utilizador acedeu SEM o prefixo "X/" (Ex: dominio.com/pasta/arquivo.ext)
+    // CASO A: O usuário acessou SEM o prefixo "X/" na URL (Ex: dominio.com/pasta/arquivo.ext)
     if (!$hasXPrefix) {
-        // Mapeia o destino final para dentro da pasta física X/ antes de tudo
+        // O arquivo físico real final deve ser salvo obrigatoriamente dentro da pasta X/
         $forcedXRelPath = sanitizaCaminho('X/' . $fileRelPath);
         $forcedFullPath = BASE_DIR . $forcedXRelPath;
 
-        // SISTEMA DE DOWNLOAD ANTES DE REDIRECIONAR: Se o arquivo não existe ou está zerado localmente
+        // Se o arquivo não existir localmente na pasta X/ ou estiver zerado, faz o download do Firebase primeiro
         if (!file_exists($forcedFullPath) || filesize($forcedFullPath) <= 1) {
-            $urlParts = explode('/', $forcedXRelPath);
+            
+            // ATENÇÃO: Para buscar no Firebase, usamos o caminho original pesquisado pelo usuário (sem injetar o X_ na chave)
+            $urlParts = explode('/', $fileRelPath);
             $sanitizedUrlParts = array_map('sanitize_firebase_key', $urlParts);
             $formattedUrlPath = implode('/', array_filter($sanitizedUrlParts));
             
@@ -134,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $requestPath !== '/' && $fileRelPath
                 $part = 1;
                 $foundAny = true;
 
-                // Executa o download de todas as partes do Firebase Realtime Database
+                // Loop para baixar todas as partes em Hexadecimal do Firebase
                 while ($foundAny) {
                     $partName = "part_$part";
                     $url = $firebaseBaseUrl . $nodeUrlPath . '/' . $partName . '.json';
@@ -154,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $requestPath !== '/' && $fileRelPath
                     }
                 }
 
-                // Se obteve o conteúdo, reconstrói o binário e salva no disco rígido local
+                // Se o conteúdo foi baixado com sucesso, junta e salva dentro de X/
                 if (!empty($fullHexContent)) {
                     if (strlen($fullHexContent) % 2 !== 0) {
                         $fullHexContent = substr($fullHexContent, 0, -1);
@@ -164,13 +167,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $requestPath !== '/' && $fileRelPath
                     if ($originalBinary !== false) {
                         $fileDir = dirname($forcedFullPath);
                         if (!is_dir($fileDir)) @mkdir($fileDir, 0777, true);
-                        @file_put_contents($forcedFullPath, $originalBinary); // <--- GRAVA EM DISCO AQUI
+                        @file_put_contents($forcedFullPath, $originalBinary); // Grava fisicamente na pasta X/
                     }
                 }
             }
         }
 
-        // REDIRECIONAMENTO SEGURO: Só redireciona se o arquivo foi baixado com sucesso e existe fisicamente
+        // AGORA SIM: O redirecionamento só é executado se o arquivo foi baixado e já existe fisicamente na pasta X/
         if (file_exists($forcedFullPath) && filesize($forcedFullPath) > 1) {
             $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
             $queryString = !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '';
@@ -178,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $requestPath !== '/' && $fileRelPath
             exit;
         }
     } 
-    // CASO B: O utilizador já está na URL correta com o prefixo "/X/"
+    // CASO B: O usuário já está acessando a URL correta com o prefixo "/X/" (Ex: dominio.com/X/pasta/arquivo.ext)
     else {
         if (!file_exists($fullPath) || filesize($fullPath) <= 1) {
             $urlParts = explode('/', $fileRelPath);
