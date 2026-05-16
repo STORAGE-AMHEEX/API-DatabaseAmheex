@@ -220,8 +220,8 @@ foreach ($iterator as $fileInfo) {
             
             firebase_request($url, 'PUT', $chunk);
         }
-        echo "SYNCHRONIZED: $relative <br>\n";
+        // echo "SYNCHRONIZED: $relative <br>\n";
     }
 }
 
-echo "SYNC_CYCLE_COMPLETE";
+// echo "SYNC_CYCLE_COMPLETE";
