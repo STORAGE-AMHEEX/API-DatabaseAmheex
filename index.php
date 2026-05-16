@@ -30,7 +30,7 @@ $domain = $_SERVER['HTTP_HOST'] ?? 'default_domain';
 $domainDir = preg_replace('/[^a-zA-Z0-9-]/', '_', $domain); 
 
 $publicRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
-define('BASE_DIR', $publicRoot . '/X');
+define('BASE_DIR', $publicRoot . '/');
 
 if (!is_dir(BASE_DIR)) {
     if (!mkdir(BASE_DIR, 0777, true)) {
@@ -153,7 +153,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $requestPath !== '/' && $fileRelPath
                     $fileDir = dirname($fullPath);
                     if (!is_dir($fileDir)) @mkdir($fileDir, 0777, true);
                     @file_put_contents($fullPath, $originalBinary);
-                    // Arquivo restaurado com sucesso! O script continuará para a entrega abaixo sem dar redirect.
                 }
             }
         }
@@ -217,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 
 // =========================================================================
-// 📤 REQUISIÇÃO POST — UPLOAD INTELIGENTE LOCAL (CHUNKS / STREAMING)
+// 📤 REQUISIÇÃO POST — UPLOAD INTELIGENTE LOCAL (DIRECIONADO PARA PASTA X/)
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $targetRel = $fileRelPath;
@@ -235,6 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $totalChunks= intval($_POST['totalChunks'] ?? 1);
         $fileName   = basename($_POST['fileName'] ?? ('file_' . time()));
 
+        // Armazena chunks temporários na base
         $uploadDir = BASE_DIR;
         if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
         $chunkDir = $uploadDir . '.parts_' . md5($fileId);
@@ -251,7 +251,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($chunkIndex + 1 === $totalChunks) {
             $finalRel = $targetRel !== '' ? $targetRel : $fileName;
             $finalRel = sanitizaCaminho($finalRel);
-            $finalPath = BASE_DIR . $finalRel;
+            
+            // Força o destino final a ficar permanentemente dentro da pasta raiz local 'X/'
+            $finalPath = BASE_DIR . 'X/' . basename($finalRel);
             if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
             
             $out = fopen($finalPath, 'wb');
@@ -265,7 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             fclose($out);
             @rmdir($chunkDir);
             
-            $url = build_clean_public_url($finalRel);
+            $url = build_clean_public_url(basename($finalRel));
             $json(["status" => "complete", "url" => $url]);
         }
         $json(["status" => "partial", "progress" => $chunkIndex + 1]);
@@ -276,7 +278,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($input) {
         $finalRel = $fileRelPath ?: ('upload_' . time());
         $finalRel = sanitizaCaminho($finalRel);
-        $finalPath = BASE_DIR . $finalRel;
+        
+        // Força o destino final a ficar permanentemente dentro da pasta raiz local 'X/'
+        $finalPath = BASE_DIR . 'X/' . basename($finalRel);
         if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
         
         $out = fopen($finalPath, 'wb');
@@ -284,7 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         fclose($out); 
         fclose($input);
         
-        $url = build_clean_public_url($finalRel);
+        $url = build_clean_public_url(basename($finalRel));
         $json(["status" => "complete", "url" => $url]);
     }
 
