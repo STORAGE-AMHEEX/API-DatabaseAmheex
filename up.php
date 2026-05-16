@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // Pasta base para armazenar arquivos
-define('BASE_DIR', __DIR__ . '/X'); 
+define('BASE_DIR', __DIR__ . '/'); 
 
 // Função padrão para retornar JSON e encerrar
 function response($status, $data) {
