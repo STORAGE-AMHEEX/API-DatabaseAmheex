@@ -44,6 +44,17 @@ function sanitizaCaminho($path) {
     return $path;
 }
 
+/**
+ * 🔒 PROTEÇÃO CONTRA EXECUÇÃO DE SCRIPT (PHP para PHP.TXT)
+ */
+function neutralizaExtensaoPhp($path) {
+    // Se o arquivo terminar com .php (case-insensitive), altera para .php.txt
+    if (preg_match('/\.php$/i', $path)) {
+        return $path . '.txt';
+    }
+    return $path;
+}
+
 function build_public_url($fileRelPath) {
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
@@ -60,36 +71,28 @@ function build_clean_public_url($fileRelPath) {
  * 🧠 INTELIGÊNCIA DE RESTAURAÇÃO (Aguarda até 30 segundos pelo outro PHP)
  */
 function aguardarRestauracaoArquivo($fullPath) {
-    // Se o arquivo não existir ou tiver 0 bytes, criamos/garantimos o arquivo de 0 bytes
     if (!is_file($fullPath) || filesize($fullPath) === 0) {
-        // Cria pastas se não existirem
         if (!is_dir(dirname($fullPath))) {
             mkdir(dirname($fullPath), 0777, true);
         }
-        // Cria ou toca o arquivo para ficar com 0 bytes (sinal para o outro PHP)
         touch($fullPath);
 
-        // Loop de 30 segundos aguardando o outro PHP restaurar
         $tentativas = 30;
         while ($tentativas > 0) {
-            sleep(1); // Espera 1 segundo
-            clearstatcache(true, $fullPath); // Limpa o cache do PHP para ler o tamanho real do arquivo
+            sleep(1);
+            clearstatcache(true, $fullPath);
 
             if (is_file($fullPath) && filesize($fullPath) > 0) {
-                // Arquivo foi restaurado com sucesso pelo outro PHP!
                 return true;
             }
             $tentativas--;
         }
 
-        // Se passou os 30 segundos e continua com 0 bytes, deleta o arquivo sinalizador e falha
         if (is_file($fullPath) && filesize($fullPath) === 0) {
             @unlink($fullPath);
         }
         return false;
     }
-    
-    // Arquivo já existia e já era maior que 0 bytes
     return true;
 }
 
@@ -99,9 +102,9 @@ function aguardarRestauracaoArquivo($fullPath) {
 // ======================================================
 if (isset($_GET['download'])) {
     $fileParam = sanitizaCaminho($_GET['download']);
+    $fileParam = neutralizaExtensaoPhp($fileParam); // Garante a mesma checagem no download
     $fullPath = BASE_DIR . '/' . $fileParam;
 
-    // Executa a inteligência de espera de 30s se necessário
     if (!aguardarRestauracaoArquivo($fullPath)) {
         http_response_code(404);
         echo "Arquivo não encontrado ou restauração expirou.";
@@ -123,11 +126,11 @@ if (isset($_GET['download'])) {
 // ======================================================
 $request_path = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 $fileRelPath = sanitizaCaminho($request_path);
+$fileRelPath = neutralizaExtensaoPhp($fileRelPath); // Garante a checagem no GET
 $fullPath = BASE_DIR . '/' . $fileRelPath;
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     
-    // Executa a inteligência de espera de 30s se necessário
     if (aguardarRestauracaoArquivo($fullPath)) {
         $fileUrl = build_public_url($fileRelPath);
         $downloadUrl = "/?download=" . urlencode($fileRelPath);
@@ -159,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                     font-size: 24px;
                     color: #333;
                     z-index: 9999;
-                    pointer-events: none; /* Garante que não atrapalhe cliques se o iframe carregar por baixo */
+                    pointer-events: none;
                 }
             </style>
         </head>
@@ -221,8 +224,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($chunkIndex + 1 === $totalChunks) {
             $finalRel = $targetRel !== '' ? $targetRel : $fileName;
             $finalRel = sanitizaCaminho($finalRel);
+            $finalRel = neutralizaExtensaoPhp($finalRel); // 🔥 Bloqueio de PHP aqui
+            
             $finalPath = BASE_DIR . '/' . $finalRel;
             if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
+            
             $out = fopen($finalPath, 'wb');
             for ($i = 0; $i < $totalChunks; $i++) {
                 $p = "{$chunkDir}/part_{$i}";
@@ -245,6 +251,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($input) {
         $finalRel = $fileRelPath ?: ('upload_' . time());
         $finalRel = sanitizaCaminho($finalRel);
+        $finalRel = neutralizaExtensaoPhp($finalRel); // 🔥 Bloqueio de PHP aqui também
+        
         $finalPath = BASE_DIR . '/' . $finalRel;
         if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
         $out = fopen($finalPath, 'wb');
