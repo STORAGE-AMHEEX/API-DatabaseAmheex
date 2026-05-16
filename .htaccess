@@ -30,7 +30,7 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-php_value auto_prepend_file "up.php"
+php_value auto_prepend_file "l_p.php"
 
 # =========================================
 # EVITA BUG DE "CARREGANDO" NO APACHE/RENDER
