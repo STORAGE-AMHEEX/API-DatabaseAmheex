@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 header('Content-Type: application/json');
 
 // Pasta base para armazenar arquivos
-define('BASE_DIR', __DIR__ . '/#'); // criar a pasta 'uploads' na raiz
+define('BASE_DIR', __DIR__ . '/'); // criar a pasta 'uploads' na raiz
 
 function response($status, $data) {
     http_response_code($status);
