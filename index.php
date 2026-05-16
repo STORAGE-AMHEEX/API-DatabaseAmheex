@@ -56,6 +56,44 @@ function build_clean_public_url($fileRelPath) {
     return "{$scheme}://{$host}/" . ltrim($fileRelPath, '/');
 }
 
+/**
+ * 🧠 INTELIGÊNCIA DE RESTAURAÇÃO (Aguarda até 30 segundos pelo outro PHP)
+ */
+function aguardarRestauracaoArquivo($fullPath) {
+    // Se o arquivo não existir ou tiver 0 bytes, criamos/garantimos o arquivo de 0 bytes
+    if (!is_file($fullPath) || filesize($fullPath) === 0) {
+        // Cria pastas se não existirem
+        if (!is_dir(dirname($fullPath))) {
+            mkdir(dirname($fullPath), 0777, true);
+        }
+        // Cria ou toca o arquivo para ficar com 0 bytes (sinal para o outro PHP)
+        touch($fullPath);
+
+        // Loop de 30 segundos aguardando o outro PHP restaurar
+        $tentativas = 30;
+        while ($tentativas > 0) {
+            sleep(1); // Espera 1 segundo
+            clearstatcache(true, $fullPath); // Limpa o cache do PHP para ler o tamanho real do arquivo
+
+            if (is_file($fullPath) && filesize($fullPath) > 0) {
+                // Arquivo foi restaurado com sucesso pelo outro PHP!
+                return true;
+            }
+            $tentativas--;
+        }
+
+        // Se passou os 30 segundos e continua com 0 bytes, deleta o arquivo sinalizador e falha
+        if (is_file($fullPath) && filesize($fullPath) === 0) {
+            @unlink($fullPath);
+        }
+        return false;
+    }
+    
+    // Arquivo já existia e já era maior que 0 bytes
+    return true;
+}
+
+
 // ======================================================
 // SISTEMA DE DOWNLOAD DIRETO
 // ======================================================
@@ -63,9 +101,10 @@ if (isset($_GET['download'])) {
     $fileParam = sanitizaCaminho($_GET['download']);
     $fullPath = BASE_DIR . '/' . $fileParam;
 
-    if (!is_file($fullPath)) {
+    // Executa a inteligência de espera de 30s se necessário
+    if (!aguardarRestauracaoArquivo($fullPath)) {
         http_response_code(404);
-        echo "Arquivo não encontrado.";
+        echo "Arquivo não encontrado ou restauração expirou.";
         exit;
     }
 
@@ -87,7 +126,9 @@ $fileRelPath = sanitizaCaminho($request_path);
 $fullPath = BASE_DIR . '/' . $fileRelPath;
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    if (is_file($fullPath)) {
+    
+    // Executa a inteligência de espera de 30s se necessário
+    if (aguardarRestauracaoArquivo($fullPath)) {
         $fileUrl = build_public_url($fileRelPath);
         $downloadUrl = "/?download=" . urlencode($fileRelPath);
 
@@ -113,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     http_response_code(404);
-    echo "Arquivo não encontrado.";
+    echo "Arquivo não encontrado ou restauração expirou.";
     exit;
 }
 
