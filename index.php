@@ -101,58 +101,128 @@ function firebase_request($url, $method = 'GET', $data = null) {
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
+
+// Captura inicial para análise de rota
+$rawPath = trim($requestPath, '/');
+$hasXPrefix = (strpos($rawPath, 'X/') === 0 || $rawPath === 'X');
+
+// Sanitiza o caminho mantendo a estrutura interna das pastas
 $fileRelPath = sanitizaCaminho($requestPath);
 
-// Define se é o parâmetro direto de download (?download=...) ou o caminho amigável
+// Se houver parâmetro direto de download (?download=...)
 if (isset($_GET['download'])) {
     $fileRelPath = sanitizaCaminho($_GET['download']);
 }
 
+// Caminho absoluto baseado na pasta física real no servidor
 $fullPath = BASE_DIR . $fileRelPath;
 
-// --- VERIFICAÇÃO E RESTAURAÇÃO INTELIGENTE ON-DEMAND (Caso arquivo não exista ou esteja zerado) ---
+// --- VERIFICAÇÃO, RESTAURAÇÃO E REDIRECIONAMENTO INTELIGENTE ON-DEMAND ---
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $requestPath !== '/' && $fileRelPath !== basename(__FILE__)) {
     
-    if (!file_exists($fullPath) || filesize($fullPath) <= 1) {
-        $urlParts = explode('/', $fileRelPath);
-        $sanitizedUrlParts = array_map('sanitize_firebase_key', $urlParts);
-        $formattedUrlPath = implode('/', array_filter($sanitizedUrlParts));
-        
-        if (!empty($formattedUrlPath)) {
-            $nodeUrlPath = $raizStorage . '/' . $domainDir . '/' . $formattedUrlPath;
-            $fullHexContent = "";
-            $part = 1;
-            $foundAny = true;
+    // CASO 1: Se o caminho acessado NÃO tiver o prefixo "X/" na URL
+    if (!$hasXPrefix) {
+        // Altera o caminho relativo para apontar para dentro de X/ temporariamente para buscar/salvar no local correto
+        $forcedXRelPath = sanitizaCaminho('X/' . $fileRelPath);
+        $forcedFullPath = BASE_DIR . $forcedXRelPath;
 
-            while ($foundAny) {
-                $partName = "part_$part";
-                $url = $firebaseBaseUrl . $nodeUrlPath . '/' . $partName . '.json';
-                $response = firebase_request($url, 'GET');
-                
-                if ($response !== false && $response !== 'null' && !empty($response)) {
-                    $data = json_decode($response, true);
-                    if (is_string($data) && !empty($data)) {
-                        $cleanHex = str_replace(array(' ', "\r", "\n", "\t"), '', $data);
-                        $fullHexContent .= $cleanHex;
-                        $part++;
+        // Se o arquivo na pasta X física não existir ou estiver zerado, tenta restaurar do Firebase primeiro
+        if (!file_exists($forcedFullPath) || filesize($forcedFullPath) <= 1) {
+            $urlParts = explode('/', $forcedXRelPath);
+            $sanitizedUrlParts = array_map('sanitize_firebase_key', $urlParts);
+            $formattedUrlPath = implode('/', array_filter($sanitizedUrlParts));
+            
+            if (!empty($formattedUrlPath)) {
+                $nodeUrlPath = $raizStorage . '/' . $domainDir . '/' . $formattedUrlPath;
+                $fullHexContent = "";
+                $part = 1;
+                $foundAny = true;
+
+                while ($foundAny) {
+                    $partName = "part_$part";
+                    $url = $firebaseBaseUrl . $nodeUrlPath . '/' . $partName . '.json';
+                    $response = firebase_request($url, 'GET');
+                    
+                    if ($response !== false && $response !== 'null' && !empty($response)) {
+                        $data = json_decode($response, true);
+                        if (is_string($data) && !empty($data)) {
+                            $cleanHex = str_replace(array(' ', "\r", "\n", "\t"), '', $data);
+                            $fullHexContent .= $cleanHex;
+                            $part++;
+                        } else {
+                            $foundAny = false;
+                        }
                     } else {
                         $foundAny = false;
                     }
-                } else {
-                    $foundAny = false;
+                }
+
+                if (!empty($fullHexContent)) {
+                    if (strlen($fullHexContent) % 2 !== 0) {
+                        $fullHexContent = substr($fullHexContent, 0, -1);
+                    }
+                    $originalBinary = @hex2bin($fullHexContent);
+                    
+                    if ($originalBinary !== false) {
+                        $fileDir = dirname($forcedFullPath);
+                        if (!is_dir($fileDir)) @mkdir($fileDir, 0777, true);
+                        @file_put_contents($forcedFullPath, $originalBinary);
+                    }
                 }
             }
+        }
 
-            if (!empty($fullHexContent)) {
-                if (strlen($fullHexContent) % 2 !== 0) {
-                    $fullHexContent = substr($fullHexContent, 0, -1);
+        // Se após a tentativa o arquivo agora existir na pasta física X/, redireciona o usuário para a URL correta com /X/
+        if (file_exists($forcedFullPath) && filesize($forcedFullPath) > 1) {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $queryString = !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '';
+            header("Location: " . $scheme . "://" . $domain . "/X/" . ltrim($fileRelPath, '/') . $queryString);
+            exit;
+        }
+    } 
+    // CASO 2: O usuário já está acessando uma URL que possui o "/X/" corretamente
+    else {
+        if (!file_exists($fullPath) || filesize($fullPath) <= 1) {
+            $urlParts = explode('/', $fileRelPath);
+            $sanitizedUrlParts = array_map('sanitize_firebase_key', $urlParts);
+            $formattedUrlPath = implode('/', array_filter($sanitizedUrlParts));
+            
+            if (!empty($formattedUrlPath)) {
+                $nodeUrlPath = $raizStorage . '/' . $domainDir . '/' . $formattedUrlPath;
+                $fullHexContent = "";
+                $part = 1;
+                $foundAny = true;
+
+                while ($foundAny) {
+                    $partName = "part_$part";
+                    $url = $firebaseBaseUrl . $nodeUrlPath . '/' . $partName . '.json';
+                    $response = firebase_request($url, 'GET');
+                    
+                    if ($response !== false && $response !== 'null' && !empty($response)) {
+                        $data = json_decode($response, true);
+                        if (is_string($data) && !empty($data)) {
+                            $cleanHex = str_replace(array(' ', "\r", "\n", "\t"), '', $data);
+                            $fullHexContent .= $cleanHex;
+                            $part++;
+                        } else {
+                            $foundAny = false;
+                        }
+                    } else {
+                        $foundAny = false;
+                    }
                 }
-                $originalBinary = @hex2bin($fullHexContent);
-                
-                if ($originalBinary !== false) {
-                    $fileDir = dirname($fullPath);
-                    if (!is_dir($fileDir)) @mkdir($fileDir, 0777, true);
-                    @file_put_contents($fullPath, $originalBinary);
+
+                if (!empty($fullHexContent)) {
+                    if (strlen($fullHexContent) % 2 !== 0) {
+                        $fullHexContent = substr($fullHexContent, 0, -1);
+                    }
+                    $originalBinary = @hex2bin($fullHexContent);
+                    
+                    if ($originalBinary !== false) {
+                        $fileDir = dirname($fullPath);
+                        if (!is_dir($fileDir)) @mkdir($fileDir, 0777, true);
+                        @file_put_contents($fullPath, $originalBinary);
+                    }
                 }
             }
         }
@@ -183,7 +253,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     // Visualização em Iframe / Stream Normal para requisição direta do arquivo
     if (is_file($fullPath)) {
-        $fileUrl = build_public_url($fileRelPath);
+        // Remove o prefixo X/ se ele já fizer parte do build_public_url interno do layout
+        $cleanRelParam = $hasXPrefix ? substr($fileRelPath, 2) : $fileRelPath;
+        $fileUrl = build_public_url($cleanRelParam);
         $downloadUrl = "/?download=" . urlencode($fileRelPath);
 
         echo "<!DOCTYPE html>
@@ -207,7 +279,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     }
 
-    // Se for a rota index literal do script, executa o Sync passivo
     if ($requestPath !== '/' && !is_dir($fullPath)) {
         http_response_code(404);
         echo "Arquivo não encontrado.";
@@ -234,7 +305,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $totalChunks= intval($_POST['totalChunks'] ?? 1);
         $fileName   = basename($_POST['fileName'] ?? ('file_' . time()));
 
-        // Armazena chunks temporários na base
         $uploadDir = BASE_DIR;
         if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
         $chunkDir = $uploadDir . '.parts_' . md5($fileId);
@@ -252,8 +322,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $finalRel = $targetRel !== '' ? $targetRel : $fileName;
             $finalRel = sanitizaCaminho($finalRel);
             
-            // Força o destino final a ficar permanentemente dentro da pasta raiz local 'X/'
-            $finalPath = BASE_DIR . 'X/' . basename($finalRel);
+            // Força a gravação na pasta física raiz X/ limpando o prefixo duplicado se houver
+            $pureName = basename($finalRel);
+            $finalPath = BASE_DIR . 'X/' . $pureName;
             if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
             
             $out = fopen($finalPath, 'wb');
@@ -267,7 +338,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             fclose($out);
             @rmdir($chunkDir);
             
-            $url = build_clean_public_url(basename($finalRel));
+            $url = build_clean_public_url($pureName);
             $json(["status" => "complete", "url" => $url]);
         }
         $json(["status" => "partial", "progress" => $chunkIndex + 1]);
@@ -279,8 +350,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $finalRel = $fileRelPath ?: ('upload_' . time());
         $finalRel = sanitizaCaminho($finalRel);
         
-        // Força o destino final a ficar permanentemente dentro da pasta raiz local 'X/'
-        $finalPath = BASE_DIR . 'X/' . basename($finalRel);
+        $pureName = basename($finalRel);
+        $finalPath = BASE_DIR . 'X/' . $pureName;
         if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
         
         $out = fopen($finalPath, 'wb');
@@ -288,7 +359,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         fclose($out); 
         fclose($input);
         
-        $url = build_clean_public_url(basename($finalRel));
+        $url = build_clean_public_url($pureName);
         $json(["status" => "complete", "url" => $url]);
     }
 
@@ -319,7 +390,6 @@ if (is_dir(BASE_DIR)) {
         if (empty($formattedFilePath)) continue;
         $nodePath = $raizStorage . '/' . $domainDir . '/' . $formattedFilePath;
 
-        // Recuperação em lote de arquivos vazios/quebrados
         if ($fileSize <= 1) {
             $fullHexContent = "";
             $part = 1;
@@ -356,7 +426,6 @@ if (is_dir(BASE_DIR)) {
             continue; 
         }
 
-        // Envio automático de arquivos modificados na última janela de 1 minuto
         if ($lastChanged <= 60 && $fileSize > 1) {
             $inputData = @file_get_contents($localFilePath);
             if ($inputData !== false) {
