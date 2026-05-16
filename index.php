@@ -30,7 +30,7 @@ $domain = $_SERVER['HTTP_HOST'] ?? 'default_domain';
 $domainDir = preg_replace('/[^a-zA-Z0-9-]/', '_', $domain); 
 
 $publicRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
-define('BASE_DIR', $publicRoot . '/');
+define('BASE_DIR', $publicRoot . '/X');
 
 if (!is_dir(BASE_DIR)) {
     if (!mkdir(BASE_DIR, 0777, true)) {
@@ -64,13 +64,13 @@ function sanitize_firebase_key($path) {
 function build_public_url($fileRelPath) {
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    return "{$scheme}://{$host}/" . ltrim($fileRelPath, '/');
+    return "{$scheme}://{$host}/X/" . ltrim($fileRelPath, '/');
 }
 
 function build_clean_public_url($fileRelPath) {
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    return "{$scheme}://{$host}/" . ltrim($fileRelPath, '/');
+    return "{$scheme}://{$host}/X/" . ltrim($fileRelPath, '/');
 }
 
 function firebase_request($url, $method = 'GET', $data = null) {
