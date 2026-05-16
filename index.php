@@ -64,7 +64,7 @@ function sanitize_firebase_key($path) {
 function build_public_url($fileRelPath) {
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    return "{$scheme}://{$host}/X/" . ltrim($fileRelPath, '/');
+    return "{$scheme}://{$host}/" . ltrim($fileRelPath, '/');
 }
 
 function build_clean_public_url($fileRelPath) {
