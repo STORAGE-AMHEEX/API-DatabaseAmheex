@@ -5,7 +5,7 @@ const https = require("https");
 // URL por argumento
 const targetUrl =
     process.argv[2] ||
-    "https://storage-amheex.onrender.com/AMHEEX_DOMAIN_STORAGE_INFINITY.php";
+    "https://storage-amheex.onrender.com/index.php";
 
 // Timeout de INATIVIDADE
 // Só dispara se parar totalmente de receber dados
@@ -13,7 +13,7 @@ const timeout =
     parseInt(process.argv[3]) || 1 * 30 *60 * 1000;
 
 // Delay após finalizar
-const restartDelay = 30000;
+const restartDelay = 60000;
 
 console.log("⏰ Sistema iniciado!");
 console.log("🌐 URL:", targetUrl);
