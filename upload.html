@@ -9,23 +9,32 @@
 *{ margin:0; padding:0; box-sizing:border-box; font-family:'Orbitron',sans-serif; -webkit-tap-highlight-color:transparent; }
 body{ background:#020817; color:#fff; min-height:100vh; display:flex; justify-content:center; align-items:center; overflow-x:hidden; padding:20px; }
 .bg{ position:fixed; inset:0; z-index:-1; background: radial-gradient(circle at top,#00aaff22,transparent 35%), radial-gradient(circle at bottom,#0044ff22,transparent 40%), linear-gradient(135deg,#020817,#06152d,#020817); }
-.container{ width:100%; max-width:700px; }
+.container{ width:100%; max-width:650px; }
 .top{ text-align:center; margin-bottom:25px; }
-.top h1{ font-size:34px; color:#00cfff; text-shadow:0 0 20px #00cfff; }
-.card{ background:rgba(255,255,255,.04); border:1px solid rgba(0,180,255,.15); border-radius:30px; padding:28px; backdrop-filter:blur(16px); box-shadow:0 0 40px rgba(0,150,255,.15); }
+.top h1{ font-size:30px; color:#00cfff; text-shadow:0 0 20px #00cfff; letter-spacing: 2px; }
+.card{ background:rgba(255,255,255,.03); border:1px solid rgba(0,180,255,.15); border-radius:24px; padding:30px; backdrop-filter:blur(16px); box-shadow:0 0 40px rgba(0,150,255,.1); }
 .group{ margin-bottom:20px; }
-.label{ display:block; margin-bottom:10px; color:#00cfff; font-size:13px; text-align:center; }
-.input{ width:100%; background:#081224; border:1px solid #173a74; border-radius:18px; color:#fff; padding:16px; outline:none; font-size:14px; text-align:center; transition:.2s; }
-.input:focus{ border-color:#00cfff; box-shadow:0 0 18px #00cfff55; }
-.fileBox{ background:#081224; border:2px dashed #00cfff66; border-radius:24px; padding:35px 20px; text-align:center; }
+.label{ display:block; margin-bottom:10px; color:#00cfff; font-size:12px; font-weight: 600; letter-spacing: 1px; }
+.input{ width:100%; background:#081224; border:1px solid #173a74; border-radius:14px; color:#fff; padding:14px; outline:none; font-size:14px; text-align:center; transition:.2s; }
+.input:focus{ border-color:#00cfff; box-shadow:0 0 18px #00cfff44; }
+
+/* Nova Área de Upload Moderna */
+.fileBox{ background:#061020; border:2px dashed #00cfff66; border-radius:20px; padding:40px 20px; text-align:center; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; position: relative; }
+.fileBox:hover, .fileBox.dragover{ border-color:#00cfff; background: rgba(0, 207, 255, 0.05); box-shadow: 0 0 20px rgba(0, 207, 255, 0.1); }
 .fileBox input{ display:none; }
-.fileBtn{ display:inline-flex; align-items:center; justify-content:center; padding:15px 26px; border-radius:18px; background:linear-gradient(135deg,#00cfff,#0055ff); color:#fff; font-size:13px; font-weight:bold; cursor:pointer; transition:.2s; }
-.btn{ width:100%; border:none; border-radius:18px; padding:17px; cursor:pointer; color:#fff; font-weight:bold; font-size:13px; background:linear-gradient(135deg,#00cfff,#0055ff); transition:.2s; }
-.btn:hover{ transform:translateY(-2px); }
-.progress{ width:100%; height:12px; background:#081224; border-radius:999px; overflow:hidden; margin-top:20px; display:none; }
+.upload-icon { width: 50px; height: 50px; fill: #00cfff; filter: drop-shadow(0 0 8px #00cfff88); margin-bottom: 5px; }
+.fileBtn{ font-size:14px; font-weight:bold; color: #fff; pointer-events: none; }
+.fileHint { font-size: 11px; color: #5f7b9e; pointer-events: none; }
+.fileName{ font-size:13px; color:#00ffcc; text-shadow: 0 0 10px rgba(0,255,204,0.3); font-weight: bold; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.btn{ width:100%; border:none; border-radius:14px; padding:16px; cursor:pointer; color:#fff; font-weight:bold; font-size:14px; background:linear-gradient(135deg,#00cfff,#0055ff); transition:.2s; box-shadow: 0 4px 15px rgba(0, 207, 255, 0.3); letter-spacing: 1px; }
+.btn:hover{ transform:translateY(-2px); box-shadow: 0 6px 20px rgba(0, 207, 255, 0.5); }
+.btn:active{ transform: translateY(0); }
+
+.progress{ width:100%; height:10px; background:#081224; border-radius:999px; overflow:hidden; margin-top:20px; display:none; border: 1px solid #173a74; }
 .progressBar{ width:0%; height:100%; background:linear-gradient(90deg,#00cfff,#0055ff); transition:.25s; }
-.status{ margin-top:15px; color:#00cfff; font-size:12px; text-align:center; }
-.console{ margin-top:22px; background:#030913; border:1px solid #163868; border-radius:20px; min-height:240px; max-height:420px; overflow:auto; padding:18px; white-space:pre-wrap; color:#66ffcc; font-size:13px; word-break:break-word; }
+.status{ margin-top:15px; color:#00cfff; font-size:12px; text-align:center; font-weight: 600; }
+.console{ margin-top:22px; background:#030913; border:1px solid #163868; border-radius:16px; min-height:180px; max-height:300px; overflow:auto; padding:15px; white-space:pre-wrap; color:#66ffcc; font-size:12px; word-break:break-word; font-family: monospace !important; }
 </style>
 </head>
 <body>
@@ -37,14 +46,23 @@ body{ background:#020817; color:#fff; min-height:100vh; display:flex; justify-co
             <label class="label">CONFIGURAR PATH MANUAL</label>
             <input type="text" id="path" class="input" placeholder="Ex: pasta/arquivo.txt">
         </div>
+        
         <div class="group">
-            <div class="fileBox">
-                <label for="fileInput" class="fileBtn">ESCOLHER ARQUIVO</label>
+            <!-- Nova caixa de upload clicável e arrastável -->
+            <div class="fileBox" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                <!-- Ícone de Upload em SVG nativo -->
+                <svg class="upload-icon" viewBox="0 0 24 24">
+                    <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                </svg>
+                <div class="fileBtn">ARRASTE OU CLIQUE PARA SELECIONAR</div>
+                <div class="fileHint">Suporta qualquer tipo de arquivo</div>
                 <input type="file" id="fileInput">
-                <div class="fileName" id="fileName" style="margin-top:15px; font-size:12px; color:#9eb2d1;">Nenhum arquivo selecionado</div>
+                <div class="fileName" id="fileName" style="display:none;">Nenhum arquivo selecionado</div>
             </div>
         </div>
+        
         <button class="btn" onclick="iniciarUpload()">INICIAR UPLOAD</button>
+        
         <div class="progress" id="progress"><div class="progressBar" id="progressBar"></div></div>
         <div class="status" id="status">Sistema pronto.</div>
         <div class="console" id="console">AMHEEX STORAGE BLUE ONLINE...</div>
@@ -59,16 +77,48 @@ const consoleBox = document.getElementById("console");
 const statusBox = document.getElementById("status");
 const progressBar = document.getElementById("progressBar");
 const progress = document.getElementById("progress");
+const dropZone = document.getElementById("dropZone");
+const fileNameDisplay = document.getElementById("fileName");
 
-fileInput.addEventListener("change", () => {
+// Atualiza a interface quando um arquivo é selecionado
+function atualizarInterfaceArquivo() {
     if (fileInput.files.length) {
-        document.getElementById("fileName").innerText = fileInput.files[0].name;
-        // Opcional: Se o campo Path estiver vazio, preenche com o nome do arquivo para ajudar
+        fileNameDisplay.innerText = "✓ " + fileInput.files[0].name;
+        fileNameDisplay.style.display = "block";
+        document.querySelector(".upload-icon").style.fill = "#00ffcc";
+        
         if(!pathInput.value.trim()){
             pathInput.value = fileInput.files[0].name;
         }
     } else {
-        document.getElementById("fileName").innerText = "Nenhum arquivo selecionado";
+        fileNameDisplay.style.display = "none";
+        document.querySelector(".upload-icon").style.fill = "#00cfff";
+    }
+}
+
+fileInput.addEventListener("change", atualizarInterfaceArquivo);
+
+// Eventos de Drag & Drop (Arrastar e soltar)
+['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    }, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+    }, false);
+});
+
+dropZone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if(files.length) {
+        fileInput.files = files;
+        atualizarInterfaceArquivo();
     }
 });
 
