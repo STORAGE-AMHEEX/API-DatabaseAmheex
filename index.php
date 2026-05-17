@@ -48,7 +48,6 @@ function sanitizaCaminho($path) {
  * 🔒 PROTEÇÃO CONTRA EXECUÇÃO DE SCRIPT (PHP para PHP.TXT)
  */
 function neutralizaExtensaoPhp($path) {
-    // Se o arquivo terminar com .php (case-insensitive), altera para .php.txt
     if (preg_match('/\.php$/i', $path)) {
         return $path . '.txt';
     }
@@ -102,7 +101,7 @@ function aguardarRestauracaoArquivo($fullPath) {
 // ======================================================
 if (isset($_GET['download'])) {
     $fileParam = sanitizaCaminho($_GET['download']);
-    $fileParam = neutralizaExtensaoPhp($fileParam); // Garante a mesma checagem no download
+    $fileParam = neutralizaExtensaoPhp($fileParam); 
     $fullPath = BASE_DIR . '/' . $fileParam;
 
     if (!aguardarRestauracaoArquivo($fullPath)) {
@@ -126,7 +125,7 @@ if (isset($_GET['download'])) {
 // ======================================================
 $request_path = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 $fileRelPath = sanitizaCaminho($request_path);
-$fileRelPath = neutralizaExtensaoPhp($fileRelPath); // Garante a checagem no GET
+$fileRelPath = neutralizaExtensaoPhp($fileRelPath); 
 $fullPath = BASE_DIR . '/' . $fileRelPath;
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -195,7 +194,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $targetRel = $fileRelPath;
     
-    // 🔥 AJUSTE 1: Adicionado JSON_UNESCAPED_SLASHES para a resposta não escapar barras normais
     $json = function(array $data, int $code = 200) {
         http_response_code($code);
         header('Content-Type: application/json; charset=utf-8');
@@ -226,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($chunkIndex + 1 === $totalChunks) {
             $finalRel = $targetRel !== '' ? $targetRel : $fileName;
             $finalRel = sanitizaCaminho($finalRel);
-            $finalRel = neutralizaExtensaoPhp($finalRel); // 🔥 Bloqueio de PHP aqui
+            $finalRel = neutralizaExtensaoPhp($finalRel); 
             
             $finalPath = BASE_DIR . '/' . $finalRel;
             if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
@@ -243,8 +241,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             @rmdir($chunkDir);
             $url = build_clean_public_url($finalRel);
             
-            // 🔥 AJUSTE 2: Filtra e remove qualquer caractere '\' da URL gerada aqui
             $url = str_replace('\\', '', $url);
+            
+            // ✅ ATUALIZAÇÃO: Upload por chunks concluído com sucesso
+            @file_put_contents('up_on.txt', '1');
             
             $json(["status" => "complete", "url" => $url]);
         }
@@ -257,7 +257,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($input) {
         $finalRel = $fileRelPath ?: ('upload_' . time());
         $finalRel = sanitizaCaminho($finalRel);
-        $finalRel = neutralizaExtensaoPhp($finalRel); // 🔥 Bloqueio de PHP aqui também
+        $finalRel = neutralizaExtensaoPhp($finalRel); 
         
         $finalPath = BASE_DIR . '/' . $finalRel;
         if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
@@ -266,8 +266,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         fclose($out); fclose($input);
         $url = build_clean_public_url($finalRel);
         
-        // 🔥 AJUSTE 3: Filtra e remove qualquer caractere '\' da URL gerada aqui também
         $url = str_replace('\\', '', $url);
+        
+        // ✅ ATUALIZAÇÃO: Upload por streaming concluído com sucesso
+        @file_put_contents('up_on.txt', '1');
         
         $json(["status" => "complete", "url" => $url]);
     }
