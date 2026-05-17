@@ -57,17 +57,25 @@ function neutralizaExtensaoPhp($path) {
 function build_public_url($fileRelPath) {
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    // Remove qualquer barra ou contrabarra pendente nas pontas do subcaminho
-    $cleanPath = trim($fileRelPath, "/\\");
-    return "{$scheme}://{$host}/X/" . $cleanPath;
+    
+    // 🔥 CORREÇÃO: Remove apenas as contrabarras '\' e limpa repetições sem sumir com a pasta inicial
+    $cleanPath = str_replace('\\', '/', $fileRelPath);
+    $cleanPath = preg_replace('#/+#', '/', $cleanPath);
+    $cleanPath = ltrim($cleanPath, '/');
+    
+    return "{$scheme}://{$host}/X/{$cleanPath}";
 }
 
 function build_clean_public_url($fileRelPath) {
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    // Remove qualquer barra ou contrabarra pendente nas pontas do subcaminho
-    $cleanPath = trim($fileRelPath, "/\\");
-    return "{$scheme}://{$host}/" . $cleanPath;
+    
+    // 🔥 CORREÇÃO: Transforma '\' em '/' e limpa excessos, mantendo o subcaminho /TESTE/ intacto
+    $cleanPath = str_replace('\\', '/', $fileRelPath);
+    $cleanPath = preg_replace('#/+#', '/', $cleanPath);
+    $cleanPath = ltrim($cleanPath, '/');
+    
+    return "{$scheme}://{$host}/{$cleanPath}";
 }
 
 /**
@@ -198,7 +206,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $targetRel = $fileRelPath;
     
-    // 🔥 CORREÇÃO: Adicionado JSON_UNESCAPED_SLASHES para que as barras não sejam escapadas no JSON de resposta
     $json = function(array $data, int $code = 200) {
         http_response_code($code);
         header('Content-Type: application/json; charset=utf-8');
