@@ -194,10 +194,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $targetRel = $fileRelPath;
+    
+    // 🔥 AJUSTE 1: Adicionado JSON_UNESCAPED_SLASHES para a resposta não escapar barras normais
     $json = function(array $data, int $code = 200) {
         http_response_code($code);
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     };
 
@@ -240,6 +242,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             fclose($out);
             @rmdir($chunkDir);
             $url = build_clean_public_url($finalRel);
+            
+            // 🔥 AJUSTE 2: Filtra e remove qualquer caractere '\' da URL gerada aqui
+            $url = str_replace('\\', '', $url);
+            
             $json(["status" => "complete", "url" => $url]);
         }
 
@@ -259,6 +265,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         stream_copy_to_stream($input, $out);
         fclose($out); fclose($input);
         $url = build_clean_public_url($finalRel);
+        
+        // 🔥 AJUSTE 3: Filtra e remove qualquer caractere '\' da URL gerada aqui também
+        $url = str_replace('\\', '', $url);
+        
         $json(["status" => "complete", "url" => $url]);
     }
 
