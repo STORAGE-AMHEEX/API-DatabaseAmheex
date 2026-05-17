@@ -48,7 +48,6 @@ function sanitizaCaminho($path) {
  * 🔒 PROTEÇÃO CONTRA EXECUÇÃO DE SCRIPT (PHP para PHP.TXT)
  */
 function neutralizaExtensaoPhp($path) {
-    // Se o arquivo terminar com .php (case-insensitive), altera para .php.txt
     if (preg_match('/\.php$/i', $path)) {
         return $path . '.txt';
     }
@@ -96,13 +95,101 @@ function aguardarRestauracaoArquivo($fullPath) {
     return true;
 }
 
+// ======================================================
+// Extração de caminhos comuns para as rotas
+// ======================================================
+$request_path = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+$fileRelPath = sanitizaCaminho($request_path);
+$fileRelPath = neutralizaExtensaoPhp($fileRelPath);
 
 // ======================================================
-// SISTEMA DE DOWNLOAD DIRETO
+// ⭐ PRIORIDADE 1: POST — Upload inteligente
+// ======================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $targetRel = $fileRelPath;
+    
+    $json = function(array $data, int $code = 200) {
+        http_response_code($code);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    };
+
+    // --- Upload em partes (chunks) ---
+    if (!empty($_FILES['file'])) {
+        $fileId     = $_POST['fileId'] ?? uniqid('upload_', true);
+        $chunkIndex = intval($_POST['chunkIndex'] ?? 0);
+        $totalChunks= intval($_POST['totalChunks'] ?? 1);
+        $fileName   = basename($_POST['fileName'] ?? ('file_' . time()));
+
+        $uploadDir = BASE_DIR;
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+        $chunkDir = $uploadDir . '/.parts_' . md5($fileId);
+        if (!is_dir($chunkDir)) mkdir($chunkDir, 0777, true);
+
+        $tmpName = $_FILES['file']['tmp_name'] ?? null;
+        if (!$tmpName || !is_uploaded_file($tmpName)) {
+            $json(["status" => "error", "message" => "Nenhum chunk válido."], 400);
+        }
+
+        $partPath = "{$chunkDir}/part_{$chunkIndex}";
+        move_uploaded_file($tmpName, $partPath);
+
+        if ($chunkIndex + 1 === $totalChunks) {
+            $finalRel = $targetRel !== '' ? $targetRel : $fileName;
+            $finalRel = sanitizaCaminho($finalRel);
+            $finalRel = neutralizaExtensaoPhp($finalRel);
+            
+            $finalPath = BASE_DIR . '/' . $finalRel;
+            if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
+            
+            $out = fopen($finalPath, 'wb');
+            for ($i = 0; $i < $totalChunks; $i++) {
+                $p = "{$chunkDir}/part_{$i}";
+                $in = fopen($p, 'rb');
+                stream_copy_to_stream($in, $out);
+                fclose($in);
+                @unlink($p);
+            }
+            fclose($out);
+            @rmdir($chunkDir);
+            $url = build_clean_public_url($finalRel);
+            $url = str_replace('\\', '', $url);
+            
+            $json(["status" => "complete", "url" => $url]);
+        }
+
+        $json(["status" => "partial", "progress" => $chunkIndex + 1]);
+    }
+
+    // --- Upload via php://input (streaming) ---
+    $input = fopen('php://input', 'rb');
+    if ($input) {
+        $finalRel = $fileRelPath ?: ('upload_' . time());
+        $finalRel = sanitizaCaminho($finalRel);
+        $finalRel = neutralizaExtensaoPhp($finalRel);
+        
+        $finalPath = BASE_DIR . '/' . $finalRel;
+        if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
+        $out = fopen($finalPath, 'wb');
+        stream_copy_to_stream($input, $out);
+        fclose($out); fclose($input);
+        $url = build_clean_public_url($finalRel);
+        $url = str_replace('\\', '', $url);
+        
+        $json(["status" => "complete", "url" => $url]);
+    }
+
+    $json(["status" => "error", "message" => "Nenhum conteúdo recebido."], 400);
+}
+
+// ======================================================
+// PRIORIDADE 2: SISTEMA DE DOWNLOAD DIRETO (Via query string)
 // ======================================================
 if (isset($_GET['download'])) {
     $fileParam = sanitizaCaminho($_GET['download']);
-    $fileParam = neutralizaExtensaoPhp($fileParam); // Garante a mesma checagem no download
+    $fileParam = neutralizaExtensaoPhp($fileParam);
     $fullPath = BASE_DIR . '/' . $fileParam;
 
     if (!aguardarRestauracaoArquivo($fullPath)) {
@@ -122,14 +209,10 @@ if (isset($_GET['download'])) {
 }
 
 // ======================================================
-// GET normal — exibição + download automático
+// PRIORIDADE 3: GET normal — exibição + download automático
 // ======================================================
-$request_path = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
-$fileRelPath = sanitizaCaminho($request_path);
-$fileRelPath = neutralizaExtensaoPhp($fileRelPath); // Garante a checagem no GET
-$fullPath = BASE_DIR . '/' . $fileRelPath;
-
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $fullPath = BASE_DIR . '/' . $fileRelPath;
     
     if (aguardarRestauracaoArquivo($fullPath)) {
         $fileUrl = build_public_url($fileRelPath);
@@ -186,93 +269,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     http_response_code(404);
     echo "Arquivo não encontrado, No Servidor!!";
     exit;
-}
-
-// ======================================================
-// POST — Upload inteligente
-// ======================================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    $targetRel = $fileRelPath;
-    
-    // 🔥 AJUSTE 1: Adicionado JSON_UNESCAPED_SLASHES para a resposta não escapar barras normais
-    $json = function(array $data, int $code = 200) {
-        http_response_code($code);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        exit;
-    };
-
-    // --- Upload em partes (chunks) ---
-    if (!empty($_FILES['file'])) {
-        $fileId     = $_POST['fileId'] ?? uniqid('upload_', true);
-        $chunkIndex = intval($_POST['chunkIndex'] ?? 0);
-        $totalChunks= intval($_POST['totalChunks'] ?? 1);
-        $fileName   = basename($_POST['fileName'] ?? ('file_' . time()));
-
-        $uploadDir = BASE_DIR;
-        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-        $chunkDir = $uploadDir . '/.parts_' . md5($fileId);
-        if (!is_dir($chunkDir)) mkdir($chunkDir, 0777, true);
-
-        $tmpName = $_FILES['file']['tmp_name'] ?? null;
-        if (!$tmpName || !is_uploaded_file($tmpName)) {
-            $json(["status" => "error", "message" => "Nenhum chunk válido."], 400);
-        }
-
-        $partPath = "{$chunkDir}/part_{$chunkIndex}";
-        move_uploaded_file($tmpName, $partPath);
-
-        if ($chunkIndex + 1 === $totalChunks) {
-            $finalRel = $targetRel !== '' ? $targetRel : $fileName;
-            $finalRel = sanitizaCaminho($finalRel);
-            $finalRel = neutralizaExtensaoPhp($finalRel); // 🔥 Bloqueio de PHP aqui
-            
-            $finalPath = BASE_DIR . '/' . $finalRel;
-            if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
-            
-            $out = fopen($finalPath, 'wb');
-            for ($i = 0; $i < $totalChunks; $i++) {
-                $p = "{$chunkDir}/part_{$i}";
-                $in = fopen($p, 'rb');
-                stream_copy_to_stream($in, $out);
-                fclose($in);
-                @unlink($p);
-            }
-            fclose($out);
-            @rmdir($chunkDir);
-            $url = build_clean_public_url($finalRel);
-            
-            // 🔥 AJUSTE 2: Filtra e remove qualquer caractere '\' da URL gerada aqui
-            $url = str_replace('\\', '', $url);
-            
-            $json(["status" => "complete", "url" => $url]);
-        }
-
-        $json(["status" => "partial", "progress" => $chunkIndex + 1]);
-    }
-
-    // --- Upload via php://input (streaming) ---
-    $input = fopen('php://input', 'rb');
-    if ($input) {
-        $finalRel = $fileRelPath ?: ('upload_' . time());
-        $finalRel = sanitizaCaminho($finalRel);
-        $finalRel = neutralizaExtensaoPhp($finalRel); // 🔥 Bloqueio de PHP aqui também
-        
-        $finalPath = BASE_DIR . '/' . $finalRel;
-        if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
-        $out = fopen($finalPath, 'wb');
-        stream_copy_to_stream($input, $out);
-        fclose($out); fclose($input);
-        $url = build_clean_public_url($finalRel);
-        
-        // 🔥 AJUSTE 3: Filtra e remove qualquer caractere '\' da URL gerada aqui também
-        $url = str_replace('\\', '', $url);
-        
-        $json(["status" => "complete", "url" => $url]);
-    }
-
-    $json(["status" => "error", "message" => "Nenhum conteúdo recebido."], 400);
 }
 
 http_response_code(405);
