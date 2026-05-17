@@ -5,7 +5,7 @@ const https = require("https");
 // URL por argumento
 const targetUrl =
     process.argv[2] ||
-    "https://storage-amheex.onrender.com/index.html";
+    "https://storage-amheex.rf.gd/AMHEEX_DOMAIN_STORAGE_INFINITY.php";
 
 // Timeout de INATIVIDADE
 // Só dispara se parar totalmente de receber dados
