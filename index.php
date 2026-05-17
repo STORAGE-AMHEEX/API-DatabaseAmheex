@@ -48,6 +48,7 @@ function sanitizaCaminho($path) {
  * 🔒 PROTEÇÃO CONTRA EXECUÇÃO DE SCRIPT (PHP para PHP.TXT)
  */
 function neutralizaExtensaoPhp($path) {
+    // Se o arquivo terminar com .php (case-insensitive), altera para .php.txt
     if (preg_match('/\.php$/i', $path)) {
         return $path . '.txt';
     }
@@ -57,25 +58,13 @@ function neutralizaExtensaoPhp($path) {
 function build_public_url($fileRelPath) {
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    
-    // 🔥 CORREÇÃO: Remove apenas as contrabarras '\' e limpa repetições sem sumir com a pasta inicial
-    $cleanPath = str_replace('\\', '/', $fileRelPath);
-    $cleanPath = preg_replace('#/+#', '/', $cleanPath);
-    $cleanPath = ltrim($cleanPath, '/');
-    
-    return "{$scheme}://{$host}/X/{$cleanPath}";
+    return "{$scheme}://{$host}/X/" . ltrim($fileRelPath, '/');
 }
 
 function build_clean_public_url($fileRelPath) {
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    
-    // 🔥 CORREÇÃO: Transforma '\' em '/' e limpa excessos, mantendo o subcaminho /TESTE/ intacto
-    $cleanPath = str_replace('\\', '/', $fileRelPath);
-    $cleanPath = preg_replace('#/+#', '/', $cleanPath);
-    $cleanPath = ltrim($cleanPath, '/');
-    
-    return "{$scheme}://{$host}/{$cleanPath}";
+    return "{$scheme}://{$host}/" . ltrim($fileRelPath, '/');
 }
 
 /**
@@ -113,7 +102,7 @@ function aguardarRestauracaoArquivo($fullPath) {
 // ======================================================
 if (isset($_GET['download'])) {
     $fileParam = sanitizaCaminho($_GET['download']);
-    $fileParam = neutralizaExtensaoPhp($fileParam); 
+    $fileParam = neutralizaExtensaoPhp($fileParam); // Garante a mesma checagem no download
     $fullPath = BASE_DIR . '/' . $fileParam;
 
     if (!aguardarRestauracaoArquivo($fullPath)) {
@@ -137,7 +126,7 @@ if (isset($_GET['download'])) {
 // ======================================================
 $request_path = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 $fileRelPath = sanitizaCaminho($request_path);
-$fileRelPath = neutralizaExtensaoPhp($fileRelPath); 
+$fileRelPath = neutralizaExtensaoPhp($fileRelPath); // Garante a checagem no GET
 $fullPath = BASE_DIR . '/' . $fileRelPath;
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -206,6 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $targetRel = $fileRelPath;
     
+    // 🔥 AJUSTE 1: Adicionado JSON_UNESCAPED_SLASHES para a resposta não escapar barras normais
     $json = function(array $data, int $code = 200) {
         http_response_code($code);
         header('Content-Type: application/json; charset=utf-8');
@@ -236,7 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($chunkIndex + 1 === $totalChunks) {
             $finalRel = $targetRel !== '' ? $targetRel : $fileName;
             $finalRel = sanitizaCaminho($finalRel);
-            $finalRel = neutralizaExtensaoPhp($finalRel); 
+            $finalRel = neutralizaExtensaoPhp($finalRel); // 🔥 Bloqueio de PHP aqui
             
             $finalPath = BASE_DIR . '/' . $finalRel;
             if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
@@ -252,6 +242,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             fclose($out);
             @rmdir($chunkDir);
             $url = build_clean_public_url($finalRel);
+            
+            // 🔥 AJUSTE 2: Filtra e remove qualquer caractere '\' da URL gerada aqui
+            $url = str_replace('\\', '', $url);
+            
             $json(["status" => "complete", "url" => $url]);
         }
 
@@ -263,7 +257,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($input) {
         $finalRel = $fileRelPath ?: ('upload_' . time());
         $finalRel = sanitizaCaminho($finalRel);
-        $finalRel = neutralizaExtensaoPhp($finalRel); 
+        $finalRel = neutralizaExtensaoPhp($finalRel); // 🔥 Bloqueio de PHP aqui também
         
         $finalPath = BASE_DIR . '/' . $finalRel;
         if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
@@ -271,6 +265,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         stream_copy_to_stream($input, $out);
         fclose($out); fclose($input);
         $url = build_clean_public_url($finalRel);
+        
+        // 🔥 AJUSTE 3: Filtra e remove qualquer caractere '\' da URL gerada aqui também
+        $url = str_replace('\\', '', $url);
+        
         $json(["status" => "complete", "url" => $url]);
     }
 
