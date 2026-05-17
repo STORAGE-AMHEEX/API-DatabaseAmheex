@@ -76,6 +76,9 @@ function aguardarRestauracaoArquivo($fullPath) {
         }
         touch($fullPath);
 
+        // ✅ SEÇÃO MODIFICADA: O arquivo precisa ser restaurado, então ativa o sinalizador "1"
+        @file_put_contents('up_on.txt', '1');
+
         $tentativas = 30;
         while ($tentativas > 0) {
             sleep(1);
@@ -243,7 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $url = str_replace('\\', '', $url);
             
-            // ✅ ATUALIZAÇÃO: Upload por chunks concluído com sucesso
+            // ✅ MANTIDO: Upload por chunks concluído com sucesso
             @file_put_contents('up_on.txt', '1');
             
             $json(["status" => "complete", "url" => $url]);
@@ -268,7 +271,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $url = str_replace('\\', '', $url);
         
-        // ✅ ATUALIZAÇÃO: Upload por streaming concluído com sucesso
+        // ✅ MANTIDO: Upload por streaming concluído com sucesso
         @file_put_contents('up_on.txt', '1');
         
         $json(["status" => "complete", "url" => $url]);
