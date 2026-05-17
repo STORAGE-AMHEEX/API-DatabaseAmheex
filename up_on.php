@@ -10,6 +10,10 @@ if (file_exists($arquivo)) {
     // Se o texto de dentro do arquivo for exatamente "1"
     if ($conteudo === '1') {
         
+        // ✅ ATUALIZAÇÃO: Altera imediatamente o valor do arquivo para "0" 
+        // para evitar dupla execução ou loops.
+        @file_put_contents($arquivo, '0');
+        
         // --- Executa o seu código PHP abaixo ---
         sleep(0);
         include_once "AMHEEX_DOMAIN_STORAGE_INFINITY.php";
