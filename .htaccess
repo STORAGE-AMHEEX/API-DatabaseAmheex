@@ -30,7 +30,7 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-php_value auto_prepend_file "AMHEEX_DOMAIN_STORAGE_INFINITY.php"
+php_value auto_prepend_file "index.php"
 
 # =========================================
 # EVITA BUG DE "CARREGANDO" NO APACHE/RENDER
