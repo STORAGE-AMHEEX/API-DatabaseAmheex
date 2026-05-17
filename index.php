@@ -41,13 +41,14 @@ function sanitizaCaminho($path) {
     $path = str_replace(['..\\', '../'], '', $path);
     $path = preg_replace('/[^a-zA-Z0-9_\-\.\@\/]/', '', $path);
     $path = preg_replace('#/+#', '/', $path);
-    return str_replace('\\', '/', $path); // Garante que caminhos internos usem /
+    return str_replace('\\', '/', $path); // Garante barras normais no tratamento interno
 }
 
 /**
  * 🔒 PROTEÇÃO CONTRA EXECUÇÃO DE SCRIPT (PHP para PHP.TXT)
  */
 function neutralizaExtensaoPhp($path) {
+    // Se o arquivo terminar com .php (case-insensitive), altera para .php.txt
     if (preg_match('/\.php$/i', $path)) {
         return $path . '.txt';
     }
@@ -103,7 +104,7 @@ function aguardarRestauracaoArquivo($fullPath) {
 // ======================================================
 if (isset($_GET['download'])) {
     $fileParam = sanitizaCaminho($_GET['download']);
-    $fileParam = neutralizaExtensaoPhp($fileParam); 
+    $fileParam = neutralizaExtensaoPhp($fileParam); // Garante a mesma checagem no download
     $fullPath = BASE_DIR . '/' . $fileParam;
 
     if (!aguardarRestauracaoArquivo($fullPath)) {
@@ -127,7 +128,7 @@ if (isset($_GET['download'])) {
 // ======================================================
 $request_path = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 $fileRelPath = sanitizaCaminho($request_path);
-$fileRelPath = neutralizaExtensaoPhp($fileRelPath); 
+$fileRelPath = neutralizaExtensaoPhp($fileRelPath); // Garante a checagem no GET
 $fullPath = BASE_DIR . '/' . $fileRelPath;
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -196,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $targetRel = $fileRelPath;
     
-    // 🔥 MODIFICADO: Adicionado JSON_UNESCAPED_SLASHES para remover as barras invertidas do JSON
+    // 🔥 AJUSTADO: Adicionado JSON_UNESCAPED_SLASHES para impedir escapes de barras no JSON enviado
     $json = function(array $data, int $code = 200) {
         http_response_code($code);
         header('Content-Type: application/json; charset=utf-8');
@@ -227,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($chunkIndex + 1 === $totalChunks) {
             $finalRel = $targetRel !== '' ? $targetRel : $fileName;
             $finalRel = sanitizaCaminho($finalRel);
-            $finalRel = neutralizaExtensaoPhp($finalRel); 
+            $finalRel = neutralizaExtensaoPhp($finalRel); // 🔥 Bloqueio de PHP aqui
             
             $finalPath = BASE_DIR . '/' . $finalRel;
             if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
@@ -254,7 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($input) {
         $finalRel = $fileRelPath ?: ('upload_' . time());
         $finalRel = sanitizaCaminho($finalRel);
-        $finalRel = neutralizaExtensaoPhp($finalRel); 
+        $finalRel = neutralizaExtensaoPhp($finalRel); // 🔥 Bloqueio de PHP aqui também
         
         $finalPath = BASE_DIR . '/' . $finalRel;
         if (!is_dir(dirname($finalPath))) mkdir(dirname($finalPath), 0777, true);
