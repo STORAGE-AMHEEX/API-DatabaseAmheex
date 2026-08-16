@@ -5,7 +5,7 @@
  */
 
 session_start();
-$KEY = "KEY2026"; // Sua chave de acesso
+$KEY = "AMHEEX"; // Sua chave de acesso
 
 // Sistema de Login
 if (isset($_GET['logout'])) { session_destroy(); header("Location: ?"); exit; }
