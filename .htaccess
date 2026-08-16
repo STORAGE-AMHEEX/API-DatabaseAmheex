@@ -1,26 +1,9 @@
 # =========================================
-# PROTEÇÃO E REDIRECIONAMENTO SEGURO
+# REDIRECIONAMENTO E ROTEAMENTO
 # =========================================
 
 # Ativa mod_rewrite
 RewriteEngine On
-
-# Evita listing de diretórios
-Options -Indexes
-
-# =========================================
-# PROTEÇÃO CONTRA BUG DE LOOP / RENDER
-# =========================================
-
-# Bloqueia acesso direto ao .htaccess
-<Files ".htaccess">
-    Require all denied
-</Files>
-
-# Evita acesso a arquivos sensíveis
-<FilesMatch "(^\.|composer\.(json|lock)|package\.json|Dockerfile|memoria\.json|index\.json)">
-    Require all denied
-</FilesMatch>
 
 # =========================================
 # SE ARQUIVO OU PASTA EXISTIR -> NÃO REDIRECIONA
