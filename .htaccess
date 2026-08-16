@@ -49,11 +49,21 @@ php_flag zlib.output_compression On
 </IfModule>
 
 # =========================================
-# HEADERS DE PROTEÇÃO
+# HEADERS DE SEGURANÇA E LIBERAÇÃO DE IFRAME / CORS
 # =========================================
 
 <IfModule mod_headers.c>
-    Header always set X-Frame-Options "SAMEORIGIN"
+    # Remove a restrição que impedia o carregamento dentro de iframes externos
+    Header unset X-Frame-Options
+    
+    # Permite que qualquer site renderize este domínio em um iframe
+    Header always set Content-Security-Policy "frame-ancestors *;"
+
+    # Libera permissões de CORS para que a API (index.txt) seja lida sem bloqueios
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+
     Header always set X-Content-Type-Options "nosniff"
     Header always set Referrer-Policy "strict-origin"
 </IfModule>
