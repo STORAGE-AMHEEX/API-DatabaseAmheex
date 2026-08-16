@@ -1,63 +1,15 @@
-# =========================================
-# REDIRECIONAMENTO E ROTEAMENTO
-# =========================================
 
+# Ativa o mod_rewrite
 RewriteEngine On
 
-# Impede que pastas/arquivos reais sejam redirecionados
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
+# Redireciona tudo para index.php, se não for arquivo ou pasta existente
+RewriteCond %{REQUEST_FILENAME} !-f [OR]
+RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ - [L]
 
-# Se não existir arquivo, envia para index.php
-RewriteRule ^ index.php [QSA,L]
-
-# =========================================
-# CONFIGURAÇÕES PHP (VALORES MENORES PARA EVITAR ERRO 500)
-# =========================================
-
-<IfModule mod_php5.c>
-    php_value upload_max_filesize 64M
-    php_value post_max_size 64M
-    php_value memory_limit 256M
-</IfModule>
-
-# =========================================
-# HEADERS DE SEGURANÇA E LIBERAÇÃO (CRÍTICO PARA IFRAME)
-# =========================================
-
-<IfModule mod_headers.c>
-    # Remove restrições de Iframe antigas
-    Header unset X-Frame-Options
-    
-    # Libera para qualquer site abrir em iframe
-    Header always set Content-Security-Policy "frame-ancestors *;"
-    
-    # CORS para permitir acesso a arquivos (como o index.txt)
-    Header always set Access-Control-Allow-Origin "*"
-    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
-    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
-</IfModule>
-
-# =========================================
-# CACHE E PERFORMANCE
-# =========================================
-
-<IfModule mod_expires.c>
-    ExpiresActive On
-    ExpiresDefault "access plus 1 seconds"
-</IfModule>
-
-# =========================================
-# ARQUIVO PADRÃO
-# =========================================
-
-DirectoryIndex index.php index.html
-ErrorDocument 404 /index.php
-
-# =========================================
-# LOOP PREVENTION
-# =========================================
-
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteRule ^index\.php$ - [L]
+# Aumenta limites de upload e execução (valores aproximados para 1TB)
+php_value upload_max_filesize 1048576M
+php_value post_max_size 1048576M
+php_value max_input_time 86400
+php_value max_execution_time 86400
+php_value memory_limit 16384M
