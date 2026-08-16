@@ -1,170 +1,957 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>AMHEEX STORAGE BLUE</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&display=swap');
-*{ margin:0; padding:0; box-sizing:border-box; font-family:'Orbitron',sans-serif; -webkit-tap-highlight-color:transparent; }
-body{ background:#020817; color:#fff; min-height:100vh; display:flex; justify-content:center; align-items:center; overflow-x:hidden; padding:20px; }
-.bg{ position:fixed; inset:0; z-index:-1; background: radial-gradient(circle at top,#00aaff22,transparent 35%), radial-gradient(circle at bottom,#0044ff22,transparent 40%), linear-gradient(135deg,#020817,#06152d,#020817); }
-.container{ width:100%; max-width:650px; }
-.top{ text-align:center; margin-bottom:25px; }
-.top h1{ font-size:30px; color:#00cfff; text-shadow:0 0 20px #00cfff; letter-spacing: 2px; }
-.card{ background:rgba(255,255,255,.03); border:1px solid rgba(0,180,255,.15); border-radius:24px; padding:30px; backdrop-filter:blur(16px); box-shadow:0 0 40px rgba(0,150,255,.1); }
-.group{ margin-bottom:20px; }
-.label{ display:block; margin-bottom:10px; color:#00cfff; font-size:12px; font-weight: 600; letter-spacing: 1px; }
-.input{ width:100%; background:#081224; border:1px solid #173a74; border-radius:14px; color:#fff; padding:14px; outline:none; font-size:14px; text-align:center; transition:.2s; }
-.input:focus{ border-color:#00cfff; box-shadow:0 0 18px #00cfff44; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMHEEX - Soluções em Storage e Armazenamento Cloud</title>
+    
+    <link rel="icon" type="image/png" href="https://amheex.onrender.com/icon.png">
+    
+    <meta property="og:title" content="AMHEEX Storage Pro - Nuvem e Hospedagem de Arquivos">
+    <meta property="og:description" content="Armazenamento em nuvem ultra rápido, seguro e escalável com infraestrutura AMHEEX Storage.">
+    <meta property="og:image" content="https://amheex.onrender.com/icon.png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://amheex.onrender.com/">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* ANIMAÇÃO RGB PARA O TEXTO E BORDAS */
+        @keyframes rgb-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
 
-/* Nova Área de Upload Moderna */
-.fileBox{ background:#061020; border:2px dashed #00cfff66; border-radius:20px; padding:40px 20px; text-align:center; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; position: relative; }
-.fileBox:hover, .fileBox.dragover{ border-color:#00cfff; background: rgba(0, 207, 255, 0.05); box-shadow: 0 0 20px rgba(0, 207, 255, 0.1); }
-.fileBox input{ display:none; }
-.upload-icon { width: 50px; height: 50px; fill: #00cfff; filter: drop-shadow(0 0 8px #00cfff88); margin-bottom: 5px; }
-.fileBtn{ font-size:14px; font-weight:bold; color: #fff; pointer-events: none; }
-.fileHint { font-size: 11px; color: #5f7b9e; pointer-events: none; }
-.fileName{ font-size:13px; color:#00ffcc; text-shadow: 0 0 10px rgba(0,255,204,0.3); font-weight: bold; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        @keyframes rgbGlow {
+            0% { border-color: #ff0055; box-shadow: 0 0 25px rgba(255, 0, 85, 0.3); }
+            33% { border-color: #00ffcc; box-shadow: 0 0 25px rgba(0, 255, 204, 0.3); }
+            66% { border-color: #7000ff; box-shadow: 0 0 25px rgba(112, 0, 255, 0.3); }
+            100% { border-color: #ff0055; box-shadow: 0 0 25px rgba(255, 0, 85, 0.3); }
+        }
 
-.btn{ width:100%; border:none; border-radius:14px; padding:16px; cursor:pointer; color:#fff; font-weight:bold; font-size:14px; background:linear-gradient(135deg,#00cfff,#0055ff); transition:.2s; box-shadow: 0 4px 15px rgba(0, 207, 255, 0.3); letter-spacing: 1px; }
-.btn:hover{ transform:translateY(-2px); box-shadow: 0 6px 20px rgba(0, 207, 255, 0.5); }
-.btn:active{ transform: translateY(0); }
+        body {
+            margin: 0;
+            font-family: 'Orbitron', sans-serif;
+            color: white;
+            background: linear-gradient(45deg, #050510, #150020, #001520, #002010, #050510);
+            background-size: 400% 400%;
+            animation: rgb-animation 15s ease infinite;
+            overflow-x: hidden;
+        }
 
-.progress{ width:100%; height:10px; background:#081224; border-radius:999px; overflow:hidden; margin-top:20px; display:none; border: 1px solid #173a74; }
-.progressBar{ width:0%; height:100%; background:linear-gradient(90deg,#00cfff,#0055ff); transition:.25s; }
-.status{ margin-top:15px; color:#00cfff; font-size:12px; text-align:center; font-weight: 600; }
-.console{ margin-top:22px; background:#030913; border:1px solid #163868; border-radius:16px; min-height:180px; max-height:300px; overflow:auto; padding:15px; white-space:pre-wrap; color:#66ffcc; font-size:12px; word-break:break-word; font-family: monospace !important; }
-</style>
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            top: 0;
+            left: 0;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 2px solid;
+            border-image: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet) 1;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 18px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: linear-gradient(to right, red, orange, yellow, green, #00f2ff, blue, violet);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: rgb-animation 3s linear infinite;
+        }
+
+        .logo img {
+            width: 35px;
+            height: 35px;
+            margin-right: 12px;
+            object-fit: contain;
+        }
+
+        .menu a {
+            margin-left: 20px;
+            color: white;
+            text-decoration: none;
+            font-size: 13px;
+            opacity: 0.8;
+            transition: 0.3s;
+        }
+
+        .menu a:hover {
+            opacity: 1;
+            color: #00f2ff;
+            text-shadow: 0 0 10px #00f2ff;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 80px 20px 40px;
+        }
+
+        .hero img {
+            width: 120px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 25px red) drop-shadow(0 0 40px blue);
+            animation: pulse 3s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        .hero h1 {
+            font-size: clamp(28px, 5vw, 50px);
+            margin: 10px 0;
+            background: linear-gradient(to right, red, orange, yellow, green, #00f2ff, blue, violet, red);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: rgb-animation 4s linear infinite;
+        }
+
+        .hero p {
+            max-width: 700px;
+            margin: 15px auto;
+            opacity: 0.9;
+            line-height: 1.6;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+        }
+
+        .counter {
+            margin-top: 15px;
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.7);
+            display: inline-block;
+            padding: 10px 24px;
+            border-radius: 20px;
+            border: 1px solid;
+            border-image: linear-gradient(to right, red, yellow, green, blue, violet) 1;
+            letter-spacing: 1px;
+        }
+
+        section {
+            padding: 40px 20px;
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 26px;
+            background: linear-gradient(to right, red, orange, yellow, green, blue, violet);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: rgb-animation 5s linear infinite;
+        }
+
+        /* ESTRUTURA DO PAINEL DE UPLOAD */
+        .upload-container {
+            max-width: 750px;
+            margin: 0 auto 50px;
+        }
+
+        .card-upload {
+            background: rgba(10, 15, 30, 0.85);
+            border: 2px solid #00ffcc;
+            border-radius: 24px;
+            padding: 30px;
+            backdrop-filter: blur(20px);
+            animation: rgbGlow 8s infinite ease-in-out;
+        }
+
+        .group { margin-bottom: 20px; }
+
+        .label {
+            display: block;
+            margin-bottom: 10px;
+            color: #00ffcc;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .input {
+            width: 100%;
+            background: #060b17;
+            border: 1px solid #162a4a;
+            border-radius: 14px;
+            color: #fff;
+            padding: 14px;
+            outline: none;
+            font-size: 13px;
+            text-align: center;
+            transition: 0.3s;
+            box-sizing: border-box;
+        }
+
+        .input:focus {
+            border-color: #00ffcc;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+        }
+
+        .fileBox {
+            background: #040812;
+            border: 2px dashed rgba(0, 255, 204, 0.4);
+            border-radius: 20px;
+            padding: 35px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .fileBox:hover, .fileBox.dragover {
+            border-color: #00ffcc;
+            background: rgba(0, 255, 204, 0.05);
+        }
+
+        .fileBox input { display: none; }
+
+        .upload-icon {
+            width: 45px;
+            height: 45px;
+            fill: #00ffcc;
+            filter: drop-shadow(0 0 8px rgba(0,255,204,0.5));
+        }
+
+        .fileBtn { font-size: 13px; font-weight: bold; color: #fff; pointer-events: none; }
+        .fileHint { font-size: 10px; color: #5f7b9e; pointer-events: none; }
+        .fileName { font-size: 12px; color: #00ffcc; font-weight: bold; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .btn-upload {
+            width: 100%;
+            border: none;
+            border-radius: 14px;
+            padding: 16px;
+            cursor: pointer;
+            color: #fff;
+            font-weight: bold;
+            font-size: 13px;
+            background: linear-gradient(135deg, #ff0055, #7000ff, #00ffcc);
+            background-size: 200% 200%;
+            animation: rgb-animation 4s linear infinite;
+            transition: transform 0.2s, box-shadow 0.2s;
+            letter-spacing: 1px;
+        }
+
+        .btn-upload:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 255, 204, 0.3); }
+        .btn-upload:active { transform: translateY(0); }
+
+        .progress {
+            width: 100%;
+            height: 8px;
+            background: #060b17;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 20px;
+            display: none;
+            border: 1px solid #162a4a;
+        }
+
+        .progressBar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff0055, #00ffcc);
+            transition: 0.2s ease;
+        }
+
+        .status {
+            margin-top: 15px;
+            color: #00ffcc;
+            font-size: 11px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* ÁREA DO HISTÓRICO DE UPLOADS */
+        .history-section {
+            margin-top: 25px;
+            border-top: 1px solid rgba(0, 255, 204, 0.2);
+            padding-top: 20px;
+        }
+
+        .history-title {
+            font-size: 12px;
+            color: #00ffcc;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 320px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .history-list::-webkit-scrollbar { width: 5px; }
+        .history-list::-webkit-scrollbar-track { background: #030712; }
+        .history-list::-webkit-scrollbar-thumb { background: #00ffcc33; border-radius: 10px; }
+        .history-list::-webkit-scrollbar-thumb:hover { background: #00ffcc; }
+
+        .history-item {
+            background: rgba(4, 10, 22, 0.8);
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            border-radius: 14px;
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            border-color: #00ffcc;
+            box-shadow: 0 0 12px rgba(0, 255, 204, 0.15);
+        }
+
+        .item-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .item-icon {
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: rgba(0, 255, 204, 0.08);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            flex-shrink: 0;
+        }
+
+        .item-details {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .item-name {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .item-url {
+            font-family: monospace;
+            font-size: 10px;
+            color: #5f7b9e;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .item-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 6px 10px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: 0.2s;
+        }
+
+        .action-btn:hover {
+            background: rgba(0, 255, 204, 0.2);
+            border-color: #00ffcc;
+            color: #00ffcc;
+        }
+
+        .action-btn.delete-btn:hover {
+            background: rgba(255, 0, 85, 0.2);
+            border-color: #ff0055;
+            color: #ff0055;
+        }
+
+        .empty-history {
+            text-align: center;
+            font-size: 11px;
+            color: #5f7b9e;
+            padding: 20px 0;
+        }
+
+        /* GRID E CARDS DE RECURSOS */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .card {
+            background: rgba(10, 10, 20, 0.85);
+            border-radius: 14px;
+            padding: 30px;
+            position: relative;
+            transition: 0.3s;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 14px;
+            padding: 2px;
+            background: linear-gradient(to bottom right, red, orange, yellow, green, blue, violet, red);
+            background-size: 300% 300%;
+            animation: rgb-animation 10s linear infinite;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 0 25px rgba(255, 0, 255, 0.2);
+        }
+
+        .coin-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .coin {
+            background: #0f0f1a;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .coin::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 10px;
+            padding: 1px;
+            background: linear-gradient(to right, red, yellow, green, blue, violet);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        /* BOTÃO COMPRAR */
+        .btn-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn-comprar {
+            display: inline-block;
+            padding: 20px 50px;
+            border-radius: 14px;
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            text-decoration: none;
+            transition: 0.3s;
+            width: 320px; 
+            text-align: center;
+            border: none;
+            position: relative;
+            color: white;
+            z-index: 1;
+            background: #050510;
+            letter-spacing: 1.5px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+        }
+
+        .btn-comprar::before {
+            content: '';
+            position: absolute;
+            top: -3px; left: -3px; right: -3px; bottom: -3px;
+            background: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet, red);
+            background-size: 400%;
+            z-index: -1;
+            border-radius: 16px;
+            animation: rgb-animation 8s linear infinite;
+        }
+
+        .btn-comprar:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 35px rgba(255, 0, 255, 0.4);
+        }
+
+        .cta {
+            text-align: center;
+            background: rgba(5, 5, 15, 0.95);
+            padding: 80px 20px;
+            border-top: 2px solid;
+            border-image: linear-gradient(90deg, violet, indigo, blue, green, yellow, orange, red) 1;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 40px;
+            background: #030307;
+            opacity: 0.8;
+            font-size: 12px;
+            line-height: 1.5;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease-out;
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                padding: 15px;
+            }
+            .menu {
+                margin-top: 15px;
+            }
+            .menu a {
+                margin: 5px 8px;
+                font-size: 11px;
+            }
+            .hero { padding: 40px 20px; }
+            .hero h1 { font-size: 26px; }
+            .card-upload { padding: 20px; }
+        }
+    </style>
 </head>
 <body>
-<div class="bg"></div>
-<div class="container">
-    <div class="top"><h1>AMHEEX STORAGE</h1></div>
-    <div class="card">
+
+<div id="particles-js"></div>
+
+<div class="navbar">
+    <div class="logo">
+        <img src="https://amheex.onrender.com/icon.png" alt="AMHEEX Logo">
+        AMHEEX Storage
+    </div>
+    <div class="menu">
+        <a href="#upload">Upload</a>
+        <a href="#recursos">Recursos</a>
+        <a href="#missao">Missão</a>
+        <a href="#diferenciais">Diferenciais</a>
+        <a href="#comprar">Planos</a>
+    </div>
+</div>
+
+<section class="hero">
+    <img src="https://amheex.onrender.com/icon.png" alt="AMHEEX Storage Logo">
+    <h1>AMHEEX STORAGE</h1>
+    <p>Armazenamento Cloud de Alta Performance • Hospedagem de Arquivos • Integração por API.<br>
+    Sua infraestrutura de nuvem segura, rápida e otimizada para desenvolvedores e criadores.</p>
+
+    <div class="counter">
+        🔥 <span id="compras-count">142</span> uploads realizados hoje no AMHEEX Storage
+    </div>
+</section>
+
+<!-- SEÇÃO DE UPLOAD DE ARQUIVOS -->
+<section id="upload" class="upload-container">
+    <div class="card-upload">
         <div class="group">
-            <label class="label">CONFIGURAR PATH MANUAL</label>
-            <input type="text" id="path" class="input" placeholder="Ex: pasta/arquivo.txt">
+            <label class="label">PASTA OU PATH PERSONALIZADO (OPCIONAL)</label>
+            <input type="text" id="path" class="input" placeholder="Ex: minha_pasta (deixe vazio para a raiz)">
         </div>
         
         <div class="group">
-            <!-- Nova caixa de upload clicável e arrastável -->
             <div class="fileBox" id="dropZone" onclick="document.getElementById('fileInput').click()">
-                <!-- Ícone de Upload em SVG nativo -->
                 <svg class="upload-icon" viewBox="0 0 24 24">
                     <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
                 </svg>
-                <div class="fileBtn">ARRASTE OU CLIQUE PARA SELECIONAR</div>
-                <div class="fileHint">Suporta qualquer tipo de arquivo</div>
-                <input type="file" id="fileInput">
+                <div class="fileBtn">ARRASTE OU CLIQUE PARA SELECIONAR ARQUIVOS</div>
+                <div class="fileHint">Suporta múltiplos arquivos simultâneos</div>
+                <input type="file" id="fileInput" multiple>
                 <div class="fileName" id="fileName" style="display:none;">Nenhum arquivo selecionado</div>
             </div>
         </div>
         
-        <button class="btn" onclick="iniciarUpload()">INICIAR UPLOAD</button>
+        <button class="btn-upload" onclick="iniciarUpload()">INICIAR UPLOAD</button>
         
         <div class="progress" id="progress"><div class="progressBar" id="progressBar"></div></div>
-        <div class="status" id="status">Sistema pronto.</div>
-        <div class="console" id="console">AMHEEX STORAGE BLUE ONLINE...</div>
+        <div class="status" id="status">Servidor AMHEEX Storage Pronto.</div>
+        
+        <!-- ÁREA DE HISTÓRICO DE UPLOADS -->
+        <div class="history-section">
+            <div class="history-title">
+                <span>HISTÓRICO DE UPLOADS</span>
+                <span id="historyCount" style="color: #5f7b9e; font-size: 10px;">0 arquivo(s)</span>
+            </div>
+            <div class="history-list" id="historyList">
+                <div class="empty-history" id="emptyHistory">Nenhum arquivo enviado nesta sessão.</div>
+            </div>
+        </div>
     </div>
+</section>
+
+<section id="recursos" class="reveal">
+    <h2>Recursos do AMHEEX Storage</h2>
+    <div class="grid">
+        <div class="card">
+            <h3>⚡ Upload de Alta Velocidade</h3>
+            <p>Envio ultra-rápido com suporte a streaming direto de buffer e processamento assíncrono avançado.</p>
+        </div>
+        <div class="card">
+            <h3>🔗 Links Diretos CDN</h3>
+            <p>Geração instantânea de URLs públicas otimizadas para consumo direto em sites, apps e sistemas externos.</p>
+        </div>
+        <div class="card">
+            <h3>📂 Organização de Pastas</h3>
+            <p>Suporte completo a paths personalizados para organizar seus arquivos e assets em estrutura de diretórios.</p>
+        </div>
+        <div class="card">
+            <h3>🛡️ Segurança e Proteção</h3>
+            <p>Armazenamento com isolamento de dados, controle de cabeçalhos CORS e redundância em nuvem.</p>
+        </div>
+        <div class="card">
+            <h3>📡 API REST Flexível</h3>
+            <p>Integre seus bots, aplicativos móveis ou sistemas Web diretamente à nossa infraestrutura de storage via HTTP.</p>
+        </div>
+        <div class="card">
+            <h3>📦 Envio em Lote</h3>
+            <p>Selecione e envie dezenas de arquivos de uma só vez com barra de progresso em tempo real.</p>
+        </div>
+    </div>
+</section>
+
+<section id="missao" class="reveal" style="text-align: center;">
+    <h2>Nossa Missão</h2>
+    <p style="max-width: 800px; margin: 0 auto; line-height: 1.8; font-size: 18px; color: rgba(255, 255, 255, 0.9);">
+        Oferecer a melhor infraestrutura de armazenamento em nuvem para criadores, desenvolvedores e empresas. Garantimos estabilidade, links diretos de alta velocidade e simplicidade na gestão dos seus arquivos digitais.
+    </p>
+    <p style="margin-top: 30px; font-weight: bold; font-size: 20px; letter-spacing: 2px; color: #ff007f;">
+        "AMHEEX Storage: Seus Arquivos Conectados ao Mundo."
+    </p>
+</section>
+
+<section id="diferenciais" class="reveal">
+    <h2>Por que escolher o AMHEEX Storage?</h2>
+    <div class="coin-list">
+        <div class="coin">Links Diretos sem Ads</div>
+        <div class="coin">Uptime Garantido de 99.9%</div>
+        <div class="coin">Suporte a Múltiplos Formatos</div>
+        <div class="coin">Integração Fácil via REST</div>
+    </div>
+</section>
+
+<section id="comprar" class="cta">
+    <h2>Precisa de um Plano de Storage Dedicado?</h2>
+    <p style="max-width: 600px; margin: 20px auto;">Contrate espaço em nuvem sob medida com suporte prioritário e largura de banda estendida.</p>
+    
+    <div class="btn-container">
+        <a href="https://wa.me/+5546999708052?text=Ol%C3%A1,%20Quero%20adquirir%20um%20plano%20do%20%22AMHEEX%20STORAGE%22!!!" class="btn-comprar">CONTRATAR STORAGE</a>
+    </div>
+</section>
+
+<div class="footer">
+    ⚠️ O AMHEEX Storage é uma plataforma de hospedagem e armazenamento de arquivos independente.<br>
+    © 2026 AMHEEX Storage - Todos os direitos reservados.
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/particles.js"></script>
 <script>
-const API_LIST = ["https://storage-amheex.onrender.com"];
-const fileInput = document.getElementById("fileInput");
-const pathInput = document.getElementById("path");
-const consoleBox = document.getElementById("console");
-const statusBox = document.getElementById("status");
-const progressBar = document.getElementById("progressBar");
-const progress = document.getElementById("progress");
-const dropZone = document.getElementById("dropZone");
-const fileNameDisplay = document.getElementById("fileName");
+    // PARTICLES BG
+    particlesJS("particles-js", {
+        particles: {
+            number: { value: 45, density: { enable: true, value_area: 800 } },
+            color: { value: "#ffffff" },
+            shape: { type: "circle" },
+            opacity: { value: 0.25 },
+            size: { value: 2 },
+            line_linked: {
+                enable: true,
+                distance: 140,
+                color: "#ffffff",
+                opacity: 0.15,
+                width: 1
+            },
+            move: { enable: true, speed: 1 }
+        },
+        interactivity: { detect_on: "canvas", events: { onhover: { enable: true, mode: "grab" } } },
+        retina_detect: true
+    });
 
-// Atualiza a interface quando um arquivo é selecionado
-function atualizarInterfaceArquivo() {
-    if (fileInput.files.length) {
-        fileNameDisplay.innerText = "✓ " + fileInput.files[0].name;
-        fileNameDisplay.style.display = "block";
-        document.querySelector(".upload-icon").style.fill = "#00ffcc";
-        
-        if(!pathInput.value.trim()){
-            pathInput.value = fileInput.files[0].name;
+    // CONTADOR DINÂMICO DE UPLOADS
+    setInterval(() => {
+        let n = document.getElementById("compras-count");
+        let value = parseInt(n.innerText);
+        if (Math.random() > 0.5) {
+            value += Math.floor(Math.random() * 2) + 1;
+            n.innerText = value;
         }
-    } else {
-        fileNameDisplay.style.display = "none";
-        document.querySelector(".upload-icon").style.fill = "#00cfff";
+    }, 12000);
+
+    // EFEITO REVEAL NO SCROLL
+    function reveal() {
+        let reveals = document.querySelectorAll(".reveal");
+        for (let i = 0; i < reveals.length; i++) {
+            let windowHeight = window.innerHeight;
+            let elementTop = reveals[i].getBoundingClientRect().top;
+            if (elementTop < windowHeight - 100) {
+                reveals[i].classList.add("active");
+            }
+        }
     }
-}
+    window.addEventListener("scroll", reveal);
+    reveal();
 
-fileInput.addEventListener("change", atualizarInterfaceArquivo);
+    // LÓGICA DE UPLOAD E GERENCIAMENTO DO HISTÓRICO DA API AMHEEX
+    const API_LIST = ["https://storage-amheex.onrender.com"];
+    const fileInput = document.getElementById("fileInput");
+    const pathInput = document.getElementById("path");
+    const statusBox = document.getElementById("status");
+    const progressBar = document.getElementById("progressBar");
+    const progress = document.getElementById("progress");
+    const dropZone = document.getElementById("dropZone");
+    const fileNameDisplay = document.getElementById("fileName");
+    const historyList = document.getElementById("historyList");
+    const emptyHistory = document.getElementById("emptyHistory");
+    const historyCount = document.getElementById("historyCount");
 
-// Eventos de Drag & Drop (Arrastar e soltar)
-['dragenter', 'dragover'].forEach(eventName => {
-    dropZone.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        dropZone.classList.add('dragover');
-    }, false);
-});
+    let totalArquivosEnviados = 0;
 
-['dragleave', 'drop'].forEach(eventName => {
-    dropZone.addEventListener(eventName, (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
-    }, false);
-});
-
-dropZone.addEventListener('drop', (e) => {
-    const dt = e.dataTransfer;
-    const files = dt.files;
-    if(files.length) {
-        fileInput.files = files;
-        atualizarInterfaceArquivo();
+    function atualizarInterfaceArquivo() {
+        if (fileInput.files.length) {
+            if(fileInput.files.length === 1) {
+                fileNameDisplay.innerText = "✓ " + fileInput.files[0].name;
+            } else {
+                fileNameDisplay.innerText = "✓ " + fileInput.files.length + " arquivos selecionados";
+            }
+            fileNameDisplay.style.display = "block";
+        } else {
+            fileNameDisplay.style.display = "none";
+        }
     }
-});
 
-function log(msg) { consoleBox.innerText = msg; }
-function status(msg) { statusBox.innerText = msg; }
+    fileInput.addEventListener("change", atualizarInterfaceArquivo);
 
-async function iniciarUpload() {
-    const path = pathInput.value.trim();
-    
-    if (!path) {
-        alert("Por favor, configure o Path onde o arquivo será salvo.");
-        return;
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if(files.length) {
+            fileInput.files = files;
+            atualizarInterfaceArquivo();
+        }
+    });
+
+    function status(msg) { statusBox.innerText = msg; }
+
+    function obterIconeArquivo(nomeArquivo) {
+        const ext = nomeArquivo.split('.').pop().toLowerCase();
+        
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return '🖼️';
+        if (['mp4', 'webm', 'mkv', 'avi', 'mov'].includes(ext)) return '🎬';
+        if (['mp3', 'wav', 'ogg', 'm4a'].includes(ext)) return '🎵';
+        if (['pdf', 'doc', 'docx', 'txt'].includes(ext)) return '📄';
+        if (['zip', 'rar', '7z', 'tar'].includes(ext)) return '📦';
+        if (['js', 'html', 'css', 'json', 'py', 'php'].includes(ext)) return '💻';
+        
+        return '📁';
     }
-    
-    if (!fileInput.files.length) {
-        alert("Selecione um arquivo para fazer o upload!");
-        return;
-    }
-    
-    const file = fileInput.files[0];
-    progress.style.display = "block";
-    progressBar.style.width = "20%";
-    status("Enviando arquivo para o Path especificado...");
 
-    try {
-        const content = await file.arrayBuffer();
-        const response = await fetch(API_LIST[0] + "/" + path, { 
-            method: "POST", 
-            body: content 
+    function adicionarAoHistorico(nome, url) {
+        if (emptyHistory) {
+            emptyHistory.style.display = "none";
+        }
+
+        totalArquivosEnviados++;
+        historyCount.innerText = totalArquivosEnviados + " arquivo(s)";
+
+        const icone = obterIconeArquivo(nome);
+        const item = document.createElement("div");
+        item.className = "history-item";
+
+        item.innerHTML = `
+            <div class="item-left">
+                <div class="item-icon">${icone}</div>
+                <div class="item-details">
+                    <div class="item-name" title="${nome}">${nome}</div>
+                    <div class="item-url" title="${url}">${url}</div>
+                </div>
+            </div>
+            <div class="item-actions">
+                <button class="action-btn" onclick="copiarUrl('${url}', this)">📋 Copiar</button>
+                <button class="action-btn" onclick="abrirUrl('${url}')">🔗 Abrir</button>
+                <button class="action-btn delete-btn" onclick="removerItem(this)">🗑️</button>
+            </div>
+        `;
+
+        historyList.insertBefore(item, historyList.firstChild);
+    }
+
+    function copiarUrl(url, btn) {
+        navigator.clipboard.writeText(url).then(() => {
+            const textoOriginal = btn.innerHTML;
+            btn.innerHTML = "✓ Copiado!";
+            btn.style.borderColor = "#00ffcc";
+            btn.style.color = "#00ffcc";
+            setTimeout(() => {
+                btn.innerHTML = textoOriginal;
+                btn.style.borderColor = "";
+                btn.style.color = "";
+            }, 1500);
         });
+    }
+
+    function abrirUrl(url) {
+        window.open(url, "_blank");
+    }
+
+    function removerItem(btn) {
+        const item = btn.closest(".history-item");
+        item.style.opacity = "0";
+        item.style.transform = "scale(0.9)";
+        setTimeout(() => {
+            item.remove();
+            totalArquivosEnviados--;
+            historyCount.innerText = totalArquivosEnviados + " arquivo(s)";
+            if (historyList.children.length === 1 && emptyHistory) {
+                emptyHistory.style.display = "block";
+            }
+        }, 200);
+    }
+
+    async function iniciarUpload() {
+        const files = fileInput.files;
         
-        const result = await response.text();
+        if (!files.length) {
+            alert("Selecione pelo menos um arquivo!");
+            return;
+        }
+
+        const pastaBase = pathInput.value.trim();
+        progress.style.display = "block";
         
+        const totalFiles = files.length;
+
+        for (let i = 0; i < totalFiles; i++) {
+            const file = files[i];
+            const percentual = Math.round(((i) / totalFiles) * 100);
+            progressBar.style.width = percentual + "%";
+            status(`Enviando (${i + 1}/${totalFiles}): ${file.name}...`);
+
+            let pathFinal = file.name;
+            if (pastaBase) {
+                pathFinal = pastaBase.endsWith('/') ? pastaBase + file.name : pastaBase + '/' + file.name;
+            }
+
+            try {
+                const content = await file.arrayBuffer();
+                const response = await fetch(API_LIST[0] + "/" + pathFinal, { 
+                    method: "POST", 
+                    body: content 
+                });
+
+                let finalUrl = API_LIST[0] + "/" + pathFinal;
+
+                try {
+                    const jsonResponse = await response.json();
+                    if (jsonResponse.url) {
+                        finalUrl = jsonResponse.url;
+                    } else if (jsonResponse.link) {
+                        finalUrl = jsonResponse.link;
+                    }
+                } catch(e) {
+                    // Endpoint padrão retornado se não houver resposta JSON no backend
+                }
+
+                adicionarAoHistorico(file.name, finalUrl);
+
+            } catch (err) {
+                status(`Erro ao enviar o arquivo: ${file.name}`);
+            }
+        }
+
         progressBar.style.width = "100%";
-        log("UPLOAD CONCLUÍDO NO PATH!\n\nStatus: " + response.status + "\nPath Destino: " + path + "\nResposta da API: " + (result || "OK"));
-        status("Upload finalizado.");
+        status("Uploads finalizados com sucesso!");
         
+        fileInput.value = "";
+        fileNameDisplay.style.display = "none";
+
         setTimeout(() => {
             progress.style.display = "none";
-        }, 1500);
-        
-    } catch (err) {
-        log("ERRO AO ENVIAR: " + err);
-        status("Falha no upload.");
+            progressBar.style.width = "0%";
+        }, 2000);
     }
-}
 </script>
+
 </body>
 </html>
