@@ -2,81 +2,61 @@
 # REDIRECIONAMENTO E ROTEAMENTO
 # =========================================
 
-# Ativa mod_rewrite
 RewriteEngine On
 
-# =========================================
-# SE ARQUIVO OU PASTA EXISTIR -> NÃO REDIRECIONA
-# =========================================
-
+# Impede que pastas/arquivos reais sejam redirecionados
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
-
-# php_value auto_prepend_file "index.php"
-
-# =========================================
-# EVITA BUG DE "CARREGANDO" NO APACHE/RENDER
-# =========================================
 
 # Se não existir arquivo, envia para index.php
 RewriteRule ^ index.php [QSA,L]
 
 # =========================================
-# CONFIGURAÇÕES PHP
+# CONFIGURAÇÕES PHP (VALORES MENORES PARA EVITAR ERRO 500)
 # =========================================
 
-php_value upload_max_filesize 1048576M
-php_value post_max_size 1048576M
-php_value max_input_time 86400
-php_value max_execution_time 86400
-php_value memory_limit 16384M
+<IfModule mod_php5.c>
+    php_value upload_max_filesize 64M
+    php_value post_max_size 64M
+    php_value memory_limit 256M
+</IfModule>
 
 # =========================================
-# PERFORMANCE E TIMEOUT
+# HEADERS DE SEGURANÇA E LIBERAÇÃO (CRÍTICO PARA IFRAME)
 # =========================================
 
-php_flag output_buffering On
-php_flag zlib.output_compression On
+<IfModule mod_headers.c>
+    # Remove restrições de Iframe antigas
+    Header unset X-Frame-Options
+    
+    # Libera para qualquer site abrir em iframe
+    Header always set Content-Security-Policy "frame-ancestors *;"
+    
+    # CORS para permitir acesso a arquivos (como o index.txt)
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+</IfModule>
 
 # =========================================
-# CACHE BÁSICO
+# CACHE E PERFORMANCE
 # =========================================
 
 <IfModule mod_expires.c>
     ExpiresActive On
-    ExpiresDefault "access plus 1 second"
+    ExpiresDefault "access plus 1 seconds"
 </IfModule>
 
 # =========================================
-# HEADERS DE SEGURANÇA E LIBERAÇÃO DE IFRAME / CORS
+# ARQUIVO PADRÃO
 # =========================================
 
-<IfModule mod_headers.c>
-    # Remove a restrição que impedia o carregamento dentro de iframes externos
-    Header unset X-Frame-Options
-    
-    # Permite que qualquer site renderize este domínio em um iframe
-    Header always set Content-Security-Policy "frame-ancestors *;"
-
-    # Libera permissões de CORS para que a API (index.txt) seja lida sem bloqueios
-    Header always set Access-Control-Allow-Origin "*"
-    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
-    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
-
-    Header always set X-Content-Type-Options "nosniff"
-    Header always set Referrer-Policy "strict-origin"
-</IfModule>
-
-# =========================================
-# FALLBACK SE INDEX NÃO EXISTIR
-# =========================================
-
-ErrorDocument 404 /index.php
 DirectoryIndex index.php index.html
+ErrorDocument 404 /index.php
 
 # =========================================
-# IMPEDE LOOP INTERNO
+# LOOP PREVENTION
 # =========================================
 
 RewriteCond %{ENV:REDIRECT_STATUS} ^$
