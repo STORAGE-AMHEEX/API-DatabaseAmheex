@@ -15,8 +15,8 @@ set_time_limit(0);
 
 // === CORS / Headers ===
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+header("Access-Control-Allow-Methods: GET, POST, PUT, PATCH, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Content-Disposition, X-File-Name");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -62,6 +62,13 @@ function build_clean_public_url($fileRelPath) {
     return "{$scheme}://{$host}/" . ltrim($fileRelPath, '/');
 }
 
+function json_response(array $data, int $code = 200) {
+    http_response_code($code);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
 /**
  * Cliente cURL para a REST API do Firebase
  */
@@ -88,9 +95,6 @@ function firebase_request($url, $method = 'GET', $data = null) {
     return $response;
 }
 
-/**
- * Monta o caminho da chave do nó do Firebase
- */
 function obterNodePathFirebase($relativeFilePath, $raizStorage, $domainDir) {
     $parts = explode('/', $relativeFilePath);
     $sanitizedParts = array_map('sanitize_firebase_key', $parts);
@@ -99,7 +103,7 @@ function obterNodePathFirebase($relativeFilePath, $raizStorage, $domainDir) {
 }
 
 /**
- * Faz o Backup/Upload das partes de um arquivo local para o Firebase
+ * Envia o arquivo local em partições hexadecimais para o Firebase (seguro contra estouro de RAM)
  */
 function enviarBackupFirebase($fullLocalPath, $relativeFilePath, $firebaseBaseUrl, $raizStorage, $domainDir) {
     if (!file_exists($fullLocalPath) || filesize($fullLocalPath) === 0) {
@@ -107,33 +111,46 @@ function enviarBackupFirebase($fullLocalPath, $relativeFilePath, $firebaseBaseUr
     }
 
     $nodePath = obterNodePathFirebase($relativeFilePath, $raizStorage, $domainDir);
-    $inputData = file_get_contents($fullLocalPath);
-    $hexData = bin2hex($inputData);
-    
-    // Particionamento: 1MB de caracteres por parte (1048576)
-    $chunks = str_split($hexData, 1048576); 
+    $handle = fopen($fullLocalPath, 'rb');
+    if (!$handle) return false;
 
-    foreach ($chunks as $idx => $chunk) {
-        $partName = "part_" . ($idx + 1);
+    $chunkSize = 524288; // 512KB de bytes binários = 1MB em Hexadecimal por partição
+    $part = 1;
+
+    while (!feof($handle)) {
+        $buffer = fread($handle, $chunkSize);
+        if ($buffer === false || strlen($buffer) === 0) break;
+
+        $hexData = bin2hex($buffer);
+        $partName = "part_" . $part;
         $url = $firebaseBaseUrl . $nodePath . '/' . $partName . '.json';
-        firebase_request($url, 'PUT', $chunk);
+        
+        firebase_request($url, 'PUT', $hexData);
+        $part++;
     }
 
+    fclose($handle);
     @file_put_contents('up_on.txt', '1');
     return true;
 }
 
 /**
- * Puxa as partições da API do Firebase e reconstrói o arquivo local na pasta X
+ * Reconstrói o arquivo local a partir das partições do Firebase
  */
 function restaurarArquivoFirebase($fullLocalPath, $relativeFilePath, $firebaseBaseUrl, $raizStorage, $domainDir) {
     $nodePath = obterNodePathFirebase($relativeFilePath, $raizStorage, $domainDir);
     
-    $fullHexContent = "";
-    $part = 1;
-    $foundAny = true;
+    $fileDir = dirname($fullLocalPath);
+    if (!is_dir($fileDir)) {
+        @mkdir($fileDir, 0777, true);
+    }
 
-    while ($foundAny) {
+    $part = 1;
+    $foundAny = false;
+    $outHandle = fopen($fullLocalPath, 'wb');
+    if (!$outHandle) return false;
+
+    while (true) {
         $partName = "part_$part";
         $url = $firebaseBaseUrl . $nodePath . '/' . $partName . '.json';
         
@@ -142,40 +159,35 @@ function restaurarArquivoFirebase($fullLocalPath, $relativeFilePath, $firebaseBa
         if ($response !== false && $response !== 'null' && !empty($response)) {
             $data = json_decode($response, true);
             if (is_string($data) && !empty($data)) {
-                $cleanHex = str_replace(array(' ', "\r", "\n", "\t"), '', $data);
-                $fullHexContent .= $cleanHex;
-                $part++;
-            } else {
-                $foundAny = false;
+                $cleanHex = str_replace([' ', "\r", "\n", "\t"], '', $data);
+                if (strlen($cleanHex) % 2 !== 0) {
+                    $cleanHex = substr($cleanHex, 0, -1);
+                }
+                $binaryChunk = hex2bin($cleanHex);
+                if ($binaryChunk !== false) {
+                    fwrite($outHandle, $binaryChunk);
+                    $foundAny = true;
+                    $part++;
+                    continue;
+                }
             }
-        } else {
-            $foundAny = false;
         }
+        break;
     }
 
-    if (!empty($fullHexContent)) {
-        if (strlen($fullHexContent) % 2 !== 0) {
-            $fullHexContent = substr($fullHexContent, 0, -1);
-        }
+    fclose($outHandle);
 
-        $originalBinary = @hex2bin($fullHexContent);
-        
-        if ($originalBinary !== false) {
-            $fileDir = dirname($fullLocalPath);
-            if (!is_dir($fileDir)) {
-                @mkdir($fileDir, 0777, true);
-            }
-            @file_put_contents($fullLocalPath, $originalBinary);
-            @file_put_contents('up_on.txt', '1');
-            return true;
-        }
+    if ($foundAny && filesize($fullLocalPath) > 0) {
+        @file_put_contents('up_on.txt', '1');
+        return true;
     }
 
+    @unlink($fullLocalPath);
     return false;
 }
 
 // =========================================================================
-// OBTENÇÃO DO CAMINHO RELATIVO DA URL (SEM PARAMETROS GET)
+// OBTENÇÃO DO CAMINHO RELATIVO DA URL
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
@@ -194,7 +206,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $fullPath = BASE_DIR . '/' . $fileRelPath;
 
-    // Se o arquivo não existir ou for de tamanho zerado, busca e reconstitui do Firebase
     if (!file_exists($fullPath) || filesize($fullPath) <= 1) {
         $restaurado = restaurarArquivoFirebase($fullPath, $fileRelPath, $firebaseBaseUrl, $raizStorage, $domainDir);
         
@@ -204,12 +215,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             exit;
         }
         
-        // Redireciona para atualizar a chamada após reconstruir localmente o binário na pasta X
         header("Location: " . $requestUri);
         exit;
     }
 
-    // Servir o arquivo localmente
     $mime = mime_content_type($fullPath) ?: 'application/octet-stream';
     header('Content-Description: File Transfer');
     header('Content-Type: ' . $mime);
@@ -221,90 +230,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 
 // =========================================================================
-// ROTA POST — UPLOAD EM PARTES OU VIA STREAMING + ENVIO FIREBASE
+// ROTA POST / PUT / PATCH — SUPORTE UNIVERSAL DE UPLOAD
 // =========================================================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
-    $json = function(array $data, int $code = 200) {
-        http_response_code($code);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        exit;
-    };
+if (in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT', 'PATCH'])) {
 
-    // --- Upload via Chunks ($_FILES) ---
-    if (!empty($_FILES['file'])) {
-        $fileId      = $_POST['fileId'] ?? uniqid('upload_', true);
-        $chunkIndex  = intval($_POST['chunkIndex'] ?? 0);
-        $totalChunks = intval($_POST['totalChunks'] ?? 1);
-        $fileName    = basename($_POST['fileName'] ?? ('file_' . time()));
+    // 1. Upload via Formulário Multipart ($_FILES Tradicional)
+    if (!empty($_FILES)) {
+        $fileKey = key($_FILES);
+        
+        // Trata Envio de Chunks via FormData
+        if (isset($_POST['chunkIndex'])) {
+            $fileId      = $_POST['fileId'] ?? uniqid('upload_', true);
+            $chunkIndex  = intval($_POST['chunkIndex']);
+            $totalChunks = intval($_POST['totalChunks'] ?? 1);
+            $fileName    = basename($_POST['fileName'] ?? ('file_' . time()));
 
-        $chunkDir = BASE_DIR . '/.parts_' . md5($fileId);
-        if (!is_dir($chunkDir)) @mkdir($chunkDir, 0777, true);
+            $chunkDir = BASE_DIR . '/.parts_' . md5($fileId);
+            if (!is_dir($chunkDir)) @mkdir($chunkDir, 0777, true);
 
-        $tmpName = $_FILES['file']['tmp_name'] ?? null;
-        if (!$tmpName || !is_uploaded_file($tmpName)) {
-            $json(["status" => "error", "message" => "Nenhum chunk válido."], 400);
-        }
-
-        $partPath = "{$chunkDir}/part_{$chunkIndex}";
-        move_uploaded_file($tmpName, $partPath);
-
-        // Quando o último chunk for recebido, realiza a união
-        if ($chunkIndex + 1 === $totalChunks) {
-            $finalRel = $fileRelPath !== '' ? $fileRelPath : $fileName;
-            $finalRel = sanitizaCaminho($finalRel);
-            $finalRel = neutralizaExtensaoPhp($finalRel);
-            
-            $finalPath = BASE_DIR . '/' . $finalRel;
-            if (!is_dir(dirname($finalPath))) @mkdir(dirname($finalPath), 0777, true);
-            
-            $out = fopen($finalPath, 'wb');
-            for ($i = 0; $i < $totalChunks; $i++) {
-                $p = "{$chunkDir}/part_{$i}";
-                $in = fopen($p, 'rb');
-                stream_copy_to_stream($in, $out);
-                fclose($in);
-                @unlink($p);
+            $tmpName = $_FILES[$fileKey]['tmp_name'] ?? null;
+            if (!$tmpName || !is_uploaded_file($tmpName)) {
+                json_response(["status" => "error", "message" => "Chunk inválido."], 400);
             }
-            fclose($out);
-            @rmdir($chunkDir);
 
-            // Envia backup das partes ao Firebase Realtime Database
-            enviarBackupFirebase($finalPath, $finalRel, $firebaseBaseUrl, $raizStorage, $domainDir);
+            move_uploaded_file($tmpName, "{$chunkDir}/part_{$chunkIndex}");
 
-            $url = build_clean_public_url($finalRel);
-            $json(["status" => "complete", "url" => $url]);
+            if ($chunkIndex + 1 === $totalChunks) {
+                $finalRel = $fileRelPath !== '' ? $fileRelPath : $fileName;
+                $finalRel = neutralizaExtensaoPhp(sanitizaCaminho($finalRel));
+                $finalPath = BASE_DIR . '/' . $finalRel;
+
+                if (!is_dir(dirname($finalPath))) @mkdir(dirname($finalPath), 0777, true);
+                
+                $out = fopen($finalPath, 'wb');
+                for ($i = 0; $i < $totalChunks; $i++) {
+                    $p = "{$chunkDir}/part_{$i}";
+                    $in = fopen($p, 'rb');
+                    stream_copy_to_stream($in, $out);
+                    fclose($in);
+                    @unlink($p);
+                }
+                fclose($out);
+                @rmdir($chunkDir);
+
+                enviarBackupFirebase($finalPath, $finalRel, $firebaseBaseUrl, $raizStorage, $domainDir);
+                json_response(["status" => "complete", "url" => build_clean_public_url($finalRel)]);
+            }
+
+            json_response(["status" => "partial", "progress" => $chunkIndex + 1]);
+        } 
+        
+        // Upload Único Padrão ($_FILES)
+        else if (isset($_FILES[$fileKey]['tmp_name']) && is_uploaded_file($_FILES[$fileKey]['tmp_name'])) {
+            $fileName = basename($_FILES[$fileKey]['name'] ?? ('file_' . time()));
+            $finalRel = $fileRelPath !== '' ? $fileRelPath : $fileName;
+            $finalRel = neutralizaExtensaoPhp(sanitizaCaminho($finalRel));
+            $finalPath = BASE_DIR . '/' . $finalRel;
+
+            if (!is_dir(dirname($finalPath))) @mkdir(dirname($finalPath), 0777, true);
+
+            if (move_uploaded_file($_FILES[$fileKey]['tmp_name'], $finalPath)) {
+                enviarBackupFirebase($finalPath, $finalRel, $firebaseBaseUrl, $raizStorage, $domainDir);
+                json_response(["status" => "complete", "url" => build_clean_public_url($finalRel)]);
+            }
         }
-
-        $json(["status" => "partial", "progress" => $chunkIndex + 1]);
     }
 
-    // --- Upload via Direct Streaming (php://input) ---
-    $input = fopen('php://input', 'rb');
-    if ($input) {
-        $finalRel = $fileRelPath ?: ('upload_' . time());
-        $finalRel = sanitizaCaminho($finalRel);
-        $finalRel = neutralizaExtensaoPhp($finalRel);
-        
-        $finalPath = BASE_DIR . '/' . $finalRel;
-        if (!is_dir(dirname($finalPath))) @mkdir(dirname($finalPath), 0777, true);
-        
-        $out = fopen($finalPath, 'wb');
-        stream_copy_to_stream($input, $out);
-        fclose($out);
-        fclose($input);
+    // 2. Upload via Raw Stream / Texto / Binário / Base64 (php://input)
+    $finalRel = $fileRelPath !== '' ? $fileRelPath : ($_SERVER['HTTP_X_FILE_NAME'] ?? ('upload_' . time()));
+    $finalRel = neutralizaExtensaoPhp(sanitizaCaminho($finalRel));
+    $finalPath = BASE_DIR . '/' . $finalRel;
+
+    if (!is_dir(dirname($finalPath))) @mkdir(dirname($finalPath), 0777, true);
+
+    $rawContent = file_get_contents('php://input');
+
+    if (!empty($rawContent)) {
+        // Verifica e Decodifica caso o payload enviado seja Base64 puro
+        if (preg_match('/^data:(.*?);base64,/', $rawContent, $matches)) {
+            $rawContent = base64_decode(substr($rawContent, strpos($rawContent, ',') + 1));
+        } elseif (base64_encode(base64_decode($rawContent, true)) === $rawContent && !mb_check_encoding($rawContent, 'UTF-8')) {
+            $rawContent = base64_decode($rawContent);
+        }
+
+        file_put_contents($finalPath, $rawContent);
 
         if (filesize($finalPath) > 0) {
-            // Envia backup das partes ao Firebase Realtime Database
             enviarBackupFirebase($finalPath, $finalRel, $firebaseBaseUrl, $raizStorage, $domainDir);
-
-            $url = build_clean_public_url($finalRel);
-            $json(["status" => "complete", "url" => $url]);
+            json_response(["status" => "complete", "url" => build_clean_public_url($finalRel)]);
         }
     }
 
-    $json(["status" => "error", "message" => "Nenhum conteúdo recebido."], 400);
+    json_response(["status" => "error", "message" => "Nenhum conteúdo válido foi recebido."], 400);
 }
 
 http_response_code(405);
