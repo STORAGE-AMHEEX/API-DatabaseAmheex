@@ -33,16 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // =========================================================================
-// CONFIGURAÇÕES DE DIRETÓRIO LOCAL E FIREBASE (DIRETÓRIO X)
+// CONFIGURAÇÕES DE DIRETÓRIO LOCAL (DIRETÓRIO X)
 // =========================================================================
 define('BASE_DIR', realpath(__DIR__) . '/X');
 
 if (!is_dir(BASE_DIR)) {
     @mkdir(BASE_DIR, 0777, true);
 }
-
-$firebaseBaseUrl = 'https://storage-amheex-default-rtdb.firebaseio.com/';
-$raizStorage     = 'X';
 
 // =========================================================================
 // FUNÇÕES AUXILIARES
@@ -69,85 +66,6 @@ function build_clean_public_url($fileRelPath, $comPastaX = false) {
     return "{$scheme}://{$host}{$pastaX}/" . ltrim($fileRelPath, '/');
 }
 
-function firebase_request($url, $method = 'GET', $data = null) {
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 120);
-
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($httpCode >= 400) {
-        return false;
-    }
-    return $response;
-}
-
-function obterNodePathFirebase($relativeFilePath, $raizStorage) {
-    $base64Path = rtrim(strtr(base64_encode($relativeFilePath), '+/', '-_'), '=');
-    return $raizStorage . '/' . $base64Path;
-}
-
-function restaurarArquivoFirebase($fullLocalPath, $relativeFilePath, $firebaseBaseUrl, $raizStorage) {
-    $nodePath = obterNodePathFirebase($relativeFilePath, $raizStorage);
-    $fileDir = dirname($fullLocalPath);
-    if (!is_dir($fileDir)) {
-        @mkdir($fileDir, 0777, true);
-    }
-
-    $outHandle = @fopen($fullLocalPath, 'wb');
-    if (!$outHandle) {
-        return false;
-    }
-
-    $part = 1;
-    $temPartes = false;
-
-    while (true) {
-        @set_time_limit(0);
-        $url = $firebaseBaseUrl . $nodePath . '/part_' . $part . '.json';
-        $response = firebase_request($url, 'GET');
-
-        if ($response === false || $response === 'null' || empty($response)) {
-            break;
-        }
-
-        $data = json_decode($response, true);
-        if (!is_string($data) || empty($data)) {
-            break;
-        }
-
-        $cleanHex = str_replace([' ', "\r", "\n", "\t"], '', $data);
-        if (strlen($cleanHex) % 2 !== 0) {
-            $cleanHex = substr($cleanHex, 0, -1);
-        }
-
-        $binaryChunk = @hex2bin($cleanHex);
-        if ($binaryChunk !== false && strlen($binaryChunk) > 0) {
-            fwrite($outHandle, $binaryChunk);
-            $temPartes = true;
-        }
-
-        unset($data, $cleanHex, $binaryChunk);
-        $part++;
-    }
-
-    fclose($outHandle);
-
-    if (!$temPartes || filesize($fullLocalPath) === 0) {
-        @unlink($fullLocalPath);
-        return false;
-    }
-
-    return true;
-}
-
 // =========================================================================
 // OBTENÇÃO DO CAMINHO EXATO A PARTIR DA URL
 // =========================================================================
@@ -171,11 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $fullPath = BASE_DIR . '/' . $fileRelPath;
     
-    if (!file_exists($fullPath) || filesize($fullPath) <= 1) {
-        restaurarArquivoFirebase($fullPath, $fileRelPath, $firebaseBaseUrl, $raizStorage);
-    }
-
-    if (!file_exists($fullPath) || filesize($fullPath) <= 1) {
+    if (!file_exists($fullPath) || filesize($fullPath) <= 0) {
         http_response_code(404);
         echo 'null';
         exit;
@@ -221,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>STORAGE AMHEEX</title>
+        <title>STORAGE LOCAL</title>
         <style>
             * { box-sizing: border-box; }
             html, body {
@@ -272,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 
 // =========================================================================
-// ROTA POST — UPLOAD LOCAL POR CHUNKS DIRETAMENTE NA PASTA /X (CAMINHO EXATO)
+// ROTA POST — UPLOAD LOCAL POR CHUNKS DIRETAMENTE NA PASTA /X (SEM APAGAR RAIZ)
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     while (ob_get_level()) {
@@ -296,8 +210,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $chunkIndex = intval($_POST['chunkIndex']);
         $totalChunks = intval($_POST['totalChunks']);
         
-        if (isset($_FILES['chunk']) && $_FILES['chunk']['error'] === UPLOAD_ERR_OK) {
-            $chunkTmp = $_FILES['chunk']['tmp_name'];
+        $chunkKey = isset($_FILES['chunk']) ? 'chunk' : '';
+        if ($chunkKey === '' && isset($_FILES[''])) {
+            $chunkKey = '';
+        }
+
+        if (isset($_FILES[$chunkKey]) && $_FILES[$chunkKey]['error'] === UPLOAD_ERR_OK) {
+            $chunkTmp = $_FILES[$chunkKey]['tmp_name'];
             $mode = ($chunkIndex === 0) ? 'wb' : 'ab';
             
             $out = @fopen($finalFilePath, $mode);
