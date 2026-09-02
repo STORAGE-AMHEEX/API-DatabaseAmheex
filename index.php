@@ -272,7 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 
 // =========================================================================
-// ROTA POST — UPLOAD LOCAL POR CHUNKS DIRETAMENTE NA PASTA X
+// ROTA POST — UPLOAD LOCAL POR CHUNKS DIRETAMENTE NA PASTA /X (CAMINHO EXATO)
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     while (ob_get_level()) {
@@ -361,7 +361,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($input) @fclose($input);
         if ($out) @fclose($out);
         http_response_code(500);
-        echo 'null';
         exit;
     }
 
