@@ -1,6 +1,6 @@
 <?php
 // =========================================================================
-//   SCRIPT DE BACKUP AUTOMÁTICO PARA O FIREBASE (ENTRE 1 E 2 MINUTOS)
+//   SCRIPT DE BACKUP AUTOMÁTICO PARA O FIREBASE (FORMATO CHUNK / STREAMING)
 // =========================================================================
 @ini_set('memory_limit', '1024M');
 @ini_set('max_execution_time', '0');
@@ -25,7 +25,7 @@ if (!is_dir(BASE_DIR)) {
 
 $firebaseBaseUrl = 'https://storage-amheex-default-rtdb.firebaseio.com/';
 $raizStorage     = 'X';
-$tempoMinimo     = 60;  // 1 minuto (ignora arquivos com menos de 1 minuto)
+$tempoMinimo     = 60;  // 1 minuto (ignora arquivos do primeiro minuto)
 $tempoMaximo     = 120; // 2 minutos (limite máximo para o upload)
 $agora           = time();
 
@@ -46,7 +46,7 @@ function firebase_request($url, $method = 'GET', $data = null) {
         $payload = json_encode($data);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: json',
+            'Content-Type: application/json',
             'Content-Length: ' . strlen($payload)
         ]);
     }
@@ -77,7 +77,7 @@ function enviarBackupFirebaseStreaming($fullLocalPath, $relativeFilePath, $fireb
         return false;
     }
 
-    $chunkSize = 1048576; // 1MB por parte
+    $chunkSize = 1048576; // 1MB por parte (formato chunk)
     $partIndex = 1;
     $sucessoGlobal = true;
 
@@ -124,7 +124,7 @@ function enviarBackupFirebaseStreaming($fullLocalPath, $relativeFilePath, $fireb
 }
 
 // =========================================================================
-// VARREDURA RECURSIVA DA PASTA RAIZ /X/ EM BUSCA DE ARQUIVOS RECENTES
+// VARREDURA RECURSIVA DA PASTA /X/ EM BUSCA DE ARQUIVOS NA FAIXA DE TEMPO
 // =========================================================================
 $iterador = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator(BASE_DIR, RecursiveDirectoryIterator::SKIP_DOTS),
@@ -134,7 +134,7 @@ $iterador = new RecursiveIteratorIterator(
 $arquivosProcessados = 0;
 $errosEncontrados = 0;
 
-echo "Iniciando varredura na pasta raiz /X/ por arquivos modificados entre 1 e 2 minutos atrás...\n\n";
+echo "Iniciando varredura por arquivos modificados entre 1 e 2 minutos atrás na pasta /X/ (formato Chunk)...\n\n";
 
 foreach ($iterador as $arquivo) {
     if ($arquivo->isFile()) {
@@ -142,9 +142,8 @@ foreach ($iterador as $arquivo) {
         $tempoModificacao = $arquivo->getMTime();
         $diferencaTempo = $agora - $tempoModificacao;
 
-        // Regra: Não faz se for <= 60s (primeiro minuto). Faz se estiver entre 60s e 120s (2 min). Não faz se for >= 120s (3 minutos para cima).
+        // Regra de tempo mantida: > 60s e <= 120s
         if ($diferencaTempo > $tempoMinimo && $diferencaTempo <= $tempoMaximo) {
-            // Obtém o caminho relativo limpo direto da raiz BASE_DIR (/X/)
             $relativeFilePath = str_replace('\\', '/', substr($fullPath, strlen(BASE_DIR) + 1));
             
             echo "Processando: /X/{$relativeFilePath} (modificado há {$diferencaTempo}s)...\n";
@@ -152,10 +151,10 @@ foreach ($iterador as $arquivo) {
             $sucesso = enviarBackupFirebaseStreaming($fullPath, $relativeFilePath, $firebaseBaseUrl, $raizStorage);
 
             if ($sucesso) {
-                echo " [SUCESSO] Backup enviado para o Firebase.\n";
+                echo " [SUCESSO] Backup em chunks enviado para o Firebase.\n";
                 $arquivosProcessados++;
             } else {
-                echo " [FALHA] Erro ao enviar para o Firebase.\n";
+                echo " [FALHA] Erro ao enviar chunks para o Firebase.\n";
                 $errosEncontrados++;
             }
         }
