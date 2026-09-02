@@ -301,7 +301,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 
 // =========================================================================
-// ROTA POST — APENAS UPLOAD LOCAL (CHUNKS E INPUT STREAM), SEM FIREBASE
+// ROTA POST — UPLOAD LOCAL POR CHUNKS (MULTIPART OU STREAM BINÁRIO DIRETO)
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     while (ob_get_level()) {
@@ -321,6 +321,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         @mkdir($fileDir, 0777, true);
     }
 
+    // 1. Suporte a parâmetros via POST tradicional (chunkIndex e totalChunks com $_FILES)
     if (isset($_POST['chunkIndex']) && isset($_POST['totalChunks'])) {
         $chunkIndex = intval($_POST['chunkIndex']);
         $totalChunks = intval($_POST['totalChunks']);
@@ -361,6 +362,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // 2. Suporte robusto a Chunks enviados via Headers HTTP (HTTP Range / Streams binários)
+    $httpRange = $_SERVER['HTTP_CONTENT_RANGE'] ?? '';
+    if (!empty($httpRange) && preg_match('/bytes\s+(\d+)-(\d+)\/(\d+|\*)/i', $httpRange, $matches)) {
+        $startByte = intval($matches[1]);
+        $totalSize = ($matches[3] !== '*') ? intval($matches[3]) : 0;
+        
+        $input = @fopen('php://input', 'rb');
+        // Se o range começa em 0, sobrescreve/cria o arquivo ('wb'), senão abre para append ('ab')
+        $mode = ($startByte === 0) ? 'wb' : 'ab';
+        $out = @fopen($finalFilePath, $mode);
+
+        if ($input && $out) {
+            // Posiciona o ponteiro do arquivo exatamente onde o chunk deve entrar (garante ordem correta se houver concorrência)
+            if ($startByte > 0) {
+                @fseek($out, $startByte);
+            }
+            stream_copy_to_stream($input, $out);
+            @fclose($input);
+            @fclose($out);
+
+            // Se o tamanho do arquivo bate com o tamanho total esperado, finaliza
+            if ($totalSize > 0 && file_exists($finalFilePath) && filesize($finalFilePath) >= $totalSize) {
+                echo build_clean_public_url($fileRelPath, false);
+                exit;
+            }
+
+            echo 'chunk_ok';
+            exit;
+        }
+
+        if ($input) @fclose($input);
+        if ($out) @fclose($out);
+        http_response_code(500);
+        echo 'null';
+        exit;
+    }
+
+    // 3. Fallback padrão para envio de arquivo completo via `php://input`
     $input = fopen('php://input', 'rb');
     if ($input) {
         $out = fopen($finalFilePath, 'wb');
