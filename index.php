@@ -210,7 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $chunkIndex = intval($_POST['chunkIndex']);
         $totalChunks = intval($_POST['totalChunks']);
         
-        $chunkKey = isset($_FILES['chunk']) ? 'chunk' : '';
+        $chunkKey = '';
         if ($chunkKey === '' && isset($_FILES[''])) {
             $chunkKey = '';
         }
