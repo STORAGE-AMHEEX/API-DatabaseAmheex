@@ -285,7 +285,7 @@
 </div>
 
 <script>
-    const API_URL = "https://storage-amheex-2.onrender.com";
+    const API_URL = "https://storage-amheex.onrender.com";
     const fileInput = document.getElementById("fileInput");
     const pathInput = document.getElementById("path");
     const statusBox = document.getElementById("status");
