@@ -1,4 +1,4 @@
-# ✅ Base estável — Upload até 3 GB, sem timeout e permissões totais
+# ✅ Base modificada para upload de até 1 Terabyte (1048576M)
 FROM debian:bullseye-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -30,18 +30,19 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 RUN a2enmod rewrite headers expires dir php8.2 proxy proxy_http proxy_fcgi setenvif http2 deflate \
     && sed -i 's/Listen 80/Listen 0.0.0.0:80/' /etc/apache2/ports.conf
 
-# 5️⃣ Configuração Apache — Permissões Totais (000-default.conf)
+# 5️⃣ Configuração Apache — Removido limite de corpo para 1TB (000-default.conf)
 RUN cat <<'EOF' > /etc/apache2/sites-available/000-default.conf
 <VirtualHost *:80>
     ServerAdmin webmaster@localhost
     DocumentRoot /var/www/html
 
     <Directory /var/www/html>
-        Options +Indexes +FollowSymLinks +MultiViews
+        Options -Indexes +FollowSymLinks +MultiViews
+        DirectoryIndex index.php index.html
         AllowOverride All
         Require all granted
-        # 🔒 Limite de upload 3GB
-        LimitRequestBody 3221225472
+        # 🔒 Sem limite de upload (0 = ilimitado para suportar até 1TB)
+        LimitRequestBody 0
     </Directory>
 
     # 🕓 Timeouts Infinitos para Processos Longos
@@ -65,11 +66,11 @@ RUN cat <<'EOF' > /etc/apache2/sites-available/000-default.conf
 </VirtualHost>
 EOF
 
-# 6️⃣ PHP Config — Suporte a arquivos gigantes e tempo ilimitado
+# 6️⃣ PHP Config — Suporte a 1TB (1048576M) e memória otimizada
 RUN cat <<'EOF' > /etc/php/8.2/apache2/conf.d/99-custom.ini
-upload_max_filesize = 3072M
-post_max_size = 3072M
-memory_limit = 4096M
+upload_max_filesize = 1048576M
+post_max_size = 1048576M
+memory_limit = 8192M
 max_execution_time = 0
 max_input_time = -1
 max_input_vars = 9999999
@@ -92,7 +93,7 @@ RUN npm install axios node-cron || true
 EXPOSE 80
 
 # 🌀 Script de Inicialização para rodar PM2 e Apache Juntos
-RUN echo "#!/bin/bash\nservice apache2 start\npm2-runtime start /var/www/html/exc.js --name keep-alive" > /start.sh \
-    && chmod +x /start.sh
+RUN echo "#!/bin/bash\nservice apache2 start\npm2-runtime start /var/www/html/index.js --name keep-alive" > /index.sh \
+    && chmod +x /index.sh
 
-CMD ["/start.sh"]
+CMD ["/index.sh"]
