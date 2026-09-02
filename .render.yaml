@@ -1,5 +1,0 @@
-services:
-  - type: web
-    name: projeto-php
-    env: docker
-    dockerfilePath: Dockerfile
