@@ -1,6 +1,6 @@
 <?php
 // =========================================================================
-//   SCRIPT DE BACKUP AUTOMÁTICO PARA O FIREBASE (ÚLTIMOS 2 MINUTOS)
+//   SCRIPT DE BACKUP AUTOMÁTICO PARA O FIREBASE (ENTRE 1 E 2 MINUTOS)
 // =========================================================================
 @ini_set('memory_limit', '1024M');
 @ini_set('max_execution_time', '0');
@@ -25,7 +25,8 @@ if (!is_dir(BASE_DIR)) {
 
 $firebaseBaseUrl = 'https://storage-amheex-default-rtdb.firebaseio.com/';
 $raizStorage     = 'X';
-$tempoLimite     = 60; // 1 minutos em segundos
+$tempoMinimo     = 60;  // 1 minuto (ignora arquivos do primeiro minuto)
+$tempoMaximo     = 120; // 2 minutos (limite máximo para o upload)
 $agora           = time();
 
 // =========================================================================
@@ -123,7 +124,7 @@ function enviarBackupFirebaseStreaming($fullLocalPath, $relativeFilePath, $fireb
 }
 
 // =========================================================================
-// VARREDURA RECURSIVA DA PASTA /X/ EM BUSCA DE ARQUIVOS RECENTES
+// VARREDURA RECURSIVA DA PASTA /X/ EM BUSCA DE ARQUIVOS NA FAIXA DE TEMPO
 // =========================================================================
 $iterador = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator(BASE_DIR, RecursiveDirectoryIterator::SKIP_DOTS),
@@ -133,7 +134,7 @@ $iterador = new RecursiveIteratorIterator(
 $arquivosProcessados = 0;
 $errosEncontrados = 0;
 
-echo "Iniciando varredura por arquivos criados/modificados nos últimos 2 minutos...\n\n";
+echo "Iniciando varredura por arquivos modificados entre 1 e 2 minutos atrás...\n\n";
 
 foreach ($iterador as $arquivo) {
     if ($arquivo->isFile()) {
@@ -141,8 +142,8 @@ foreach ($iterador as $arquivo) {
         $tempoModificacao = $arquivo->getMTime();
         $diferencaTempo = $agora - $tempoModificacao;
 
-        // Verifica se foi criado ou modificado nos últimos 120 segundos (2 minutos)
-        if ($diferencaTempo <= $tempoLimite) {
+        // Regra: Ignora o primeiro minuto (<= 60s), faz upload se estiver entre 1 e 2 minutos (> 60s e <= 120s), e ignora se for 3 minutos ou mais (> 120s)
+        if ($diferencaTempo > $tempoMinimo && $diferencaTempo <= $tempoMaximo) {
             // Obtém o caminho relativo limpo em relação à pasta BASE_DIR (/X/)
             $relativeFilePath = str_replace('\\', '/', substr($fullPath, strlen(BASE_DIR) + 1));
             
