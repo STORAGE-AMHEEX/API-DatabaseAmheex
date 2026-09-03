@@ -45,7 +45,7 @@ if (!is_dir(BASE_DIR)) {
 // FUNÇÕES AUXILIARES
 // =========================================================================
 function sanitizaCaminho($path) {
-    // FALLBACK INTELIGENTE: Remove explicitamente a pasta X da frente caso venha redundante na verificação
+    // Remove explicitamente a pasta X da frente de qualquer caminho processado
     $path = preg_replace('#^/?X(/|$)#i', '', $path);
 
     $path = trim($path, "/\\");
@@ -74,14 +74,14 @@ function build_clean_public_url($fileRelPath, $comPastaX = false) {
 }
 
 // =========================================================================
-// OBTENÇÃO DO CAMINHO EXATO A PARTIR DA URL COM FALLBACK ANTES DA VERIFICAÇÃO
+// OBTENÇÃO E HIGIENIZAÇÃO DO CAMINHO (FORÇANDO /teste/arquivo)
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
 $temPastaXNaUrl = false;
 
-// Remove a pasta X da frente do domínio antes de enviar para a lógica de verificação
+// Remove todas as instâncias de /X/ do início para garantir que a lógica trate apenas o caminho limpo
 while (preg_match('#^(/X)+(/?)(.*)$#i', $requestPath, $matches)) {
     $temPastaXNaUrl = true;
     $requestPath = '/' . $matches[3];
@@ -104,7 +104,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $fileDir = dirname($fullPath);
     $fileExists = file_exists($fullPath);
 
-    // Fallback de verificação e criação na raiz correta se aguardando arquivo
     if ($temPastaXNaUrl && !$fileExists) {
         if (!is_dir($fileDir)) {
             @mkdir($fileDir, 0777, true);
