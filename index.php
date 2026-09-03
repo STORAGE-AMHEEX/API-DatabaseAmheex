@@ -108,8 +108,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         @mkdir($fileDir, 0777, true);
     }
 
+    // Cria o arquivo de 0 bytes apenas se ele não existir (garante execução única inicial)
     if (!file_exists($fullPath)) {
-        @file_put_contents($fullPath, '');
+        @file_put_contents($fullPath, '', LOCK_EX);
     }
 
     if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
