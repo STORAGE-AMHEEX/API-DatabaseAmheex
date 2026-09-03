@@ -211,7 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
                 setTimeout(() => {
                     window.location.href = redirectUrl;
-                }, 3000);
+                }, 5000); // 5 SEGUNDOS!!
             }
 
             function pollFileSize() {
