@@ -33,16 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // =========================================================================
-// CONFIGURAÇÕES DE DIRETÓRIO LOCAL E FIREBASE (DIRETÓRIO X)
+// CONFIGURAÇÕES DE DIRETÓRIO LOCAL (DIRETÓRIO X)
 // =========================================================================
 define('BASE_DIR', realpath(__DIR__) . '/X');
 
 if (!is_dir(BASE_DIR)) {
     @mkdir(BASE_DIR, 0777, true);
 }
-
-$firebaseBaseUrl = 'https://storage-amheex-default-rtdb.firebaseio.com/';
-$raizStorage     = 'X';
 
 // =========================================================================
 // FUNÇÕES AUXILIARES
@@ -52,7 +49,12 @@ function sanitizaCaminho($path) {
     $path = str_replace(['..\\', '../'], '', $path);
     $path = preg_replace('/[^a-zA-Z0-9_\-\.\@\/]/', '', $path);
     $path = preg_replace('#/+#', '/', $path);
-    return $path;
+    
+    // Remove qualquer diretório ou sufixo "chunk", "chuck", "chunks", "chucks" indesejado
+    $path = preg_replace('#/(chunk|chuck|chunks|chucks)(/.*)?$#i', '', $path);
+    $path = preg_replace('#^(chunk|chuck|chunks|chucks)/?#i', '', $path);
+    
+    return trim($path, "/\\");
 }
 
 function neutralizaExtensaoPhp($path) {
@@ -67,85 +69,6 @@ function build_clean_public_url($fileRelPath, $comPastaX = false) {
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $pastaX = $comPastaX ? '/X' : '';
     return "{$scheme}://{$host}{$pastaX}/" . ltrim($fileRelPath, '/');
-}
-
-function firebase_request($url, $method = 'GET', $data = null) {
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 120);
-
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($httpCode >= 400) {
-        return false;
-    }
-    return $response;
-}
-
-function obterNodePathFirebase($relativeFilePath, $raizStorage) {
-    $base64Path = rtrim(strtr(base64_encode($relativeFilePath), '+/', '-_'), '=');
-    return $raizStorage . '/' . $base64Path;
-}
-
-function restaurarArquivoFirebase($fullLocalPath, $relativeFilePath, $firebaseBaseUrl, $raizStorage) {
-    $nodePath = obterNodePathFirebase($relativeFilePath, $raizStorage);
-    $fileDir = dirname($fullLocalPath);
-    if (!is_dir($fileDir)) {
-        @mkdir($fileDir, 0777, true);
-    }
-
-    $outHandle = @fopen($fullLocalPath, 'wb');
-    if (!$outHandle) {
-        return false;
-    }
-
-    $part = 1;
-    $temPartes = false;
-
-    while (true) {
-        @set_time_limit(0);
-        $url = $firebaseBaseUrl . $nodePath . '/part_' . $part . '.json';
-        $response = firebase_request($url, 'GET');
-
-        if ($response === false || $response === 'null' || empty($response)) {
-            break;
-        }
-
-        $data = json_decode($response, true);
-        if (!is_string($data) || empty($data)) {
-            break;
-        }
-
-        $cleanHex = str_replace([' ', "\r", "\n", "\t"], '', $data);
-        if (strlen($cleanHex) % 2 !== 0) {
-            $cleanHex = substr($cleanHex, 0, -1);
-        }
-
-        $binaryChunk = @hex2bin($cleanHex);
-        if ($binaryChunk !== false && strlen($binaryChunk) > 0) {
-            fwrite($outHandle, $binaryChunk);
-            $temPartes = true;
-        }
-
-        unset($data, $cleanHex, $binaryChunk);
-        $part++;
-    }
-
-    fclose($outHandle);
-
-    if (!$temPartes || filesize($fullLocalPath) === 0) {
-        @unlink($fullLocalPath);
-        return false;
-    }
-
-    return true;
 }
 
 // =========================================================================
@@ -170,14 +93,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     $fullPath = BASE_DIR . '/' . $fileRelPath;
+    $fileDir = dirname($fullPath);
     
-    if (!file_exists($fullPath) || filesize($fullPath) <= 1) {
-        restaurarArquivoFirebase($fullPath, $fileRelPath, $firebaseBaseUrl, $raizStorage);
+    if (!is_dir($fileDir)) {
+        @mkdir($fileDir, 0777, true);
     }
 
-    if (!file_exists($fullPath) || filesize($fullPath) <= 1) {
-        http_response_code(404);
-        echo 'null';
+    // Se o arquivo não existir, cria com 0 bytes automaticamente
+    if (!file_exists($fullPath)) {
+        @file_put_contents($fullPath, '');
+    }
+
+    if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
+        while (ob_get_level()) {
+            @ob_end_clean();
+        }
+        header('Content-Type: application/json');
+        clearstatcache(true, $fullPath);
+        $currentSize = file_exists($fullPath) ? filesize($fullPath) : 0;
+        echo json_encode(['size' => $currentSize]);
         exit;
     }
 
@@ -214,6 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     $stringBlobUrl = $requestUri . (strpos($requestUri, '?') !== false ? '&' : '?') . 'download=1';
+    $stringCheckUrl = $requestUri . (strpos($requestUri, '?') !== false ? '&' : '?') . 'check_size=1';
     $stringRedirectUrl = build_clean_public_url($fileRelPath, true);
 
     echo '<!DOCTYPE html>
@@ -221,7 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>STORAGE AMHEEX</title>
+        <title>STORAGE LOCAL</title>
         <style>
             * { box-sizing: border-box; }
             html, body {
@@ -241,30 +176,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     </head>
     <body>
         <div class="loadball"></div>
-        <div class="title">Carregando...</div>
+        <div class="title" id="statusText">Aguardando arquivo...</div>
         <script>
+            const checkUrl = ' . json_encode($stringCheckUrl) . ';
             const blobUrl = ' . json_encode($stringBlobUrl) . ';
             const redirectUrl = ' . json_encode($stringRedirectUrl) . ';
             const fileName = ' . json_encode(basename($fullPath)) . ';
+            const statusEl = document.getElementById("statusText");
 
-            fetch(blobUrl)
-                .then(response => {
-                    if (!response.ok) throw new Error("Erro no download");
-                    return response.blob();
-                })
-                .then(blob => {
-                    const link = document.createElement("a");
-                    link.href = window.URL.createObjectURL(blob);
-                    link.download = fileName;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                })
-                .catch(err => console.error("Falha:", err));
+            function startDownload() {
+                statusEl.innerText = "Baixando...";
+                fetch(blobUrl, { credentials: "omit" })
+                    .then(response => {
+                        if (!response.ok) throw new Error("Erro no download");
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        const blobUrlObj = window.URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = blobUrlObj;
+                        link.download = fileName;
+                        link.style.display = "none";
+                        document.body.appendChild(link);
+                        link.click();
+                        setTimeout(() => {
+                            document.body.removeChild(link);
+                            window.URL.revokeObjectURL(blobUrlObj);
+                        }, 10);// 10 milésimos
+                    })
+                    .catch(err => {
+                        console.error("Falha no download via blob:", err);
+                        window.location.href = blobUrl;
+                    });
 
-            setTimeout(() => {
-                window.location.href = redirectUrl;
-            }, 5000);
+                setTimeout(() => {
+                    window.location.href = redirectUrl;
+                }, 10000); // 10 SEGUNDOS!!
+            }
+
+            function pollFileSize() {
+                fetch(checkUrl, { cache: "no-store" })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.size > 0) {
+                            statusEl.innerText = "Arquivo detectado!";
+                            startDownload();
+                        } else {
+                            setTimeout(pollFileSize, 1000);
+                        }
+                    })
+                    .catch(() => {
+                        setTimeout(pollFileSize, 1000);
+                    });
+            }
+
+            pollFileSize();
         </script>
     </body>
     </html>';
@@ -272,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 
 // =========================================================================
-// ROTA POST — UPLOAD LOCAL POR CHUNKS DIRETAMENTE NA PASTA X
+// ROTA POST — GRAVAÇÃO DIRETA DE CHUNKS NO ARQUIVO FINAL (SEM CRIAR PASTA CHUCK)
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     while (ob_get_level()) {
@@ -292,12 +258,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         @mkdir($fileDir, 0777, true);
     }
 
+    // Processamento via POST com Chunks (FormData / Arquivo)
     if (isset($_POST['chunkIndex']) && isset($_POST['totalChunks'])) {
         $chunkIndex = intval($_POST['chunkIndex']);
         $totalChunks = intval($_POST['totalChunks']);
         
-        if (isset($_FILES['chunk']) && $_FILES['chunk']['error'] === UPLOAD_ERR_OK) {
-            $chunkTmp = $_FILES['chunk']['tmp_name'];
+        $chunkTmp = null;
+        if (!empty($_FILES)) {
+            foreach ($_FILES as $fileKey => $fileInfo) {
+                if (isset($fileInfo['tmp_name']) && $fileInfo['error'] === UPLOAD_ERR_OK) {
+                    $chunkTmp = $fileInfo['tmp_name'];
+                    break;
+                }
+            }
+        }
+
+        if ($chunkTmp && file_exists($chunkTmp)) {
             $mode = ($chunkIndex === 0) ? 'wb' : 'ab';
             
             $out = @fopen($finalFilePath, $mode);
@@ -332,6 +308,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // Processamento via Content-Range (Stream contínuo)
     $httpRange = $_SERVER['HTTP_CONTENT_RANGE'] ?? '';
     if (!empty($httpRange) && preg_match('/bytes\s+(\d+)-(\d+)\/(\d+|\*)/i', $httpRange, $matches)) {
         $startByte = intval($matches[1]);
@@ -361,10 +338,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($input) @fclose($input);
         if ($out) @fclose($out);
         http_response_code(500);
-        echo 'null';
         exit;
     }
 
+    // Upload direto padrão em uma única requisição
     $input = fopen('php://input', 'rb');
     if ($input) {
         $out = fopen($finalFilePath, 'wb');
