@@ -84,14 +84,14 @@ $cleanPathForFile = preg_replace('#^(/X)+#i', '', $requestPath);
 
 // REDIRECIONAMENTO SE PARÂMETRO PATH NÃO ESTIVER CONFIGURADO (VAZIO)
 if (empty($cleanPathForFile) || $cleanPathForFile === '/' || $cleanPathForFile === '') {
-    header("Location: https://storage-amheex.onrender.com/erro_parm.php");
+    header("Location: https://storage-amheex.onrender.com/index.html");
     exit;
 }
 
 $fileRelPath = sanitizaCaminho(urldecode($cleanPathForFile));
 
 if (empty($fileRelPath)) {
-    header("Location: https://storage-amheex.onrender.com/erro_parm.php");
+    header("Location: https://storage-amheex.onrender.com/index.html");
     exit;
 }
 
