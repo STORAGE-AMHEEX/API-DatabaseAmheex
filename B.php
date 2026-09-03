@@ -55,7 +55,7 @@ function obterNodePathFirebase($relativeFilePath, $raizStorage) {
     return $raizStorage . '/' . $base64Path;
 }
 
-// BACKUP COM FALLBACK POR PARTE DE 1MB (Aguarda o sucesso de cada parte antes da próxima)
+// BACKUP: Envia parte por parte (1MB), aguardando o sucesso de cada uma antes de ir para a próxima
 function enviarBackupFirebaseStreaming($fullLocalPath, $relativeFilePath, $firebaseBaseUrl, $raizStorage) {
     if (!file_exists($fullLocalPath) || filesize($fullLocalPath) === 0) {
         return false;
@@ -90,7 +90,6 @@ function enviarBackupFirebaseStreaming($fullLocalPath, $relativeFilePath, $fireb
         $tentativas = 0;
         $enviadoComSucesso = false;
 
-        // Fallback/Retry individual para cada parte de 1MB
         while ($tentativas < 10) {
             $resposta = firebase_request($url, 'PUT', $hexChunk);
             if ($resposta !== false) {
@@ -98,7 +97,7 @@ function enviarBackupFirebaseStreaming($fullLocalPath, $relativeFilePath, $fireb
                 break;
             }
             $tentativas++;
-            usleep(300000); // 0.3 segundos de espera entre tentativas
+            usleep(300000); 
         }
 
         if (!$enviadoComSucesso) {
@@ -114,7 +113,7 @@ function enviarBackupFirebaseStreaming($fullLocalPath, $relativeFilePath, $fireb
     return $sucessoGlobal;
 }
 
-// RESTAURAÇÃO COM FALLBACK PARTE POR PARTE DE 1MB (Lê e escreve cada parte sequencialmente)
+// RESTAURAÇÃO: Lê diretamente part_1.json, part_2.json... sem baixar o nó inteiro (evita travamentos)
 function restaurarArquivoFirebase($fullLocalPath, $relativeFilePath, $firebaseBaseUrl, $raizStorage) {
     $nodePath = obterNodePathFirebase($relativeFilePath, $raizStorage);
     
@@ -131,7 +130,6 @@ function restaurarArquivoFirebase($fullLocalPath, $relativeFilePath, $firebaseBa
     $partIndex = 1;
     $restauradoComSucesso = true;
 
-    // Loop para buscar parte por parte (part_1, part_2...) com fallback/retry individual
     while (true) {
         @set_time_limit(0);
         $partName = 'part_' . $partIndex;
@@ -140,21 +138,32 @@ function restaurarArquivoFirebase($fullLocalPath, $relativeFilePath, $firebaseBa
         $tentativas = 0;
         $conteudoParte = false;
 
-        // Tenta baixar a parte atual com retry
         while ($tentativas < 10) {
             $resposta = firebase_request($url, 'GET');
-            if ($resposta !== false && $resposta !== 'null' && !empty($resposta)) {
-                $conteudoParte = json_decode($resposta, true);
-                if ($conteudoParte !== null) {
-                    break;
-                }
+            
+            // Se retornar null, vazio ou erro HTTP, tratamos como o fim das partes
+            if ($resposta === false || $resposta === 'null' || empty($resposta)) {
+                $conteudoParte = null;
+                break;
             }
+
+            // O Firebase retorna o dado com aspas (ex: "48656c6c6f") quando é uma string pura salva via PUT
+            $decodificado = json_decode($resposta, true);
+            if ($decodificado !== null) {
+                $conteudoParte = $decodificado;
+                break;
+            } else {
+                // Caso venha o texto cru sem JSON válido
+                $conteudoParte = trim($resposta, '"');
+                break;
+            }
+
             $tentativas++;
-            usleep(300000);
+            usleep(200000);
         }
 
-        // Se após as tentativas a parte não existir, assumimos que o arquivo terminou
-        if ($conteudoParte === false || $conteudoParte === 'null' || empty($conteudoParte)) {
+        // Se encontrou null ou fim das partes, encerra o loop de leitura
+        if ($conteudoParte === null) {
             break; 
         }
 
@@ -180,7 +189,6 @@ function restaurarArquivoFirebase($fullLocalPath, $relativeFilePath, $firebaseBa
         return true;
     }
 
-    // Se falhou ou gerou arquivo vazio, removemos o arquivo corrompido
     if (file_exists($fullLocalPath)) {
         @unlink($fullLocalPath);
     }
