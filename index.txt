@@ -71,19 +71,18 @@ function build_clean_public_url($fileRelPath, $comPastaX = false) {
 }
 
 // =========================================================================
-// OBTENÇÃO DO CAMINHO EXATO A PARTIR DA URL
+// OBTENÇÃO DO CAMINHO EXATO A PARTIR DA URL (LIMPAR DUPLICAÇÕES /X/)
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
-// Remove o prefixo /X se presente na URI, para mapear direto na BASE_DIR sem exigir subpasta X na checagem
-if (strpos($requestPath, '/X/') === 0) {
-    $requestPath = substr($requestPath, 2);
-} elseif ($requestPath === '/X' || $requestPath === '/X/') {
-    $requestPath = '/';
+// Remove todas as repetições de /X do início para mapear o arquivo corretamente na BASE_DIR
+$cleanPathForFile = preg_replace('#^(/X)+#i', '', $requestPath);
+if (empty($cleanPathForFile) || $cleanPathForFile === '') {
+    $cleanPathForFile = '/';
 }
 
-$fileRelPath = sanitizaCaminho(urldecode($requestPath));
+$fileRelPath = sanitizaCaminho(urldecode($cleanPathForFile));
 $fileRelPath = neutralizaExtensaoPhp($fileRelPath);
 
 // =========================================================================
@@ -98,15 +97,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $fullPath = BASE_DIR . '/' . $fileRelPath;
     $fileDir = dirname($fullPath);
-    $fileExists = file_exists($fullPath);
-
+    
     if (!is_dir($fileDir)) {
         @mkdir($fileDir, 0777, true);
     }
 
-    if (!$fileExists) {
+    if (!file_exists($fullPath)) {
         @file_put_contents($fullPath, '');
-        $fileExists = true;
     }
 
     if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
@@ -158,8 +155,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     }
 
-    $stringBlobUrl = $requestUri . (strpos($requestUri, '?') !== false ? '&' : '?') . 'download=1';
-    $stringCheckUrl = $requestUri . (strpos($requestUri, '?') !== false ? '&' : '?') . 'check_size=1';
+    // Checagem sem pasta X na URL, mas redirecionamento final com a pasta X (true)
+    $baseCleanUri = '/' . ltrim($fileRelPath, '/');
+    $stringBlobUrl = $baseCleanUri . '?download=1';
+    $stringCheckUrl = $baseCleanUri . '?check_size=1';
     $stringRedirectUrl = build_clean_public_url($fileRelPath, true);
 
     echo '<!DOCTYPE html>
@@ -280,7 +279,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($chunkIndex === ($totalChunks - 1)) {
                 if (file_exists($finalFilePath) && filesize($finalFilePath) > 0) {
-                    echo build_clean_public_url($fileRelPath, false);
+                    echo build_clean_public_url($fileRelPath, true);
                     exit;
                 }
                 http_response_code(500);
@@ -315,7 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             @fclose($out);
 
             if ($totalSize > 0 && file_exists($finalFilePath) && filesize($finalFilePath) >= $totalSize) {
-                echo build_clean_public_url($fileRelPath, false);
+                echo build_clean_public_url($fileRelPath, true);
                 exit;
             }
 
@@ -338,7 +337,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             fclose($input);
 
             if (file_exists($finalFilePath) && filesize($finalFilePath) > 0) {
-                echo build_clean_public_url($fileRelPath, false);
+                echo build_clean_public_url($fileRelPath, true);
                 exit;
             }
         } else {
