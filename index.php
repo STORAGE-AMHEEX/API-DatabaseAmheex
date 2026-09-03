@@ -231,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                             statusEl.innerText = "Arquivo detectado!";
                             startDownload();
                         } else {
-                            setTimeout(pollFileSize, 1000);
+                            setTimeout(pollFileSize, 5000);
                         }
                     })
                     .catch(() => {
