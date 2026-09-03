@@ -154,7 +154,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>STORAGE LOCAL</title>
+        <title>STORAGE AMHEEX</title>
+        <link rel="icon" href="https://amheex.web.app/icon.jpg" type="image/jpeg">
         <style>
             * { box-sizing: border-box; }
             html, body {
@@ -183,7 +184,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
             function startDownload() {
                 statusEl.innerText = "Iniciando download...";
-                // Redirecionamento direto para stream nativo otimizado para arquivos grandes
                 window.location.href = blobUrl;
 
                 setTimeout(() => {
