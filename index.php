@@ -63,10 +63,11 @@ function neutralizaExtensaoPhp($path) {
     return $path;
 }
 
-function build_clean_public_url($fileRelPath) {
+function build_clean_public_url($fileRelPath, $comPastaX = false) {
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    return "{$scheme}://{$host}/" . ltrim($fileRelPath, '/');
+    $pastaX = $comPastaX ? '/X' : '';
+    return "{$scheme}://{$host}{$pastaX}/" . ltrim($fileRelPath, '/');
 }
 
 // =========================================================================
@@ -75,7 +76,7 @@ function build_clean_public_url($fileRelPath) {
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
-// Remove todas as repetições de /X do início para evitar /X/X/ no caminho do arquivo
+// Remove todas as repetições de /X do início para mapear o arquivo corretamente na BASE_DIR
 $cleanPathForFile = preg_replace('#^(/X)+#i', '', $requestPath);
 if (empty($cleanPathForFile) || $cleanPathForFile === '') {
     $cleanPathForFile = '/';
@@ -154,11 +155,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     }
 
-    // Corrige as URLs geradas para o JS injetado, garantindo que não usem /X/ duplicado na checagem
+    // Checagem sem pasta X na URL, mas redirecionamento final com a pasta X (true)
     $baseCleanUri = '/' . ltrim($fileRelPath, '/');
     $stringBlobUrl = $baseCleanUri . '?download=1';
     $stringCheckUrl = $baseCleanUri . '?check_size=1';
-    $stringRedirectUrl = build_clean_public_url($fileRelPath);
+    $stringRedirectUrl = build_clean_public_url($fileRelPath, true);
 
     echo '<!DOCTYPE html>
     <html lang="pt-BR">
@@ -278,7 +279,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($chunkIndex === ($totalChunks - 1)) {
                 if (file_exists($finalFilePath) && filesize($finalFilePath) > 0) {
-                    echo build_clean_public_url($fileRelPath);
+                    echo build_clean_public_url($fileRelPath, true);
                     exit;
                 }
                 http_response_code(500);
@@ -313,7 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             @fclose($out);
 
             if ($totalSize > 0 && file_exists($finalFilePath) && filesize($finalFilePath) >= $totalSize) {
-                echo build_clean_public_url($fileRelPath);
+                echo build_clean_public_url($fileRelPath, true);
                 exit;
             }
 
@@ -336,7 +337,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             fclose($input);
 
             if (file_exists($finalFilePath) && filesize($finalFilePath) > 0) {
-                echo build_clean_public_url($fileRelPath);
+                echo build_clean_public_url($fileRelPath, true);
                 exit;
             }
         } else {
