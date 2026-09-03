@@ -47,7 +47,6 @@ if (!is_dir(BASE_DIR)) {
 function sanitizaCaminho($path) {
     $path = trim($path, "/\\");
     $path = str_replace(['..\\', '../'], '', $path);
-    // Permitido letras, números, traços, sublinhados, pontos e barras (mantendo extensões como .apk)
     $path = preg_replace('/[^a-zA-Z0-9_\-\.\@\/]/', '', $path);
     $path = preg_replace('#/+#', '/', $path);
     
@@ -76,9 +75,16 @@ function build_clean_public_url($fileRelPath, $comPastaX = false) {
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
+
+$temPastaXNaFrente = false;
 if (strpos($requestPath, '/X/') === 0) {
+    $temPastaXNaFrente = true;
     $requestPath = substr($requestPath, 2);
+} elseif ($requestPath === '/X') {
+    $temPastaXNaFrente = true;
+    $requestPath = '/';
 }
+
 $fileRelPath = sanitizaCaminho(urldecode($requestPath));
 $fileRelPath = neutralizaExtensaoPhp($fileRelPath);
 
@@ -99,8 +105,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         @mkdir($fileDir, 0777, true);
     }
 
-    if (!file_exists($fullPath)) {
-        @file_put_contents($fullPath, '');
+    $arquivoExiste = file_exists($fullPath);
+
+    if (!$arquivoExiste) {
+        if ($temPastaXNaFrente) {
+            @file_put_contents($fullPath, '');
+            $arquivoExiste = true;
+        } else {
+            http_response_code(404);
+            echo 'null';
+            exit;
+        }
     }
 
     if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
@@ -119,7 +134,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             @ob_end_clean();
         }
 
-        // Força MIME correto para APKs ou genérico seguro
         $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
         if ($ext === 'apk') {
             $mime = 'application/vnd.android.package-archive';
