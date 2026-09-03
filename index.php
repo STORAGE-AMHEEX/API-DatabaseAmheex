@@ -76,6 +76,9 @@ function build_clean_public_url($fileRelPath, $comPastaX = false) {
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
+// DETECÇÃO SE A URL POSSUI A PASTA /X/ EXPLICITAMENTE NA FRENTE DO DOMÍNIO
+$veioComPastaXExplicitamente = (stripos($requestPath, '/X/') === 0 || preg_match('#^/X(/|$)#i', $requestPath));
+
 // Remove todas as repetições de /X do início para mapear o arquivo corretamente na BASE_DIR
 $cleanPathForFile = preg_replace('#^(/X)+#i', '', $requestPath);
 
@@ -176,6 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $stringBlobUrl = $baseCleanUri . '?download=1';
     $stringCheckUrl = $baseCleanUri . '?check_size=1';
     $stringRedirectUrl = build_clean_public_url($fileRelPath, true);
+    $jsVeioComPastaX = $veioComPastaXExplicitamente ? 'true' : 'false';
 
     echo '<!DOCTYPE html>
     <html lang="pt-BR">
@@ -208,6 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             const checkUrl = ' . json_encode($stringCheckUrl) . ';
             const blobUrl = ' . json_encode($stringBlobUrl) . ';
             const redirectUrl = ' . json_encode($stringRedirectUrl) . ';
+            const veioComPastaX = ' . $jsVeioComPastaX . ';
             const statusEl = document.getElementById("statusText");
 
             function startDownload() {
@@ -229,7 +234,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                         }
                         if (data && data.size > 0) {
                             statusEl.innerText = "Arquivo detectado!";
-                            startDownload();
+                            if (veioComPastaX) {
+                                window.location.reload();
+                            } else {
+                                startDownload();
+                            }
                         } else {
                             setTimeout(pollFileSize, 1000);
                         }
