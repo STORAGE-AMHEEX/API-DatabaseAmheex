@@ -235,7 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                         }
                     })
                     .catch(() => {
-                        setTimeout(pollFileSize, 1000);
+                        setTimeout(pollFileSize, 3000);
                     });
             }
 
