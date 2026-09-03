@@ -117,10 +117,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             @ob_end_clean();
         }
         
-        // Se o arquivo de 0 bytes for excluído do nada durante a espera, avisa via JSON para redirecionar
+        // Se o arquivo de 0 bytes for excluído do nada durante a espera, redireciona para a URL exata solicitada (com /X se veio com /X, ou sem)
         if (!file_exists($fullPath)) {
             header('Content-Type: application/json');
-            echo json_encode(['error' => 'file_deleted']);
+            $currentRequestedUrl = $requestUri;
+            echo json_encode(['error' => 'file_deleted', 'redirect' => $currentRequestedUrl]);
             exit;
         }
 
@@ -180,6 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $stringCheckUrl = $baseCleanUri . '?check_size=1';
     $stringRedirectUrl = build_clean_public_url($fileRelPath, true);
     $jsVeioComPastaX = $veioComPastaXExplicitamente ? 'true' : 'false';
+    $currentRequestUri = $requestUri;
 
     echo '<!DOCTYPE html>
     <html lang="pt-BR">
@@ -212,6 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             const checkUrl = ' . json_encode($stringCheckUrl) . ';
             const blobUrl = ' . json_encode($stringBlobUrl) . ';
             const redirectUrl = ' . json_encode($stringRedirectUrl) . ';
+            const currentRequestUri = ' . json_encode($currentRequestUri) . ';
             const veioComPastaX = ' . $jsVeioComPastaX . ';
             const statusEl = document.getElementById("statusText");
 
@@ -233,7 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                     .then(res => res.json())
                     .then(data => {
                         if (data && data.error === "file_deleted") {
-                            window.location.href = "https://storage-amheex.onrender.com/erro_server_exiting.php";
+                            window.location.href = data.redirect || currentRequestUri;
                             return;
                         }
                         if (data && data.size > 0) {
