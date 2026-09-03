@@ -70,12 +70,12 @@ function build_clean_public_url($fileRelPath) {
 }
 
 // =========================================================================
-// OBTENÇÃO DO CAMINHO EXATO A PARTIR DA URL (EVITANDO DUPLICAÇÃO /X/X/)
+// OBTENÇÃO DO CAMINHO EXATO A PARTIR DA URL (LIMPAR DUPLICAÇÕES /X/)
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
-// Remove TODAS as ocorrências iniciais ou redundantes de /X para mapear direto na BASE_DIR sem duplicar
+// Remove todas as repetições de /X do início para evitar /X/X/ no caminho do arquivo
 $cleanPathForFile = preg_replace('#^(/X)+#i', '', $requestPath);
 if (empty($cleanPathForFile) || $cleanPathForFile === '') {
     $cleanPathForFile = '/';
@@ -154,8 +154,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     }
 
-    $stringBlobUrl = $requestUri . (strpos($requestUri, '?') !== false ? '&' : '?') . 'download=1';
-    $stringCheckUrl = $requestUri . (strpos($requestUri, '?') !== false ? '&' : '?') . 'check_size=1';
+    // Corrige as URLs geradas para o JS injetado, garantindo que não usem /X/ duplicado na checagem
+    $baseCleanUri = '/' . ltrim($fileRelPath, '/');
+    $stringBlobUrl = $baseCleanUri . '?download=1';
+    $stringCheckUrl = $baseCleanUri . '?check_size=1';
     $stringRedirectUrl = build_clean_public_url($fileRelPath);
 
     echo '<!DOCTYPE html>
