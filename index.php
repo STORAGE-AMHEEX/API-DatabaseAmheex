@@ -49,7 +49,12 @@ function sanitizaCaminho($path) {
     $path = str_replace(['..\\', '../'], '', $path);
     $path = preg_replace('/[^a-zA-Z0-9_\-\.\@\/]/', '', $path);
     $path = preg_replace('#/+#', '/', $path);
-    return $path;
+    
+    // Remove qualquer diretório ou sufixo "chunk", "chuck", "chunks", "chucks" indesejado
+    $path = preg_replace('#/(chunk|chuck|chunks|chucks)(/.*)?$#i', '', $path);
+    $path = preg_replace('#^(chunk|chuck|chunks|chucks)/?#i', '', $path);
+    
+    return trim($path, "/\\");
 }
 
 function neutralizaExtensaoPhp($path) {
@@ -186,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 
 // =========================================================================
-// ROTA POST — UPLOAD LOCAL POR CHUNKS DIRETAMENTE NA PASTA /X (DIRETO NO ARQUIVO FINAL)
+// ROTA POST — GRAVAÇÃO DIRETA DE CHUNKS NO ARQUIVO FINAL (SEM CRIAR PASTA CHUCK)
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     while (ob_get_level()) {
