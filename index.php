@@ -120,17 +120,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         while (ob_get_level()) {
             @ob_end_clean();
         }
-        
-        // Se o arquivo principal não existe, retorna texto puro (sem JSON) com a URL de erro exata solicitada
-        if (!file_exists($fullPath)) {
-            header('Content-Type: text/plain; charset=utf-8');
-            echo 'https://storage-amheex.onrender.com/erro/404.html';
-            exit;
-        }
 
         header('Content-Type: application/json');
         clearstatcache(true, $fullPath);
-        $currentSize = filesize($fullPath);
+        $currentSize = file_exists($fullPath) ? filesize($fullPath) : 0;
         echo json_encode(['size' => $currentSize]);
         exit;
     }
@@ -219,6 +212,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             const veioComPastaX = ' . $jsVeioComPastaX . ';
             const statusEl = document.getElementById("statusText");
 
+            const startTime = Date.now();
+            const timeoutLimit = 10000; // 10 segundos
+
             function startDownload() {
                 statusEl.innerText = "Iniciando download...";
                 window.location.href = blobUrl;
@@ -233,29 +229,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             }
 
             function pollFileSize() {
+                // Se passou de 10 segundos aguardando sem o arquivo ter tamanho > 0, vai para o 404
+                if (Date.now() - startTime > timeoutLimit) {
+                    window.location.href = "https://storage-amheex.onrender.com/erro/404.html";
+                    return;
+                }
+
                 fetch(checkUrl, { cache: "no-store" })
-                    .then(res => res.text())
-                    .then(text => {
-                        text = text.trim();
-                        // Se o retorno for uma URL HTTP/HTTPS, redireciona diretamente para ela
-                        if (text.startsWith("http://") || text.startsWith("https://")) {
-                            window.location.href = text;
-                            return;
-                        }
-                        try {
-                            const data = JSON.parse(text);
-                            if (data && data.size > 0) {
-                                statusEl.innerText = "Arquivo detectado!";
-                                startDownload();
-                            } else {
-                                setTimeout(pollFileSize, 1000);
-                            }
-                        } catch (e) {
-                            setTimeout(pollFileSize, 5000);
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.size > 0) {
+                            statusEl.innerText = "Arquivo detectado!";
+                            startDownload();
+                        } else {
+                            setTimeout(pollFileSize, 1000);
                         }
                     })
                     .catch(() => {
-                        setTimeout(pollFileSize, 5000);
+                        setTimeout(pollFileSize, 1000);
                     });
             }
 
