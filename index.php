@@ -71,17 +71,17 @@ function build_clean_public_url($fileRelPath, $comPastaX = false) {
 }
 
 // =========================================================================
-// OBTENÇÃO DO CAMINHO EXATO A PARTIR DA URL
+// OBTENÇÃO DO CAMINHO EXATO A PARTIR DA URL (COM SUPORTE A /X/ OBRIGATÓRIO SE NÃO EXISTIR)
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
-$temPastaXNaFrente = false;
+$temPastaXNaUrl = false;
 if (strpos($requestPath, '/X/') === 0) {
-    $temPastaXNaFrente = true;
+    $temPastaXNaUrl = true;
     $requestPath = substr($requestPath, 2);
 } elseif ($requestPath === '/X') {
-    $temPastaXNaFrente = true;
+    $temPastaXNaUrl = true;
     $requestPath = '/';
 }
 
@@ -100,22 +100,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $fullPath = BASE_DIR . '/' . $fileRelPath;
     $fileDir = dirname($fullPath);
-    
+    $fileExists = file_exists($fullPath);
+
+    // Lógica nova: Se veio com /X na frente na URL, mas o arquivo NÃO existe, cria o arquivo com 0 bytes
+    if ($temPastaXNaUrl && !$fileExists) {
+        if (!is_dir($fileDir)) {
+            @mkdir($fileDir, 0777, true);
+        }
+        @file_put_contents($fullPath, '');
+        $fileExists = true;
+    }
+
     if (!is_dir($fileDir)) {
         @mkdir($fileDir, 0777, true);
     }
 
-    $arquivoExiste = file_exists($fullPath);
-
-    if (!$arquivoExiste) {
-        if ($temPastaXNaFrente) {
-            @file_put_contents($fullPath, '');
-            $arquivoExiste = true;
-        } else {
-            http_response_code(404);
-            echo 'null';
-            exit;
-        }
+    if (!$fileExists) {
+        @file_put_contents($fullPath, '');
     }
 
     if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
