@@ -93,10 +93,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     $fullPath = BASE_DIR . '/' . $fileRelPath;
+    $fileDir = dirname($fullPath);
     
-    if (!file_exists($fullPath) || filesize($fullPath) <= 0) {
-        http_response_code(404);
-        echo 'null';
+    if (!is_dir($fileDir)) {
+        @mkdir($fileDir, 0777, true);
+    }
+
+    // Se o arquivo não existir, cria com 0 bytes automaticamente
+    if (!file_exists($fullPath)) {
+        @file_put_contents($fullPath, '');
+    }
+
+    if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
+        while (ob_get_level()) {
+            @ob_end_clean();
+        }
+        header('Content-Type: application/json');
+        clearstatcache(true, $fullPath);
+        $currentSize = file_exists($fullPath) ? filesize($fullPath) : 0;
+        echo json_encode(['size' => $currentSize]);
         exit;
     }
 
@@ -133,6 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     $stringBlobUrl = $requestUri . (strpos($requestUri, '?') !== false ? '&' : '?') . 'download=1';
+    $stringCheckUrl = $requestUri . (strpos($requestUri, '?') !== false ? '&' : '?') . 'check_size=1';
     $stringRedirectUrl = build_clean_public_url($fileRelPath, true);
 
     echo '<!DOCTYPE html>
@@ -160,30 +176,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     </head>
     <body>
         <div class="loadball"></div>
-        <div class="title">Carregando...</div>
+        <div class="title" id="statusText">Aguardando arquivo...</div>
         <script>
+            const checkUrl = ' . json_encode($stringCheckUrl) . ';
             const blobUrl = ' . json_encode($stringBlobUrl) . ';
             const redirectUrl = ' . json_encode($stringRedirectUrl) . ';
             const fileName = ' . json_encode(basename($fullPath)) . ';
+            const statusEl = document.getElementById("statusText");
 
-            fetch(blobUrl)
-                .then(response => {
-                    if (!response.ok) throw new Error("Erro no download");
-                    return response.blob();
-                })
-                .then(blob => {
-                    const link = document.createElement("a");
-                    link.href = window.URL.createObjectURL(blob);
-                    link.download = fileName;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                })
-                .catch(err => console.error("Falha:", err));
+            function startDownload() {
+                statusEl.innerText = "Baixando...";
+                fetch(blobUrl, { credentials: "omit" })
+                    .then(response => {
+                        if (!response.ok) throw new Error("Erro no download");
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        const blobUrlObj = window.URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = blobUrlObj;
+                        link.download = fileName;
+                        link.style.display = "none";
+                        document.body.appendChild(link);
+                        link.click();
+                        setTimeout(() => {
+                            document.body.removeChild(link);
+                            window.URL.revokeObjectURL(blobUrlObj);
+                        }, 1000);
+                    })
+                    .catch(err => {
+                        console.error("Falha no download via blob:", err);
+                        window.location.href = blobUrl;
+                    });
 
-            setTimeout(() => {
-                window.location.href = redirectUrl;
-            }, 5000);
+                setTimeout(() => {
+                    window.location.href = redirectUrl;
+                }, 3000);
+            }
+
+            function pollFileSize() {
+                fetch(checkUrl, { cache: "no-store" })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.size > 0) {
+                            statusEl.innerText = "Arquivo detectado!";
+                            startDownload();
+                        } else {
+                            setTimeout(pollFileSize, 1000);
+                        }
+                    })
+                    .catch(() => {
+                        setTimeout(pollFileSize, 1000);
+                    });
+            }
+
+            pollFileSize();
         </script>
     </body>
     </html>';
