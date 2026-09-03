@@ -71,14 +71,14 @@ function build_clean_public_url($fileRelPath, $comPastaX = false) {
 }
 
 // =========================================================================
-// OBTENÇÃO DO CAMINHO EXATO A PARTIR DA URL (COM CORREÇÃO DE DUPLICAÇÃO /X/X)
+// OBTENÇÃO DO CAMINHO EXATO A PARTIR DA URL (FALLBACK INTELIGENTE)
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
 $temPastaXNaUrl = false;
 
-// Remove repetições consecutivas de /X/ ou /X no início para evitar o bug /X/X/...
+// Remove qualquer ocorrência da pasta X da frente do domínio caso exista na hora de extrair/verificar
 while (preg_match('#^(/X)+(/?)(.*)$#i', $requestPath, $matches)) {
     $temPastaXNaUrl = true;
     $requestPath = '/' . $matches[3];
@@ -101,6 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $fileDir = dirname($fullPath);
     $fileExists = file_exists($fullPath);
 
+    // Fallback aplicado: se estava aguardando o arquivo e ele não existe, cria a estrutura na raiz local X sem duplicar
     if ($temPastaXNaUrl && !$fileExists) {
         if (!is_dir($fileDir)) {
             @mkdir($fileDir, 0777, true);
