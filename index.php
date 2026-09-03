@@ -108,15 +108,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         @mkdir($fileDir, 0777, true);
     }
 
-    // CORREÇÃO: Não criamos mais arquivo de 0 bytes automaticamente no GET.
-    // Se o arquivo não existir, tratamos como ausente para permitir o teste de remoção e redirecionamento.
+    // CORREÇÃO: Cria o arquivo de 0 bytes APENAS UMA VEZ caso ele nunca tenha existido.
+    // Se o arquivo já existe (mesmo que com 0 bytes), ele NÃO recria mais, permitindo 
+    // que o seu teste de remoção funcione perfeitamente e dispare o redirecionamento de erro.
+    if (!file_exists($fullPath)) {
+        @file_put_contents($fullPath, '');
+    }
 
     if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
         while (ob_get_level()) {
             @ob_end_clean();
         }
         
-        // Se o arquivo não existe, avisa para redirecionar para a URL de erro/atual
+        // Se o arquivo foi removido no teste, dispara o redirecionamento
         if (!file_exists($fullPath)) {
             header('Content-Type: application/json');
             $currentRequestedUrl = $requestUri;
