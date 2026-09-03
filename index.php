@@ -79,16 +79,16 @@ $requestPath = parse_url($requestUri, PHP_URL_PATH);
 // Remove todas as repetições de /X do início para mapear o arquivo corretamente na BASE_DIR
 $cleanPathForFile = preg_replace('#^(/X)+#i', '', $requestPath);
 
-// VALIDAÇÃO DO PARÂMETRO PATH / RAIZ VAZIA
+// VALIDAÇÃO DO PARÂMETRO PATH / RAIZ VAZIA (Redireciona para erro_parm.php)
 if (empty($cleanPathForFile) || $cleanPathForFile === '/' || $cleanPathForFile === '') {
-    header("Location: https://storage-amheex.onrender.com/index.html");
+    header("Location: https://storage-amheex.onrender.com/erro_parm.php");
     exit;
 }
 
 $fileRelPath = sanitizaCaminho(urldecode($cleanPathForFile));
 
 if (empty($fileRelPath)) {
-    header("Location: https://storage-amheex.onrender.com/index.html");
+    header("Location: https://storage-amheex.onrender.com/erro_parm.php");
     exit;
 }
 
