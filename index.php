@@ -45,10 +45,7 @@ if (!is_dir(BASE_DIR)) {
 // FUNÇÕES AUXILIARES
 // =========================================================================
 function sanitizaCaminho($path) {
-    // Remove qualquer ocorrência inicial de X/ ou /X/ para garantir limpeza total
-    $path = preg_replace('#^/?(X/)+#i', '', $path);
-    $path = preg_replace('#(^|/)(X/)+#i', '$1', $path);
-
+    // Mantém integralmente o caminho interno (ex: /teste/arquivo) sem remover partes do meio
     $path = trim($path, "/\\");
     $path = str_replace(['..\\', '../'], '', $path);
     $path = preg_replace('/[^a-zA-Z0-9_\-\.\@\/]/', '', $path);
@@ -75,15 +72,14 @@ function build_clean_public_url($fileRelPath, $comPastaX = false) {
 }
 
 // =========================================================================
-// OBTENÇÃO E HIGIENIZAÇÃO DA URL (CONSUMINDO A URI DIRETAMENTE E REMOVENDO O PREFIXO /X)
+// OBTENÇÃO EXATA DA URL (PRESERVANDO INTEIRAMENTE O CAMINHO COMO /teste/arquivo)
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
-// Remove todas as repetições de /X do início da URI (ex: /X/X/teste/arquivo vira /teste/arquivo)
-$requestPath = preg_replace('#^(/X)+#i', '', $requestPath);
-if (empty($requestPath) || $requestPath === '') {
-    $requestPath = '/';
+// Remove apenas o prefixo estrito /X/ do início da URL se houver, preservando o resto exatamente como enviado
+if (preg_match('#^/X/(.*)$#i', $requestPath, $m)) {
+    $requestPath = '/' . $m[1];
 }
 
 $fileRelPath = sanitizaCaminho(urldecode($requestPath));
