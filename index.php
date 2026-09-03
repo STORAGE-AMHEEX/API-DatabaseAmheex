@@ -45,8 +45,9 @@ if (!is_dir(BASE_DIR)) {
 // FUNÇÕES AUXILIARES
 // =========================================================================
 function sanitizaCaminho($path) {
-    // Remove explicitamente a pasta X da frente de qualquer caminho processado
-    $path = preg_replace('#^/?X(/|$)#i', '', $path);
+    // Remove qualquer ocorrência repetida ou inicial de /X/ ou X/ para evitar /X/X/
+    $path = preg_replace('#^/?(X/)+#i', '', $path);
+    $path = preg_replace('#(^|/)(X/)+#i', '$1', $path);
 
     $path = trim($path, "/\\");
     $path = str_replace(['..\\', '../'], '', $path);
@@ -74,14 +75,14 @@ function build_clean_public_url($fileRelPath, $comPastaX = false) {
 }
 
 // =========================================================================
-// OBTENÇÃO E HIGIENIZAÇÃO DO CAMINHO (FORÇANDO /teste/arquivo)
+// OBTENÇÃO E HIGIENIZAÇÃO RIGOROSA DA URL
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
 $temPastaXNaUrl = false;
 
-// Remove todas as instâncias de /X/ do início para garantir que a lógica trate apenas o caminho limpo
+// Remove absolutamente todas as repetições de /X do início para que nunca crie /X/X/ localmente
 while (preg_match('#^(/X)+(/?)(.*)$#i', $requestPath, $matches)) {
     $temPastaXNaUrl = true;
     $requestPath = '/' . $matches[3];
