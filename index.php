@@ -251,11 +251,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                                 setTimeout(pollFileSize, 1000);
                             }
                         } catch (e) {
-                            setTimeout(pollFileSize, 1000);
+                            setTimeout(pollFileSize, 5000);
                         }
                     })
                     .catch(() => {
-                        setTimeout(pollFileSize, 1000);
+                        setTimeout(pollFileSize, 5000);
                     });
             }
 
