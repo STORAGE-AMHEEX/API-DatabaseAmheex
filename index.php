@@ -45,7 +45,7 @@ if (!is_dir(BASE_DIR)) {
 // FUNÇÕES AUXILIARES
 // =========================================================================
 function sanitizaCaminho($path) {
-    // Remove qualquer ocorrência repetida ou inicial de /X/ ou X/ para evitar /X/X/
+    // Remove qualquer ocorrência inicial de X/ ou /X/ para garantir limpeza total
     $path = preg_replace('#^/?(X/)+#i', '', $path);
     $path = preg_replace('#(^|/)(X/)+#i', '$1', $path);
 
@@ -75,17 +75,15 @@ function build_clean_public_url($fileRelPath, $comPastaX = false) {
 }
 
 // =========================================================================
-// OBTENÇÃO E HIGIENIZAÇÃO RIGOROSA DA URL
+// OBTENÇÃO E HIGIENIZAÇÃO DA URL (CONSUMINDO A URI DIRETAMENTE E REMOVENDO O PREFIXO /X)
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
-$temPastaXNaUrl = false;
-
-// Remove absolutamente todas as repetições de /X do início para que nunca crie /X/X/ localmente
-while (preg_match('#^(/X)+(/?)(.*)$#i', $requestPath, $matches)) {
-    $temPastaXNaUrl = true;
-    $requestPath = '/' . $matches[3];
+// Remove todas as repetições de /X do início da URI (ex: /X/X/teste/arquivo vira /teste/arquivo)
+$requestPath = preg_replace('#^(/X)+#i', '', $requestPath);
+if (empty($requestPath) || $requestPath === '') {
+    $requestPath = '/';
 }
 
 $fileRelPath = sanitizaCaminho(urldecode($requestPath));
@@ -104,14 +102,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $fullPath = BASE_DIR . '/' . $fileRelPath;
     $fileDir = dirname($fullPath);
     $fileExists = file_exists($fullPath);
-
-    if ($temPastaXNaUrl && !$fileExists) {
-        if (!is_dir($fileDir)) {
-            @mkdir($fileDir, 0777, true);
-        }
-        @file_put_contents($fullPath, '');
-        $fileExists = true;
-    }
 
     if (!is_dir($fileDir)) {
         @mkdir($fileDir, 0777, true);
