@@ -81,14 +81,14 @@ $cleanPathForFile = preg_replace('#^(/X)+#i', '', $requestPath);
 
 // VALIDAÇÃO DO PARÂMETRO PATH / RAIZ VAZIA
 if (empty($cleanPathForFile) || $cleanPathForFile === '/' || $cleanPathForFile === '') {
-    header("Location: https://storage-amheex.onrender.com/erro_parm.php");
+    header("Location: https://storage-amheex.onrender.com/index.html");
     exit;
 }
 
 $fileRelPath = sanitizaCaminho(urldecode($cleanPathForFile));
 
 if (empty($fileRelPath)) {
-    header("Location: https://storage-amheex.onrender.com/erro_parm.php");
+    header("Location: https://storage-amheex.onrender.com/index.html");
     exit;
 }
 
@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
 
         if (!file_exists($fullPath) || filesize($fullPath) === 0) {
-            header("Location: https://storage-amheex.onrender.com/erro_server_exiting.php");
+            header("Location: https://storage-amheex.onrender.com/erro/404.html");
             exit;
         }
 
@@ -224,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                     .then(res => res.json())
                     .then(data => {
                         if (data && data.error === "server_exiting") {
-                            window.location.href = "https://storage-amheex.onrender.com/erro_server_exiting.php";
+                            window.location.href = "https://storage-amheex.onrender.com/erro/404.html";
                             return;
                         }
                         if (data && data.size > 0) {
