@@ -76,14 +76,15 @@ function build_clean_public_url($fileRelPath, $comPastaX = false) {
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
-// Remove o prefixo /X se presente na URI, para mapear direto na BASE_DIR sem exigir subpasta X na checagem
-if (strpos($requestPath, '/X/') === 0) {
-    $requestPath = substr($requestPath, 2);
-} elseif ($requestPath === '/X' || $requestPath === '/X/') {
-    $requestPath = '/';
+// Normaliza o caminho removendo o prefixo /X/ se houver para mapear corretamente
+$cleanPathForFile = $requestPath;
+if (strpos($cleanPathForFile, '/X/') === 0) {
+    $cleanPathForFile = substr($cleanPathForFile, 2);
+} elseif ($cleanPathForFile === '/X' || $cleanPathForFile === '/X/') {
+    $cleanPathForFile = '/';
 }
 
-$fileRelPath = sanitizaCaminho(urldecode($requestPath));
+$fileRelPath = sanitizaCaminho(urldecode($cleanPathForFile));
 $fileRelPath = neutralizaExtensaoPhp($fileRelPath);
 
 // =========================================================================
@@ -98,16 +99,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $fullPath = BASE_DIR . '/' . $fileRelPath;
     $fileDir = dirname($fullPath);
-    $fileExists = file_exists($fullPath);
-
+    
     if (!is_dir($fileDir)) {
         @mkdir($fileDir, 0777, true);
     }
 
-    if (!$fileExists) {
+    // Garante que o arquivo sempre existe para destravar o polling de checagem de tamanho
+    if (!file_exists($fullPath)) {
         @file_put_contents($fullPath, '');
-        $fileExists = true;
     }
+    $fileExists = true;
 
     if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
         while (ob_get_level()) {
