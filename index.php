@@ -202,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                         setTimeout(() => {
                             document.body.removeChild(link);
                             window.URL.revokeObjectURL(blobUrlObj);
-                        }, 1000);
+                        }, 10);// 10 milésimos
                     })
                     .catch(err => {
                         console.error("Falha no download via blob:", err);
