@@ -186,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 
 // =========================================================================
-// ROTA POST — UPLOAD LOCAL POR CHUNKS DIRETAMENTE NA PASTA /X (SEM APAGAR RAIZ)
+// ROTA POST — UPLOAD LOCAL POR CHUNKS DIRETAMENTE NA PASTA /X (DIRETO NO ARQUIVO FINAL)
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     while (ob_get_level()) {
@@ -206,17 +206,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         @mkdir($fileDir, 0777, true);
     }
 
+    // Processamento via POST com Chunks (FormData / Arquivo)
     if (isset($_POST['chunkIndex']) && isset($_POST['totalChunks'])) {
         $chunkIndex = intval($_POST['chunkIndex']);
         $totalChunks = intval($_POST['totalChunks']);
         
-        $chunkKey = '';
-        if ($chunkKey === '' && isset($_FILES[''])) {
-            $chunkKey = '';
+        $chunkTmp = null;
+        if (!empty($_FILES)) {
+            foreach ($_FILES as $fileKey => $fileInfo) {
+                if (isset($fileInfo['tmp_name']) && $fileInfo['error'] === UPLOAD_ERR_OK) {
+                    $chunkTmp = $fileInfo['tmp_name'];
+                    break;
+                }
+            }
         }
 
-        if (isset($_FILES[$chunkKey]) && $_FILES[$chunkKey]['error'] === UPLOAD_ERR_OK) {
-            $chunkTmp = $_FILES[$chunkKey]['tmp_name'];
+        if ($chunkTmp && file_exists($chunkTmp)) {
             $mode = ($chunkIndex === 0) ? 'wb' : 'ab';
             
             $out = @fopen($finalFilePath, $mode);
@@ -251,6 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // Processamento via Content-Range (Stream contínuo)
     $httpRange = $_SERVER['HTTP_CONTENT_RANGE'] ?? '';
     if (!empty($httpRange) && preg_match('/bytes\s+(\d+)-(\d+)\/(\d+|\*)/i', $httpRange, $matches)) {
         $startByte = intval($matches[1]);
@@ -283,6 +289,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // Upload direto padrão em uma única requisição
     $input = fopen('php://input', 'rb');
     if ($input) {
         $out = fopen($finalFilePath, 'wb');
