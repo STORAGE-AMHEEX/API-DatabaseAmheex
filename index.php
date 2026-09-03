@@ -50,7 +50,6 @@ function sanitizaCaminho($path) {
     $path = preg_replace('/[^a-zA-Z0-9_\-\.\@\/]/', '', $path);
     $path = preg_replace('#/+#', '/', $path);
     
-    // Remove qualquer diretório ou sufixo "chunk", "chuck", "chunks", "chucks" indesejado
     $path = preg_replace('#/(chunk|chuck|chunks|chucks)(/.*)?$#i', '', $path);
     $path = preg_replace('#^(chunk|chuck|chunks|chucks)/?#i', '', $path);
     
@@ -99,7 +98,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         @mkdir($fileDir, 0777, true);
     }
 
-    // Se o arquivo não existir, cria com 0 bytes automaticamente
     if (!file_exists($fullPath)) {
         @file_put_contents($fullPath, '');
     }
@@ -181,37 +179,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             const checkUrl = ' . json_encode($stringCheckUrl) . ';
             const blobUrl = ' . json_encode($stringBlobUrl) . ';
             const redirectUrl = ' . json_encode($stringRedirectUrl) . ';
-            const fileName = ' . json_encode(basename($fullPath)) . ';
             const statusEl = document.getElementById("statusText");
 
             function startDownload() {
-                statusEl.innerText = "Baixando...";
-                fetch(blobUrl, { credentials: "omit" })
-                    .then(response => {
-                        if (!response.ok) throw new Error("Erro no download");
-                        return response.blob();
-                    })
-                    .then(blob => {
-                        const blobUrlObj = window.URL.createObjectURL(blob);
-                        const link = document.createElement("a");
-                        link.href = blobUrlObj;
-                        link.download = fileName;
-                        link.style.display = "none";
-                        document.body.appendChild(link);
-                        link.click();
-                        setTimeout(() => {
-                            document.body.removeChild(link);
-                            window.URL.revokeObjectURL(blobUrlObj);
-                        }, 10);// 10 milésimos
-                    })
-                    .catch(err => {
-                        console.error("Falha no download via blob:", err);
-                        window.location.href = blobUrl;
-                    });
+                statusEl.innerText = "Iniciando download...";
+                // Redirecionamento direto para stream nativo otimizado para arquivos grandes
+                window.location.href = blobUrl;
 
                 setTimeout(() => {
                     window.location.href = redirectUrl;
-                }, 10000); // 10 SEGUNDOS!!
+                }, 5000);
             }
 
             function pollFileSize() {
@@ -238,7 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 
 // =========================================================================
-// ROTA POST — GRAVAÇÃO DIRETA DE CHUNKS NO ARQUIVO FINAL (SEM CRIAR PASTA CHUCK)
+// ROTA POST — GRAVAÇÃO DIRETA DE CHUNKS NO ARQUIVO FINAL
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     while (ob_get_level()) {
@@ -258,7 +235,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         @mkdir($fileDir, 0777, true);
     }
 
-    // Processamento via POST com Chunks (FormData / Arquivo)
     if (isset($_POST['chunkIndex']) && isset($_POST['totalChunks'])) {
         $chunkIndex = intval($_POST['chunkIndex']);
         $totalChunks = intval($_POST['totalChunks']);
@@ -308,7 +284,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Processamento via Content-Range (Stream contínuo)
     $httpRange = $_SERVER['HTTP_CONTENT_RANGE'] ?? '';
     if (!empty($httpRange) && preg_match('/bytes\s+(\d+)-(\d+)\/(\d+|\*)/i', $httpRange, $matches)) {
         $startByte = intval($matches[1]);
@@ -341,7 +316,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Upload direto padrão em uma única requisição
     $input = fopen('php://input', 'rb');
     if ($input) {
         $out = fopen($finalFilePath, 'wb');
