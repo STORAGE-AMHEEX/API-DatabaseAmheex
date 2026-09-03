@@ -1,6 +1,6 @@
 <?php
 // =========================================================================
-//   SCRIPT DE BACKUP AUTOMÁTICO PARA O FIREBASE (ENTRE 1 E 2 MINUTOS)
+//   SCRIPT DE BACKUP E RESTAURAÇÃO AUTOMÁTICA DO FIREBASE
 // =========================================================================
 @ini_set('memory_limit', '1024M');
 @ini_set('max_execution_time', '0');
@@ -18,9 +18,7 @@ header('Content-Type: text/plain; charset=utf-8');
 define('BASE_DIR', realpath(__DIR__) . '/X');
 
 if (!is_dir(BASE_DIR)) {
-    http_response_code(404);
-    echo "Diretório /X/ não encontrado.";
-    exit;
+    @mkdir(BASE_DIR, 0777, true);
 }
 
 $firebaseBaseUrl = 'https://storage-amheex-default-rtdb.firebaseio.com/';
@@ -123,10 +121,97 @@ function enviarBackupFirebaseStreaming($fullLocalPath, $relativeFilePath, $fireb
     return $sucessoGlobal;
 }
 
+function restaurarArquivoFirebase($fullLocalPath, $relativeFilePath, $firebaseBaseUrl, $raizStorage) {
+    $nodePath = obterNodePathFirebase($relativeFilePath, $raizStorage);
+    $url = $firebaseBaseUrl . $nodePath . '.json';
+
+    $resposta = firebase_request($url, 'GET');
+    if ($resposta === false) {
+        return false;
+    }
+
+    $dados = json_decode($resposta, true);
+    if (empty($dados) || !is_array($dados)) {
+        return false;
+    }
+
+    // Ordena as partes (part_1, part_2, ...)
+    uksort($dados, function($a, $b) {
+        $numA = intval(str_replace('part_', '', $a));
+        $numB = intval(str_replace('part_', '', $b));
+        return $numA <=> $numB;
+    });
+
+    $fileDir = dirname($fullLocalPath);
+    if (!is_dir($fileDir)) {
+        @mkdir($fileDir, 0777, true);
+    }
+
+    $handle = @fopen($fullLocalPath, 'wb');
+    if (!$handle) {
+        return false;
+    }
+
+    $restauradoComSucesso = true;
+    foreach ($dados as $partName => $hexChunk) {
+        if (is_string($hexChunk)) {
+            $binaryData = hex2bin($hexChunk);
+            if ($binaryData !== false) {
+                fwrite($handle, $binaryData);
+            } else {
+                $restauradoComSucesso = false;
+            }
+        }
+    }
+
+    fclose($handle);
+
+    if ($restauradoComSucesso && file_exists($fullLocalPath) && filesize($fullLocalPath) > 0) {
+        return true;
+    }
+
+    return false;
+}
+
 // =========================================================================
-// VARREDURA RECURSIVA DA PASTA /X/ EM BUSCA DE ARQUIVOS NA FAIXA DE TEMPO
+// 1. VERIFICAÇÃO E RESTAURAÇÃO DE ARQUIVOS COM 0 BYTES NA PASTA /X/
 // =========================================================================
-$iterador = new RecursiveIteratorIterator(
+echo "Iniciando varredura por arquivos com 0 bytes na pasta /X/ para restauração...\n\n";
+
+$iteradorRestauracao = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator(BASE_DIR, RecursiveDirectoryIterator::SKIP_DOTS),
+    RecursiveIteratorIterator::LEAVES_ONLY
+);
+
+$arquivosRestaurados = 0;
+$errosRestauracao = 0;
+
+foreach ($iteradorRestauracao as $arquivo) {
+    if ($arquivo->isFile()) {
+        $fullPath = $arquivo->getRealPath();
+        
+        if (filesize($fullPath) === 0) {
+            $relativeFilePath = str_replace('\\', '/', substr($fullPath, strlen(BASE_DIR) + 1));
+            echo "Encontrado arquivo com 0 bytes: /X/{$relativeFilePath}. Tentando restaurar do Firebase...\n";
+
+            if (restaurarArquivoFirebase($fullPath, $relativeFilePath, $firebaseBaseUrl, $raizStorage)) {
+                echo " [SUCESSO] Arquivo restaurado com sucesso!\n";
+                $arquivosRestaurados++;
+            } else {
+                echo " [FALHA] Não foi possível restaurar do Firebase (ou dados não encontrados).\n";
+                $errosRestauracao++;
+            }
+        }
+    }
+}
+
+echo "\nRestauração concluída. Arquivos restaurados: {$arquivosRestaurados} | Erros: {$errosRestauracao}\n\n";
+echo "-------------------------------------------------------------------------\n\n";
+
+// =========================================================================
+// 2. VARREDURA RECURSIVA DA PASTA /X/ EM BUSCA DE ARQUIVOS NA FAIXA DE TEMPO (BACKUP)
+// =========================================================================
+$iteradorBackup = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator(BASE_DIR, RecursiveDirectoryIterator::SKIP_DOTS),
     RecursiveIteratorIterator::LEAVES_ONLY
 );
@@ -134,17 +219,22 @@ $iterador = new RecursiveIteratorIterator(
 $arquivosProcessados = 0;
 $errosEncontrados = 0;
 
-echo "Iniciando varredura por arquivos modificados entre 1 e 2 minutos atrás...\n\n";
+echo "Iniciando varredura por arquivos modificados entre 1 e 2 minutos atrás para backup...\n\n";
 
-foreach ($iterador as $arquivo) {
+foreach ($iteradorBackup as $arquivo) {
     if ($arquivo->isFile()) {
         $fullPath = $arquivo->getRealPath();
+        
+        // Ignora arquivos vazios no backup
+        if (filesize($fullPath) === 0) {
+            continue;
+        }
+
         $tempoModificacao = $arquivo->getMTime();
         $diferencaTempo = $agora - $tempoModificacao;
 
         // Regra: Ignora o primeiro minuto (<= 60s), faz upload se estiver entre 1 e 2 minutos (> 60s e <= 120s), e ignora se for 3 minutos ou mais (> 120s)
         if ($diferencaTempo > $tempoMinimo && $diferencaTempo <= $tempoMaximo) {
-            // Obtém o caminho relativo limpo em relação à pasta BASE_DIR (/X/)
             $relativeFilePath = str_replace('\\', '/', substr($fullPath, strlen(BASE_DIR) + 1));
             
             echo "Processando: /X/{$relativeFilePath} (modificado há {$diferencaTempo}s)...\n";
@@ -162,6 +252,6 @@ foreach ($iterador as $arquivo) {
     }
 }
 
-echo "\nVarredura concluída.\n";
+echo "\nVarredura de backup concluída.\n";
 echo "Arquivos salvos no Firebase: {$arquivosProcessados}\n";
 echo "Erros: {$errosEncontrados}\n";
