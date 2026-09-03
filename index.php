@@ -45,7 +45,6 @@ if (!is_dir(BASE_DIR)) {
 // FUNÇÕES AUXILIARES
 // =========================================================================
 function sanitizaCaminho($path) {
-    // Mantém integralmente o caminho interno (ex: /teste/arquivo) sem remover partes do meio
     $path = trim($path, "/\\");
     $path = str_replace(['..\\', '../'], '', $path);
     $path = preg_replace('/[^a-zA-Z0-9_\-\.\@\/]/', '', $path);
@@ -72,14 +71,16 @@ function build_clean_public_url($fileRelPath, $comPastaX = false) {
 }
 
 // =========================================================================
-// OBTENÇÃO EXATA DA URL (PRESERVANDO INTEIRAMENTE O CAMINHO COMO /teste/arquivo)
+// OBTENÇÃO DO CAMINHO EXATO A PARTIR DA URL
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
-// Remove apenas o prefixo estrito /X/ do início da URL se houver, preservando o resto exatamente como enviado
-if (preg_match('#^/X/(.*)$#i', $requestPath, $m)) {
-    $requestPath = '/' . $m[1];
+// Remove o prefixo /X se presente na URI, para mapear direto na BASE_DIR sem exigir subpasta X na checagem
+if (strpos($requestPath, '/X/') === 0) {
+    $requestPath = substr($requestPath, 2);
+} elseif ($requestPath === '/X' || $requestPath === '/X/') {
+    $requestPath = '/';
 }
 
 $fileRelPath = sanitizaCaminho(urldecode($requestPath));
@@ -105,6 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     if (!$fileExists) {
         @file_put_contents($fullPath, '');
+        $fileExists = true;
     }
 
     if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
