@@ -1,7 +1,4 @@
 <?php
-// =========================================================================
-//   SCRIPT DE BACKUP E RESTAURAÇÃO AUTOMÁTICA DO FIREBASE
-// =========================================================================
 @ini_set('memory_limit', '1024M');
 @ini_set('max_execution_time', '0');
 @set_time_limit(0);
@@ -12,9 +9,6 @@ while (ob_get_level()) {
 
 header('Content-Type: text/plain; charset=utf-8');
 
-// =========================================================================
-// CONFIGURAÇÕES
-// =========================================================================
 define('BASE_DIR', realpath(__DIR__) . '/X');
 
 if (!is_dir(BASE_DIR)) {
@@ -27,9 +21,6 @@ $tempoMinimo     = 5;  // 5 segundos (ignora arquivos do primeiro minuto)
 $tempoMaximo     = 120; // 2 minutos (limite máximo para o upload)
 $agora           = time();
 
-// =========================================================================
-// FUNÇÕES AUXILIARES
-// =========================================================================
 function firebase_request($url, $method = 'GET', $data = null) {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
@@ -173,9 +164,6 @@ function restaurarArquivoFirebase($fullLocalPath, $relativeFilePath, $firebaseBa
     return false;
 }
 
-// =========================================================================
-// 1. VERIFICAÇÃO E RESTAURAÇÃO DE ARQUIVOS COM 0 BYTES NA PASTA /X/
-// =========================================================================
 echo "Iniciando varredura por arquivos com 0 bytes na pasta /X/ para restauração...\n\n";
 
 $iteradorRestauracao = new RecursiveIteratorIterator(
@@ -208,9 +196,6 @@ foreach ($iteradorRestauracao as $arquivo) {
 echo "\nRestauração concluída. Arquivos restaurados: {$arquivosRestaurados} | Erros: {$errosRestauracao}\n\n";
 echo "-------------------------------------------------------------------------\n\n";
 
-// =========================================================================
-// 2. VARREDURA RECURSIVA DA PASTA /X/ EM BUSCA DE ARQUIVOS NA FAIXA DE TEMPO (BACKUP)
-// =========================================================================
 $iteradorBackup = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator(BASE_DIR, RecursiveDirectoryIterator::SKIP_DOTS),
     RecursiveIteratorIterator::LEAVES_ONLY
@@ -233,7 +218,6 @@ foreach ($iteradorBackup as $arquivo) {
         $tempoModificacao = $arquivo->getMTime();
         $diferencaTempo = $agora - $tempoModificacao;
 
-        // Regra: Ignora o primeiro minuto (<= 60s), faz upload se estiver entre 1 e 2 minutos (> 60s e <= 120s), e ignora se for 3 minutos ou mais (> 120s)
         if ($diferencaTempo > $tempoMinimo && $diferencaTempo <= $tempoMaximo) {
             $relativeFilePath = str_replace('\\', '/', substr($fullPath, strlen(BASE_DIR) + 1));
             
