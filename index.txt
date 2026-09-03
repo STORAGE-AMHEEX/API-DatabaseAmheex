@@ -47,6 +47,7 @@ if (!is_dir(BASE_DIR)) {
 function sanitizaCaminho($path) {
     $path = trim($path, "/\\");
     $path = str_replace(['..\\', '../'], '', $path);
+    // Permitido letras, números, traços, sublinhados, pontos e barras (mantendo extensões como .apk)
     $path = preg_replace('/[^a-zA-Z0-9_\-\.\@\/]/', '', $path);
     $path = preg_replace('#/+#', '/', $path);
     
@@ -118,7 +119,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             @ob_end_clean();
         }
 
-        $mime = @mime_content_type($fullPath) ?: 'application/octet-stream';
+        // Força MIME correto para APKs ou genérico seguro
+        $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+        if ($ext === 'apk') {
+            $mime = 'application/vnd.android.package-archive';
+        } else {
+            $mime = @mime_content_type($fullPath) ?: 'application/octet-stream';
+        }
+
         $fileSize = filesize($fullPath);
         $fileName = basename($fullPath);
 
