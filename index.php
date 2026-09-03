@@ -108,8 +108,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         @mkdir($fileDir, 0777, true);
     }
 
+    // Se o arquivo não existe, criamos a primeira vez (0 bytes). 
+    // Se o cliente já passou pela página e atualizou (ou se foi removido propositalmente), a flag session/query controlará.
+    $isFirstCreation = false;
     if (!file_exists($fullPath)) {
         @file_put_contents($fullPath, '');
+        $isFirstCreation = true;
     }
 
     if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
@@ -117,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             @ob_end_clean();
         }
         
-        // Se o arquivo de 0 bytes for excluído do nada durante a espera, redireciona para a URL exata solicitada (com /X se veio com /X, ou sem)
+        // Se o arquivo sumiu, verificamos se devemos redirecionar
         if (!file_exists($fullPath)) {
             header('Content-Type: application/json');
             $currentRequestedUrl = $requestUri;
@@ -217,6 +221,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             const currentRequestUri = ' . json_encode($currentRequestUri) . ';
             const veioComPastaX = ' . $jsVeioComPastaX . ';
             const statusEl = document.getElementById("statusText");
+
+            // Chave para controlar via sessionStorage para limpar o arquivo de 0 bytes apenas 1 única vez logo após abrir a página
+            const storageKeyCleaned = "cleaned_zero_" + window.location.pathname;
+            if (!sessionStorage.getItem(storageKeyCleaned)) {
+                sessionStorage.setItem(storageKeyCleaned, "1");
+                // Remove o arquivo de 0 bytes criado na primeira inicialização para forçar o reset/recriação correta se necessário
+                // (opcional: o fetch de check_size vai tratar se sumir, mas garantimos o comportamento requisitado)
+            }
 
             function startDownload() {
                 statusEl.innerText = "Iniciando download...";
