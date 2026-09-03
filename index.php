@@ -108,11 +108,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         @mkdir($fileDir, 0777, true);
     }
 
-    // CORREÇÃO: Cria o arquivo de 0 bytes APENAS UMA VEZ caso ele nunca tenha existido.
-    // Se o arquivo já existe (mesmo que com 0 bytes), ele NÃO recria mais, permitindo 
-    // que o seu teste de remoção funcione perfeitamente e dispare o redirecionamento de erro.
-    if (!file_exists($fullPath)) {
+    // CORREÇÃO DEFINITIVA: 
+    // Usamos um arquivo de controle separado (ex: .lock ou extensão .created) na pasta interna
+    // para registrar que este caminho específico JÁ teve seu arquivo inicial criado alguma vez.
+    // Assim, se você apagar o arquivo principal de 0 bytes para testar o redirecionamento, 
+    // o PHP SABE que ele já foi inicializado antes e NÃO recria o arquivo de 0 bytes sozinho!
+    $markerPath = $fullPath . '.created';
+    
+    if (!file_exists($fullPath) && !file_exists($markerPath)) {
+        // Primeira vez absoluta que este arquivo é requisitado: cria o arquivo de 0 bytes e o marcador
         @file_put_contents($fullPath, '');
+        @file_put_contents($markerPath, '1');
     }
 
     if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
@@ -120,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             @ob_end_clean();
         }
         
-        // Se o arquivo foi removido no teste, dispara o redirecionamento
+        // Se o arquivo principal não existe, dispara o redirecionamento para o erro
         if (!file_exists($fullPath)) {
             header('Content-Type: application/json');
             $currentRequestedUrl = $requestUri;
