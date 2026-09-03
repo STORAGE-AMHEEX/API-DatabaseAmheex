@@ -108,15 +108,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         @mkdir($fileDir, 0777, true);
     }
 
-    // CORREÇÃO DEFINITIVA: 
-    // Usamos um arquivo de controle separado (ex: .lock ou extensão .created) na pasta interna
-    // para registrar que este caminho específico JÁ teve seu arquivo inicial criado alguma vez.
-    // Assim, se você apagar o arquivo principal de 0 bytes para testar o redirecionamento, 
-    // o PHP SABE que ele já foi inicializado antes e NÃO recria o arquivo de 0 bytes sozinho!
     $markerPath = $fullPath . '.created';
     
+    // Cria o arquivo de 0 bytes e o marcador APENAS NA PRIMEIRA VEZ ABSOLUTA
     if (!file_exists($fullPath) && !file_exists($markerPath)) {
-        // Primeira vez absoluta que este arquivo é requisitado: cria o arquivo de 0 bytes e o marcador
         @file_put_contents($fullPath, '');
         @file_put_contents($markerPath, '1');
     }
@@ -126,11 +121,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             @ob_end_clean();
         }
         
-        // Se o arquivo principal não existe, dispara o redirecionamento para o erro
+        // Se o arquivo principal não existe, retorna texto puro (sem JSON) com a URL de erro exata solicitada
         if (!file_exists($fullPath)) {
-            header('Content-Type: application/json');
-            $currentRequestedUrl = $requestUri;
-            echo json_encode(['error' => 'file_deleted', 'redirect' => $currentRequestedUrl]);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo 'https://storage-amheex.onrender.com/erro/404.html';
             exit;
         }
 
@@ -147,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
 
         if (!file_exists($fullPath)) {
-            header("Location: https://storage-amheex.onrender.com/erro_server_exiting.php");
+            header("Location: https://storage-amheex.onrender.com/erro/404.html");
             exit;
         }
 
@@ -190,7 +184,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $stringCheckUrl = $baseCleanUri . '?check_size=1';
     $stringRedirectUrl = build_clean_public_url($fileRelPath, true);
     $jsVeioComPastaX = $veioComPastaXExplicitamente ? 'true' : 'false';
-    $currentRequestUri = $requestUri;
 
     echo '<!DOCTYPE html>
     <html lang="pt-BR">
@@ -223,7 +216,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             const checkUrl = ' . json_encode($stringCheckUrl) . ';
             const blobUrl = ' . json_encode($stringBlobUrl) . ';
             const redirectUrl = ' . json_encode($stringRedirectUrl) . ';
-            const currentRequestUri = ' . json_encode($currentRequestUri) . ';
             const veioComPastaX = ' . $jsVeioComPastaX . ';
             const statusEl = document.getElementById("statusText");
 
@@ -242,16 +234,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
             function pollFileSize() {
                 fetch(checkUrl, { cache: "no-store" })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data && data.error === "file_deleted") {
-                            window.location.href = data.redirect || currentRequestUri;
+                    .then(res => res.text())
+                    .then(text => {
+                        text = text.trim();
+                        // Se o retorno for uma URL HTTP/HTTPS, redireciona diretamente para ela
+                        if (text.startsWith("http://") || text.startsWith("https://")) {
+                            window.location.href = text;
                             return;
                         }
-                        if (data && data.size > 0) {
-                            statusEl.innerText = "Arquivo detectado!";
-                            startDownload();
-                        } else {
+                        try {
+                            const data = JSON.parse(text);
+                            if (data && data.size > 0) {
+                                statusEl.innerText = "Arquivo detectado!";
+                                startDownload();
+                            } else {
+                                setTimeout(pollFileSize, 1000);
+                            }
+                        } catch (e) {
                             setTimeout(pollFileSize, 1000);
                         }
                     })
