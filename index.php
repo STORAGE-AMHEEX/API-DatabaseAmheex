@@ -79,7 +79,7 @@ $requestPath = parse_url($requestUri, PHP_URL_PATH);
 // Remove todas as repetições de /X do início para mapear o arquivo corretamente na BASE_DIR
 $cleanPathForFile = preg_replace('#^(/X)+#i', '', $requestPath);
 
-// VALIDAÇÃO DO PARÂMETRO PATH / RAIZ VAZIA (Redireciona para erro_parm.php)
+// REDIRECIONAMENTO SE PARÂMETRO PATH NÃO ESTIVER CONFIGURADO (VAZIO)
 if (empty($cleanPathForFile) || $cleanPathForFile === '/' || $cleanPathForFile === '') {
     header("Location: https://storage-amheex.onrender.com/erro_parm.php");
     exit;
@@ -109,15 +109,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         @file_put_contents($fullPath, '');
     }
 
-    // CHECK SIZE: Se o arquivo foi excluído do nada (tamanho 0 ou não existe de forma inesperada)
     if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
         while (ob_get_level()) {
             @ob_end_clean();
         }
         
-        if (!file_exists($fullPath) || filesize($fullPath) === 0) {
+        // Se o arquivo de 0 bytes for excluído do nada durante a espera, avisa via JSON para redirecionar
+        if (!file_exists($fullPath)) {
             header('Content-Type: application/json');
-            echo json_encode(['error' => 'server_exiting']);
+            echo json_encode(['error' => 'file_deleted']);
             exit;
         }
 
@@ -133,8 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             @ob_end_clean();
         }
 
-        if (!file_exists($fullPath) || filesize($fullPath) === 0) {
-            header("Location: https://storage-amheex.onrender.com/erro/404.html");
+        if (!file_exists($fullPath)) {
+            header("Location: https://storage-amheex.onrender.com/erro_server_exiting.php");
             exit;
         }
 
@@ -223,19 +223,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 fetch(checkUrl, { cache: "no-store" })
                     .then(res => res.json())
                     .then(data => {
-                        if (data && data.error === "server_exiting") {
-                            window.location.href = "https://storage-amheex.onrender.com/erro/404.html";
+                        if (data && data.error === "file_deleted") {
+                            window.location.href = "https://storage-amheex.onrender.com/erro_server_exiting.php";
                             return;
                         }
                         if (data && data.size > 0) {
                             statusEl.innerText = "Arquivo detectado!";
                             startDownload();
                         } else {
-                            setTimeout(pollFileSize, 5000);
+                            setTimeout(pollFileSize, 1000);
                         }
                     })
                     .catch(() => {
-                        setTimeout(pollFileSize, 5000);
+                        setTimeout(pollFileSize, 1000);
                     });
             }
 
