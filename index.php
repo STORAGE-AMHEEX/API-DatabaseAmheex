@@ -110,9 +110,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         while (ob_get_level()) {
             @ob_end_clean();
         }
+        
+        if (!file_exists($fullPath)) {
+            echo 'null';
+            exit;
+        }
+
         header('Content-Type: application/json');
         clearstatcache(true, $fullPath);
-        $currentSize = file_exists($fullPath) ? filesize($fullPath) : 0;
+        $currentSize = filesize($fullPath);
         echo json_encode(['size' => $currentSize]);
         exit;
     }
@@ -120,6 +126,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if (isset($_GET['download']) && $_GET['download'] === '1') {
         while (ob_get_level()) {
             @ob_end_clean();
+        }
+
+        if (!file_exists($fullPath)) {
+            http_response_code(404);
+            echo 'null';
+            exit;
         }
 
         $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
@@ -205,12 +217,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
             function pollFileSize() {
                 fetch(checkUrl, { cache: "no-store" })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data && data.size > 0) {
-                            statusEl.innerText = "Arquivo detectado!";
-                            startDownload();
-                        } else {
+                    .then(res => res.text())
+                    .then(text => {
+                        if (text.trim() === "null") {
+                            statusEl.innerText = "Erro: Arquivo excluído!";
+                            return;
+                        }
+                        try {
+                            const data = JSON.parse(text);
+                            if (data && data.size > 0) {
+                                statusEl.innerText = "Arquivo detectado!";
+                                startDownload();
+                            } else {
+                                setTimeout(pollFileSize, 1000);
+                            }
+                        } catch (e) {
                             setTimeout(pollFileSize, 1000);
                         }
                     })
