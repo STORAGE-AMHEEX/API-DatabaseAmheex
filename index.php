@@ -78,23 +78,26 @@ $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
 // Remove todas as repetições de /X do início para mapear o arquivo corretamente na BASE_DIR
 $cleanPathForFile = preg_replace('#^(/X)+#i', '', $requestPath);
-if (empty($cleanPathForFile) || $cleanPathForFile === '') {
-    $cleanPathForFile = '/';
+
+// VALIDAÇÃO DO PARÂMETRO PATH / RAIZ VAZIA
+if (empty($cleanPathForFile) || $cleanPathForFile === '/' || $cleanPathForFile === '') {
+    header("Location: https://storage-amheex.onrender.com/erro_parm.php");
+    exit;
 }
 
 $fileRelPath = sanitizaCaminho(urldecode($cleanPathForFile));
+
+if (empty($fileRelPath)) {
+    header("Location: https://storage-amheex.onrender.com/erro_parm.php");
+    exit;
+}
+
 $fileRelPath = neutralizaExtensaoPhp($fileRelPath);
 
 // =========================================================================
 // ROTA GET
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    if (empty($fileRelPath)) {
-        http_response_code(200);
-        echo 'true';
-        exit;
-    }
-
     $fullPath = BASE_DIR . '/' . $fileRelPath;
     $fileDir = dirname($fullPath);
     
@@ -106,13 +109,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         @file_put_contents($fullPath, '');
     }
 
+    // CHECK SIZE: Se o arquivo foi excluído do nada (tamanho 0 ou não existe de forma inesperada)
     if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
         while (ob_get_level()) {
             @ob_end_clean();
         }
         
-        if (!file_exists($fullPath)) {
-            echo 'null';
+        if (!file_exists($fullPath) || filesize($fullPath) === 0) {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'server_exiting']);
             exit;
         }
 
@@ -128,9 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             @ob_end_clean();
         }
 
-        if (!file_exists($fullPath)) {
-            http_response_code(404);
-            echo 'null';
+        if (!file_exists($fullPath) || filesize($fullPath) === 0) {
+            header("Location: https://storage-amheex.onrender.com/erro_server_exiting.php");
             exit;
         }
 
@@ -217,21 +221,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
             function pollFileSize() {
                 fetch(checkUrl, { cache: "no-store" })
-                    .then(res => res.text())
-                    .then(text => {
-                        if (text.trim() === "null") {
-                            statusEl.innerText = "Erro: Arquivo excluído!";
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.error === "server_exiting") {
+                            window.location.href = "https://storage-amheex.onrender.com/erro_server_exiting.php";
                             return;
                         }
-                        try {
-                            const data = JSON.parse(text);
-                            if (data && data.size > 0) {
-                                statusEl.innerText = "Arquivo detectado!";
-                                startDownload();
-                            } else {
-                                setTimeout(pollFileSize, 1000);
-                            }
-                        } catch (e) {
+                        if (data && data.size > 0) {
+                            statusEl.innerText = "Arquivo detectado!";
+                            startDownload();
+                        } else {
                             setTimeout(pollFileSize, 1000);
                         }
                     })
