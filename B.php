@@ -23,7 +23,7 @@ if (!is_dir(BASE_DIR)) {
 
 $firebaseBaseUrl = 'https://storage-amheex-default-rtdb.firebaseio.com/';
 $raizStorage     = 'X';
-$tempoMinimo     = 60;  // 1 minuto (ignora arquivos do primeiro minuto)
+$tempoMinimo     = 5;  // 5 segundos (ignora arquivos do primeiro minuto)
 $tempoMaximo     = 120; // 2 minutos (limite máximo para o upload)
 $agora           = time();
 
