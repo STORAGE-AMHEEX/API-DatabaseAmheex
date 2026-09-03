@@ -5,15 +5,15 @@ const https = require("https");
 // URL por argumento
 const targetUrl =
     process.argv[2] ||
-    "https://storage-amheex.onrender.com";
+    "https://storage-amheex.onrender.com/B.php";
 
 // Timeout de INATIVIDADE
 // Só dispara se parar totalmente de receber dados
 const timeout =
     parseInt(process.argv[3]) || 1 * 30 * 60 * 1000;
 
-// Delay após finalizar (ajustado para 8 minutos reais)
-const restartDelay = 8 * 60 * 1000;
+// Delay após finalizar (ajustado para 5 minutos reais)
+const restartDelay = 10 * 1000;
 
 console.log("⏰ Sistema iniciado!");
 console.log("🌐 URL:", targetUrl);
