@@ -71,20 +71,17 @@ function build_clean_public_url($fileRelPath, $comPastaX = false) {
 }
 
 // =========================================================================
-// OBTENÇÃO DO CAMINHO EXATO A PARTIR DA URL
+// OBTENÇÃO DO CAMINHO EXATO A PARTIR DA URL (COM CORREÇÃO DE DUPLICAÇÃO /X/X)
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
 $temPastaXNaUrl = false;
 
-// Verifica se começa com /X/ ou se é exatamente /X
-if (strpos($requestPath, '/X/') === 0) {
+// Remove repetições consecutivas de /X/ ou /X no início para evitar o bug /X/X/...
+while (preg_match('#^(/X)+(/?)(.*)$#i', $requestPath, $matches)) {
     $temPastaXNaUrl = true;
-    $requestPath = substr($requestPath, 2); // Remove o /X inicial, ficando apenas /teste/arquivo
-} elseif ($requestPath === '/X' || $requestPath === '/X/') {
-    $temPastaXNaUrl = true;
-    $requestPath = '/';
+    $requestPath = '/' . $matches[3];
 }
 
 $fileRelPath = sanitizaCaminho(urldecode($requestPath));
@@ -104,7 +101,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $fileDir = dirname($fullPath);
     $fileExists = file_exists($fullPath);
 
-    // Lógica corrigida: Se a URL continha /X/ na frente e o arquivo NÃO existe, cria com 0 bytes imediatamente dentro de BASE_DIR (/X/teste/arquivo)
     if ($temPastaXNaUrl && !$fileExists) {
         if (!is_dir($fileDir)) {
             @mkdir($fileDir, 0777, true);
