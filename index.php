@@ -108,9 +108,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         @mkdir($fileDir, 0777, true);
     }
 
-    // CORREÇÃO: Cria o arquivo de 0 bytes APENAS UMA VEZ caso ele nunca tenha existido.
-    // Se o arquivo já existe (mesmo que com 0 bytes), ele NÃO recria mais, permitindo 
-    // que o seu teste de remoção funcione perfeitamente e dispare o redirecionamento de erro.
     if (!file_exists($fullPath)) {
         @file_put_contents($fullPath, '');
     }
@@ -120,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             @ob_end_clean();
         }
         
-        // Se o arquivo foi removido no teste, dispara o redirecionamento
+        // Se o arquivo de 0 bytes for excluído do nada durante a espera, redireciona para a URL exata solicitada (com /X se veio com /X, ou sem)
         if (!file_exists($fullPath)) {
             header('Content-Type: application/json');
             $currentRequestedUrl = $requestUri;
