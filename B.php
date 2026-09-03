@@ -17,8 +17,8 @@ if (!is_dir(BASE_DIR)) {
 
 $firebaseBaseUrl = 'https://storage-amheex-default-rtdb.firebaseio.com/';
 $raizStorage     = 'X';
-$tempoMinimo     = 5;  // 5 segundos (ignora arquivos do primeiro minuto)
-$tempoMaximo     = 180; // 3 minutos (limite máximo para o upload)
+$tempoMinimo     = 5;  
+$tempoMaximo     = 180; 
 $agora           = time();
 
 function firebase_request($url, $method = 'GET', $data = null) {
@@ -96,7 +96,7 @@ function enviarBackupFirebaseStreaming($fullLocalPath, $relativeFilePath, $fireb
                 break;
             }
             $tentativas++;
-            usleep(500000); // 0.5 segundos
+            usleep(500000); 
         }
 
         if (!$enviadoComSucesso) {
@@ -112,8 +112,10 @@ function enviarBackupFirebaseStreaming($fullLocalPath, $relativeFilePath, $fireb
     return $sucessoGlobal;
 }
 
+// FUNÇÃO DE RESTAURAÇÃO OTIMIZADA PARA MÁXIMA VELOCIDADE
 function restaurarArquivoFirebase($fullLocalPath, $relativeFilePath, $firebaseBaseUrl, $raizStorage) {
     $nodePath = obterNodePathFirebase($relativeFilePath, $raizStorage);
+    // Baixa o nó inteiro de uma só vez (evita requisições HTTP múltiplas por partes)
     $url = $firebaseBaseUrl . $nodePath . '.json';
 
     $resposta = firebase_request($url, 'GET');
@@ -126,11 +128,9 @@ function restaurarArquivoFirebase($fullLocalPath, $relativeFilePath, $firebaseBa
         return false;
     }
 
-    // Ordena as partes (part_1, part_2, ...)
+    // Ordenação rápida das chaves em memória
     uksort($dados, function($a, $b) {
-        $numA = intval(str_replace('part_', '', $a));
-        $numB = intval(str_replace('part_', '', $b));
-        return $numA <=> $numB;
+        return intval(substr($a, 5)) <=> intval(substr($b, 5));
     });
 
     $fileDir = dirname($fullLocalPath);
@@ -144,7 +144,7 @@ function restaurarArquivoFirebase($fullLocalPath, $relativeFilePath, $firebaseBa
     }
 
     $restauradoComSucesso = true;
-    foreach ($dados as $partName => $hexChunk) {
+    foreach ($dados as $hexChunk) {
         if (is_string($hexChunk)) {
             $binaryData = hex2bin($hexChunk);
             if ($binaryData !== false) {
@@ -157,14 +157,10 @@ function restaurarArquivoFirebase($fullLocalPath, $relativeFilePath, $firebaseBa
 
     fclose($handle);
 
-    if ($restauradoComSucesso && file_exists($fullLocalPath) && filesize($fullLocalPath) > 0) {
-        return true;
-    }
-
-    return false;
+    return ($restauradoComSucesso && file_exists($fullLocalPath) && filesize($fullLocalPath) > 0);
 }
 
-echo "Iniciando varredura por arquivos com 0 bytes na pasta /X/ para restauração...\n\n";
+echo "Iniciando varredura por arquivos com 0 bytes na pasta /X/ para restauração ultra rápida...\n\n";
 
 $iteradorRestauracao = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator(BASE_DIR, RecursiveDirectoryIterator::SKIP_DOTS),
@@ -180,13 +176,13 @@ foreach ($iteradorRestauracao as $arquivo) {
         
         if (filesize($fullPath) === 0) {
             $relativeFilePath = str_replace('\\', '/', substr($fullPath, strlen(BASE_DIR) + 1));
-            echo "Encontrado arquivo com 0 bytes: /X/{$relativeFilePath}. Tentando restaurar do Firebase...\n";
+            echo "Restaurando rapidamente: /X/{$relativeFilePath}...\n";
 
             if (restaurarArquivoFirebase($fullPath, $relativeFilePath, $firebaseBaseUrl, $raizStorage)) {
-                echo " [SUCESSO] Arquivo restaurado com sucesso!\n";
+                echo " [SUCESSO] Restaurado!\n";
                 $arquivosRestaurados++;
             } else {
-                echo " [FALHA] Não foi possível restaurar do Firebase (ou dados não encontrados).\n";
+                echo " [FALHA] Erro na restauração.\n";
                 $errosRestauracao++;
             }
         }
@@ -204,13 +200,12 @@ $iteradorBackup = new RecursiveIteratorIterator(
 $arquivosProcessados = 0;
 $errosEncontrados = 0;
 
-echo "Iniciando varredura por arquivos modificados entre 1 e 2 minutos atrás para backup...\n\n";
+echo "Iniciando varredura por arquivos modificados para backup...\n\n";
 
 foreach ($iteradorBackup as $arquivo) {
     if ($arquivo->isFile()) {
         $fullPath = $arquivo->getRealPath();
         
-        // Ignora arquivos vazios no backup
         if (filesize($fullPath) === 0) {
             continue;
         }
@@ -221,15 +216,15 @@ foreach ($iteradorBackup as $arquivo) {
         if ($diferencaTempo > $tempoMinimo && $diferencaTempo <= $tempoMaximo) {
             $relativeFilePath = str_replace('\\', '/', substr($fullPath, strlen(BASE_DIR) + 1));
             
-            echo "Processando: /X/{$relativeFilePath} (modificado há {$diferencaTempo}s)...\n";
+            echo "Processando backup: /X/{$relativeFilePath}...\n";
 
             $sucesso = enviarBackupFirebaseStreaming($fullPath, $relativeFilePath, $firebaseBaseUrl, $raizStorage);
 
             if ($sucesso) {
-                echo " [SUCESSO] Backup enviado para o Firebase.\n";
+                echo " [SUCESSO] Backup enviado.\n";
                 $arquivosProcessados++;
             } else {
-                echo " [FALHA] Erro ao enviar para o Firebase.\n";
+                echo " [FALHA] Erro no backup.\n";
                 $errosEncontrados++;
             }
         }
@@ -237,5 +232,5 @@ foreach ($iteradorBackup as $arquivo) {
 }
 
 echo "\nVarredura de backup concluída.\n";
-echo "Arquivos salvos no Firebase: {$arquivosProcessados}\n";
+echo "Arquivos salvos: {$arquivosProcessados}\n";
 echo "Erros: {$errosEncontrados}\n";
