@@ -220,7 +220,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 window.location.href = blobUrl;
 
                 setTimeout(() => {
-                    window.location.href = redirectUrl;
+                    if (veioComPastaX) {
+                        window.location.reload();
+                    } else {
+                        window.location.href = redirectUrl;
+                    }
                 }, 5000);
             }
 
@@ -234,11 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                         }
                         if (data && data.size > 0) {
                             statusEl.innerText = "Arquivo detectado!";
-                            if (veioComPastaX) {
-                                window.location.reload();
-                            } else {
-                                startDownload();
-                            }
+                            startDownload();
                         } else {
                             setTimeout(pollFileSize, 1000);
                         }
