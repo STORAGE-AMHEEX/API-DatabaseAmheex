@@ -2,18 +2,10 @@ const axios = require("axios");
 const http = require("http");
 const https = require("https");
 
-// Detecta o host/domínio atual do container nas variáveis de ambiente padrão de plataformas (Railway, Render, etc.)
-const currentDomain = 
-    process.env.RAILWAY_PUBLIC_DOMAIN || 
-    process.env.RENDER_EXTERNAL_URL || 
-    process.env.VERCEL_URL || 
-    process.env.HOST || 
-    `localhost:${process.env.PORT || 3000}`;
-
-// URL por argumento ou usa a raiz do domínio atual descoberto
+// URL por argumento
 const targetUrl =
     process.argv[2] ||
-    (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}/B.php` : "http://localhost/B.php");
+    "https://storage-amheex.onrender.com/B.php";
 
 // Timeout de INATIVIDADE
 // Só dispara se parar totalmente de receber dados
@@ -24,8 +16,7 @@ const timeout =
 const restartDelay = 10 * 1000;
 
 console.log("⏰ Sistema iniciado!");
-console.log("🖥️ Domínio atual do container:", currentDomain);
-console.log("🌐 URL alvo da requisição:", targetUrl);
+console.log("🌐 URL:", targetUrl);
 console.log("⏳ Timeout adaptável:", timeout, "ms");
 console.log("🔄 Reinício automático:", restartDelay, "ms");
 
@@ -123,6 +114,16 @@ async function executeRequest() {
 
         restartProcess();
     }
+}
+
+function restartProcess() {
+    console.log(
+        `[${new Date().toISOString()}] 🔄 Reiniciando imediatamente em ${restartDelay}ms...`
+    );
+
+    setTimeout(() => {
+        executeRequest();
+    }, restartDelay);
 }
 
 // Inicializa
