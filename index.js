@@ -13,7 +13,7 @@ const timeout =
     parseInt(process.argv[3]) || 1 * 30 * 60 * 1000;
 
 // Delay após finalizar (ajustado para 5 minutos reais)
-const restartDelay = 10 * 1000;
+const restartDelay = 30 * 1000;
 
 console.log("⏰ Sistema iniciado!");
 console.log("🌐 URL:", targetUrl);
