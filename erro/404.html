@@ -1,1 +1,112 @@
-Arquivo não encontrado!!
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Página Não Encontrada</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #ffffff; /* Fundo Branco */
+            font-family: Arial, sans-serif;
+            color: #333333;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* Desenho da Carinha Triste em CSS com animação RGB */
+        .sad-face {
+            width: 100px;
+            height: 100px;
+            border: 6px solid currentColor;
+            border-radius: 50%;
+            position: relative;
+            animation: rgbShift 8s infinite linear;
+        }
+
+        .eyes {
+            position: absolute;
+            top: 35px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            padding: 0 25px;
+        }
+
+        .eye {
+            width: 12px;
+            height: 12px;
+            background-color: currentColor;
+            border-radius: 50%;
+        }
+
+        .mouth {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 20px;
+            border: 5px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50% 50% 0 0;
+        }
+
+        /* Animação de cores RGB suave para a carinha */
+        @keyframes rgbShift {
+            0%   { color: rgb(255, 0, 0); }
+            17%  { color: rgb(255, 255, 0); }
+            33%  { color: rgb(0, 255, 0); }
+            50%  { color: rgb(0, 255, 255); }
+            67%  { color: rgb(0, 0, 255); }
+            83%  { color: rgb(255, 0, 255); }
+            100% { color: rgb(255, 0, 0); }
+        }
+
+        /* Título 404 estático */
+        .title {
+            font-size: 6rem;
+            font-weight: bold;
+            line-height: 1;
+            color: #111111;
+        }
+
+        .description {
+            font-size: 1.5rem;
+            color: #666666;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="sad-face">
+            <div class="eyes">
+                <div class="eye"></div>
+                <div class="eye"></div>
+            </div>
+            <div class="mouth"></div>
+        </div>
+
+        <h1 class="title">404</h1>
+
+        <p class="description">Arquivo, Não existe!!</p>
+    </div>
+
+</body>
+</html>
