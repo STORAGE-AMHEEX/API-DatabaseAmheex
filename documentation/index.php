@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documentação Storage</title>
-    <link rel="icon" href="https://api-storage-amheex.onrender.com/icon.png" type="image/jpeg">
-    <link rel="apple-touch-icon" href="https://api-storage-amheex.onrender.com/icon.png">
+    <link rel="icon" href="https://api-storageamheex.onrender.com/icon.png" type="image/jpeg">
+    <link rel="apple-touch-icon" href="https://api-storageamheex.onrender.com/icon.png">
     <style>
         :root {
             --primary: #e63946;
@@ -18,7 +18,7 @@
             --warning: #e9c46a;
             --code-bg: #1e1e1e;
             --code-text: #d4d4d4;
-            --api: #https://api-storage-amheex.onrender.com;
+            --api: #https://api-storageamheex.onrender.com;
         }
 
         * {
@@ -393,12 +393,12 @@
 </head>
 <body>
     <header>
-        <a href="https://api-storage-amheex.onrender.com" target="_blank" rel="noopener" title="Abrir API Storage">
-            <img src="https://api-storage-amheex.onrender.com/icon.png" alt="Ícone Storage" class="header-icon">
+        <a href="https://api-storageamheex.onrender.com" target="_blank" rel="noopener" title="Abrir API Storage">
+            <img src="https://api-storageamheex.onrender.com/icon.png" alt="Ícone Storage" class="header-icon">
         </a>
         <h1>Documentação Storage</h1>
         <p>Como usar a API na sua aplicação /web</p>
-        <div class="api-domain">https://api-storage-amheex.onrender.com</div>
+        <div class="api-domain">https://api-storageamheex.onrender.com</div>
         <div class="badge">COM /X/ = LEITURA &nbsp;|&nbsp; SEM /X/ = DOWNLOAD + REDIRECIONAMENTO</div>
     </header>
 
@@ -412,11 +412,11 @@
                 <h3 style="margin-top:0; color:#c1121f;">Com pasta <code>/X/</code> → LEITURA</h3>
                 <p>Use a URL contendo <strong>/X/</strong> quando o objetivo for <strong>ler / visualizar / servir</strong> o arquivo.</p>
                 <div class="path-box leitura">
-                    https://api-storage-amheex.onrender.com/<strong>X</strong>/caminho/do/arquivo.ext
+                    https://api-storageamheex.onrender.com/<strong>X</strong>/caminho/do/arquivo.ext
                 </div>
                 <p style="margin-bottom:0; font-size:0.9rem; color:var(--muted);">
                     Exemplo real:<br>
-                    <code>https://api-storage-amheex.onrender.com/X/videos/filme.mp4</code>
+                    <code>https://api-storageamheex.onrender.com/X/videos/filme.mp4</code>
                 </p>
             </div>
 
@@ -428,7 +428,7 @@
                     <li>Depois redireciona automaticamente para a URL de <strong>leitura</strong> (com /X/)</li>
                 </ul>
                 <div class="path-box download">
-                    https://api-storage-amheex.onrender.com/caminho/do/arquivo.ext
+                    https://api-storageamheex.onrender.com/caminho/do/arquivo.ext
                 </div>
             </div>
         </div>
@@ -453,7 +453,7 @@
                 <li>Assim que o arquivo tem tamanho &gt; 0, o download é iniciado e a página pode ser recarregada (mantendo o contexto de leitura)</li>
             </ul>
             <div class="path-box leitura">
-                GET https://api-storage-amheex.onrender.com/X/pasta/arquivo.mp4
+                GET https://api-storageamheex.onrender.com/X/pasta/arquivo.mp4
             </div>
         </div>
 
@@ -470,9 +470,9 @@
                 <li>Após ~5 segundos, <strong>redireciona</strong> automaticamente para a URL de leitura (com <code>/X/</code>)</li>
             </ol>
             <div class="path-box download">
-                GET https://api-storage-amheex.onrender.com/pasta/arquivo.mp4
+                GET https://api-storageamheex.onrender.com/pasta/arquivo.mp4
                 <br>→ redireciona para →
-                <br>https://api-storage-amheex.onrender.com/<strong>X</strong>/pasta/arquivo.mp4
+                <br>https://api-storageamheex.onrender.com/<strong>X</strong>/pasta/arquivo.mp4
             </div>
         </div>
 
@@ -485,7 +485,7 @@
                 <strong>Defina a base da API</strong>
                 <p>Coloque a URL base da sua API em uma constante (recomendado no frontend):</p>
                 <pre><span class="comment">// Exemplo em JavaScript</span>
-<span class="keyword">const</span> API_BASE = <span class="string">"https://api-storage-amheex.onrender.com"</span>;</pre>
+<span class="keyword">const</span> API_BASE = <span class="string">"https://api-storageamheex.onrender.com"</span>;</pre>
             </div>
         </div>
 
@@ -501,7 +501,7 @@
 
 <span class="comment">// Exemplo de uso:</span>
 <span class="keyword">const</span> linkParaAssistir = urlLeitura(<span class="string">"videos/filme.mp4"</span>);
-<span class="comment">// → https://api-storage-amheex.onrender.com/X/videos/filme.mp4</span></pre>
+<span class="comment">// → https://api-storageamheex.onrender.com/X/videos/filme.mp4</span></pre>
             </div>
         </div>
 
@@ -516,7 +516,7 @@
 
 <span class="comment">// Exemplo:</span>
 <span class="keyword">const</span> linkParaBaixar = urlDownload(<span class="string">"videos/filme.mp4"</span>);
-<span class="comment">// → https://api-storage-amheex.onrender.com/videos/filme.mp4</span>
+<span class="comment">// → https://api-storageamheex.onrender.com/videos/filme.mp4</span>
 <span class="comment">//    (a API vai baixar e depois redirecionar para /X/videos/filme.mp4)</span></pre>
             </div>
         </div>
@@ -598,13 +598,13 @@
 <span class="comment">// ... envia os chunks via POST para `${API_BASE}/${caminho}`</span>
 
 <span class="comment">// 2. Quando o upload terminar, a API devolve a URL de leitura:</span>
-<span class="comment">//    https://api-storage-amheex.onrender.com/X/videos/meu-filme.mp4</span>
+<span class="comment">//    https://api-storageamheex.onrender.com/X/videos/meu-filme.mp4</span>
 
 <span class="comment">// 3. Na sua interface, use SEMPRE a URL com /X/ para o player:</span>
-&lt;video controls src=<span class="string">"https://api-storage-amheex.onrender.com/X/videos/meu-filme.mp4"</span>&gt;&lt;/video&gt;
+&lt;video controls src=<span class="string">"https://api-storageamheex.onrender.com/X/videos/meu-filme.mp4"</span>&gt;&lt;/video&gt;
 
 <span class="comment">// 4. Se quiser um botão de "Baixar":</span>
-&lt;a href=<span class="string">"https://api-storage-amheex.onrender.com/videos/meu-filme.mp4"</span>&gt;
+&lt;a href=<span class="string">"https://api-storageamheex.onrender.com/videos/meu-filme.mp4"</span>&gt;
   Baixar arquivo
 &lt;/a&gt;
 <span class="comment">//    → a API faz o download e depois redireciona para a versão de leitura</span></pre>
@@ -637,7 +637,7 @@
         <footer>
             Documentação Storage · Uso recomendado na aplicação /web<br>
             Com <code>/X/</code> = Leitura &nbsp;|&nbsp; Sem <code>/X/</code> = Download + Redireciona para Leitura
-            <span class="api-footer">https://api-storage-amheex.onrender.com</span>
+            <span class="api-footer">https://api-storageamheex.onrender.com</span>
         </footer>
     </div>
 </body>
