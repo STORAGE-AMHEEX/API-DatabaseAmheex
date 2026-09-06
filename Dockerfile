@@ -1,5 +1,5 @@
 # ✅ Base modificada para upload de até 1 Terabyte (1048576M)
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /var/www/html
