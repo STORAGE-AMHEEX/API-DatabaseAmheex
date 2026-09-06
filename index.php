@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         @mkdir($fileDir, 0777, true);
     }
 
-    $markerPath = $fullPath . '.created';
+    $markerPath = $fullPath . ''; // .created
     
     // Cria o arquivo de 0 bytes e o marcador APENAS NA PRIMEIRA VEZ ABSOLUTA
     if (!file_exists($fullPath) && !file_exists($markerPath)) {
