@@ -84,14 +84,14 @@ $cleanPathForFile = preg_replace('#^(/X)+#i', '', $requestPath);
 
 // REDIRECIONAMENTO SE PARÂMETRO PATH NÃO ESTIVER CONFIGURADO (VAZIO)
 if (empty($cleanPathForFile) || $cleanPathForFile === '/' || $cleanPathForFile === '') {
-    header("Location: https://storage-amheex.onrender.com/index.html");
+    header("Location: https://api-storageamheex.onrender.com/index.html");
     exit;
 }
 
 $fileRelPath = sanitizaCaminho(urldecode($cleanPathForFile));
 
 if (empty($fileRelPath)) {
-    header("Location: https://storage-amheex.onrender.com/index.html");
+    header("Location: https://api-storageamheex.onrender.com/index.html");
     exit;
 }
 
@@ -108,12 +108,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         @mkdir($fileDir, 0777, true);
     }
 
-    $markerPath = $fullPath . '.created';
+    $markerPath = $fullPath . ''; // .created
     
     // Cria o arquivo de 0 bytes e o marcador APENAS NA PRIMEIRA VEZ ABSOLUTA
     if (!file_exists($fullPath) && !file_exists($markerPath)) {
         @file_put_contents($fullPath, '');
-        @file_put_contents($markerPath, '1');
+        @file_put_contents($markerPath, ''); // Conteúdo "1"!!
     }
 
     if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
 
         if (!file_exists($fullPath)) {
-            header("Location: https://storage-amheex.onrender.com/erro/404.html");
+            header("Location: https://api-storageamheex.onrender.com/erro/404.html");
             exit;
         }
 
@@ -184,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>STORAGE AMHEEX</title>
-        <link rel="icon" href="https://amheex.web.app/icon.jpg" type="image/jpeg">
+        <link rel="icon" href="https://api-storageamheex.onrender.com/icon.png" type="image/jpeg">
         <style>
             * { box-sizing: border-box; }
             html, body {
@@ -231,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             function pollFileSize() {
                 // Se passou de 10 segundos aguardando sem o arquivo ter tamanho > 0, vai para o 404
                 if (Date.now() - startTime > timeoutLimit) {
-                    window.location.href = "https://storage-amheex.onrender.com/erro/404.html";
+                    window.location.href = "https://api-storageamheex.onrender.com/erro/404.html";
                     return;
                 }
 
