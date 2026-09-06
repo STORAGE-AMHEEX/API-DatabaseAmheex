@@ -1,644 +1,3104 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documentação Storage</title>
-    <link rel="icon" href="https://api-storageamheex.onrender.com/icon.png" type="image/jpeg">
-    <link rel="apple-touch-icon" href="https://api-storageamheex.onrender.com/icon.png">
-    <style>
-        :root {
-            --primary: #e63946;
-            --primary-dark: #c1121f;
-            --card: rgba(255, 255, 255, 0.92);
-            --text: #1a1a2e;
-            --muted: #555;
-            --border: rgba(0,0,0,0.08);
-            --success: #2a9d8f;
-            --warning: #e9c46a;
-            --code-bg: #1e1e1e;
-            --code-text: #d4d4d4;
-            --api: #https://api-storageamheex.onrender.com;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#ffffff">
+<title>AMHEEX AI</title>
+<link rel="icon" type="image/jpeg" href="https://ai-amheex.onrender.com/icon.png">
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+<style>
+:root{
+  --bg:#fff;
+  --text:#1f1f1f;
+  --muted:#6b6b6b;
+  --soft:#f1f1f1;
+  --soft2:#f7f7f7;
+  --border:#e6e6e6;
+  --accent:#8ab4f8;
+  --user:#f1f1f1;
+  --shadow:0 2px 16px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0}
+body{
+  font-family:Arial,Helvetica,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  overflow:hidden;
+}
+button,input,textarea{font:inherit}
+button{border:0;background:none;color:inherit}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #8ab4f8;outline-offset:2px}
 
-        html {
-            scroll-behavior: smooth;
-        }
+.app{height:100%;display:flex;flex-direction:column;position:relative}
+.topbar{
+  height:64px;flex:0 0 64px;display:flex;align-items:center;
+  padding:0 14px;gap:8px;background:#fff;position:relative;z-index:10;
+}
+.icon-btn{
+  width:42px;height:42px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:24px;cursor:pointer;
+}
+.icon-btn svg,.round-btn svg,.menu-icon svg,.history-icon svg,.drawer-settings svg{
+  width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round;display:block;
+}
+.round-btn svg{width:20px;height:20px}
+.menu-icon,.history-icon{width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.voice-btn{background:transparent}
+.voice-btn:hover{background:#e4e6e7}
+.voice-btn.active{background:#dbe9ff;color:#1a73e8}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            color: var(--text);
-            line-height: 1.6;
-            min-height: 100vh;
-            /* Fundo suave: branco → cinza bem clarinho */
-            background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 50%, #eeeeee 100%);
-            padding: 0;
-        }
+.icon-btn:hover{background:#f2f2f2}
+.brand{
+  min-width:0;display:flex;align-items:center;gap:8px;flex:1;
+}
+.brand-title{
+  font-size:18px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.model-arrow{font-size:18px;color:#555}
+.top-avatar{
+  width:34px;height:34px;border-radius:50%;object-fit:cover;margin-left:4px;
+}
 
-        .container {
-            width: 100%;
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 0 16px 60px;
-        }
+.chat-area{
+  flex:1;overflow-y:auto;scroll-behavior:smooth;
+  padding:22px 18px 150px;position:relative;
+}
+.chat-inner{width:100%;max-width:850px;margin:0 auto}
+.welcome{
+  min-height:calc(100vh - 230px);display:flex;align-items:center;justify-content:center;
+  flex-direction:column;text-align:center;padding:30px 10px;
+}
+.welcome-logo{
+  width:68px;height:68px;border-radius:50%;object-fit:cover;margin-bottom:18px;
+}
+.welcome-title{font-size:32px;font-weight:500;margin:0 0 8px}
+.welcome-sub{font-size:16px;color:var(--muted);margin:0}
 
-        /* ========== HEADER ========== */
-        header {
-            /* Verde fraco no lugar do #28263A (azul marinho) */
-            background: linear-gradient(135deg, #d8f3dc 0%, #b7e4c7 50%, #95d5b2 100%);
-            color: #1b4332;
-            padding: clamp(28px, 6vw, 48px) 20px;
-            margin: 0 0 32px;
-            text-align: center;
-            border-bottom: 4px solid transparent;
-            border-image: linear-gradient(90deg, #ff0000, #00ff00, #0000ff, #ff00ff) 1;
-            position: relative;
-            overflow: hidden;
-        }
+.message-row{display:flex;flex-direction:column;margin:0 0 26px;gap:6px}
+.message-row.user{align-items:flex-end}
+.message-row.ai{align-items:flex-start}
 
-        header::after {
-            content: "";
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #ff0000, #00ff00, #0000ff, #ff00ff, #ff0000);
-            background-size: 300% 100%;
-            animation: rgbBar 6s linear infinite;
-        }
+.message-main{display:flex;gap:12px;max-width:min(82%,760px);width:100%}
+.user .message-main{justify-content:flex-end}
 
-        @keyframes rgbBar {
-            0%   { background-position: 0% 0%; }
-            100% { background-position: 300% 0%; }
-        }
+.message-avatar{
+  width:30px;height:30px;border-radius:50%;object-fit:cover;flex:0 0 30px;
+  margin-top:2px;
+}
+.message-content{min-width:0;flex:1}
+.user .message-content{
+  background:var(--user);border-radius:22px;padding:11px 16px;display:inline-block;max-width:100%;
+}
+.ai .message-content{padding:3px 0;width:100%}
+.message-text{
+  white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;font-size:16px;
+}
+.ai .message-text{font-size:16px}
 
-        .header-icon {
-            width: clamp(56px, 12vw, 80px);
-            height: clamp(56px, 12vw, 80px);
-            border-radius: 16px;
-            object-fit: cover;
-            margin: 0 auto 16px;
-            display: block;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.35);
-            border: 3px solid rgba(255,255,255,0.25);
-            transition: transform 0.25s ease, box-shadow 0.25s ease;
-        }
+/* Estilo Aprimorado e Maior para o Indicador de Arquivo Anexado na Mensagem */
+.message-files-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.message-file-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: #e8f0fe;
+  color: #1a73e8;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  border: 1px solid #d2e3fc;
+  text-decoration: none;
+}
+.message-file-badge svg {
+  width: 28px;
+  height: 28px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
 
-        .header-icon:hover {
-            transform: scale(1.08);
-            box-shadow: 0 6px 28px rgba(0,0,0,0.45);
-        }
+/* Ações das mensagens */
+.message-actions{display:flex;align-items:center;gap:8px;margin-top:6px;padding-left:42px}
+.user-actions{display:flex;align-items:center;gap:8px;margin-top:4px;justify-content:flex-end}
 
-        header h1 {
-            font-size: clamp(1.4rem, 5vw, 2rem);
-            font-weight: 700;
-            margin-bottom: 8px;
-            letter-spacing: -0.5px;
-        }
+.message-action{
+  width:32px;height:32px;border:0;border-radius:50%;background:transparent;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:#555;
+  padding:0;transition:background .15s ease,color .15s ease;
+}
+.message-action svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round;display:block}
+.message-action:hover{background:#f1f1f1;color:#111}
+.message-action.playing{background:#e5f0ff;color:#1a73e8}
+.message-action:disabled{opacity:.35;cursor:default;background:transparent}
+.copy-action.copied{color:#16803a;background:#e8f5e9}
 
-        header p {
-            opacity: 0.9;
-            font-size: clamp(0.95rem, 2.5vw, 1.1rem);
-        }
+.message-time{font-size:11px;color:#8a8a8a;margin-top:2px;padding-left:42px}
+.user .message-time{padding-left:0;text-align:right}
 
-        .api-domain {
-            display: inline-block;
-            margin-top: 14px;
-            background: rgba(255,255,255,0.55);
-            border: 1px solid rgba(27,67,50,0.2);
-            color: #1b4332;
-            font-family: "SF Mono", Consolas, monospace;
-            font-size: clamp(0.8rem, 2.2vw, 0.95rem);
-            padding: 8px 16px;
-            border-radius: 8px;
-            word-break: break-all;
-        }
+/* Estilo para Blocos de Código Aprimorados */
+.code-block-wrapper{
+  background:#1e1e1e;color:#d4d4d4;border-radius:12px;margin:12px 0;overflow:hidden;font-family:Consolas,monaco,monospace;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);
+}
+.code-block-header{
+  display:flex;justify-content:space-between;align-items:center;background:#2d2d2d;padding:8px 14px;color:#9cdcfe;font-size:12px;border-bottom:1px solid #3c3c3c;
+}
+.code-copy-btn{
+  background:transparent;border:1px solid #555;color:#ccc;padding:3px 8px;border-radius:6px;cursor:pointer;font-size:11px;display:flex;align-items:center;gap:4px;transition:all .2s;
+}
+.code-copy-btn:hover{background:#444;color:#fff;border-color:#777}
+.code-copy-btn.copied{background:#16803a;color:#fff;border-color:#16803a}
+.code-block-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.code-preview-overlay{position:fixed;inset:0;z-index:30000;background:rgba(0,0,0,.58);display:flex;align-items:center;justify-content:center;padding:14px}
+.code-preview-modal{width:min(1100px,100%);height:min(86vh,760px);background:#fff;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 18px 60px rgba(0,0,0,.3)}
+.code-preview-header{min-height:48px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #e5e5e5}
+.code-preview-close{border:1px solid #ddd;background:#f6f6f6;border-radius:9px;padding:7px 11px;cursor:pointer;font-size:13px}
+.code-preview-frame{border:0;width:100%;height:100%;background:#fff}
 
-        .badge {
-            display: inline-block;
-            background: linear-gradient(90deg, #2d6a4f, #40916c);
-            color: white;
-            font-size: clamp(0.7rem, 2vw, 0.8rem);
-            font-weight: 600;
-            padding: 6px 14px;
-            border-radius: 20px;
-            margin-top: 14px;
-            letter-spacing: 0.4px;
-        }
+.code-block-body{
+  margin:0;padding:14px 16px;overflow:auto;white-space:pre;line-height:1.5;
+  max-width:100%;-webkit-overflow-scrolling:touch;
+  tab-size:2;
+}
+.code-block-body code{font:inherit;white-space:inherit;display:block;min-width:max-content}
 
-        /* ========== TIPOGRAFIA ========== */
-        h2 {
-            font-size: clamp(1.2rem, 3.5vw, 1.5rem);
-            margin: 36px 0 16px;
-            color: #1a1a2e;
-            border-left: 5px solid transparent;
-            border-image: linear-gradient(180deg, #ff0000, #00ff00, #0000ff) 1;
-            padding-left: 14px;
-        }
+.loading-dots{display:flex;gap:5px;padding:10px 0}
+.loading-dots span{
+  width:7px;height:7px;background:#888;border-radius:50%;
+  animation:bounce 1.2s infinite ease-in-out;
+}
+.loading-dots span:nth-child(2){animation-delay:.15s}
+.loading-dots span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,70%,100%{transform:translateY(0);opacity:.35}35%{transform:translateY(-5px);opacity:1}}
 
-        h3 {
-            font-size: clamp(1.05rem, 3vw, 1.2rem);
-            margin: 24px 0 12px;
-            color: #222;
-        }
+.upload-error-box{position:fixed;left:14px;right:14px;bottom:78px;z-index:50;background:#fff0f0;border:1px solid #ffcaca;color:#b42318;border-radius:12px;padding:9px 12px;font-size:13px;line-height:1.35;box-shadow:0 4px 14px rgba(0,0,0,.1)}
 
-        p, li {
-            margin-bottom: 10px;
-            font-size: clamp(0.92rem, 2.5vw, 1rem);
-        }
+.file-preview-container{
+  position:absolute;bottom:100%;left:14px;right:14px;margin-bottom:8px;
+  background:#fff;border:1px solid var(--border);border-radius:14px;padding:8px 12px;
+  display:flex;flex-direction:column;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.08);z-index:25;
+  display:none;
+}
+.file-preview-container.active{display:flex}
+.file-preview-item{
+  display:flex;align-items:center;gap:10px;background:#f8f9fa;padding:6px 10px;border-radius:8px;border:1px solid #e9ecef;
+}
+.file-preview-icon{
+  width:32px;height:32px;background:#e8f0fe;color:#1a73e8;border-radius:6px;display:flex;align-items:center;justify-content:center;flex:0 0 32px;
+}
+.file-preview-icon.uploading{opacity:.65;animation:fileUploadPulse 1s infinite ease-in-out}
+.file-preview-icon.upload-failed{color:#b42318;background:#fff0f0}
+.file-preview-size.uploading{color:#1a73e8}
+.file-preview-size.upload-failed{color:#b42318}
+@keyframes fileUploadPulse{50%{opacity:.35}}
+.file-preview-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.file-preview-info{flex:1;min-width:0}
+.file-preview-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-preview-size{font-size:11px;color:var(--muted)}
+.file-preview-remove{
+  width:26px;height:26px;border-radius:50%;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#666;
+}
+.file-preview-remove:hover{background:#f1f1f1;color:#d32f2f}
 
-        /* ========== CARDS ========== */
-        .card {
-            background: var(--card);
-            backdrop-filter: blur(8px);
-            border-radius: 14px;
-            padding: clamp(16px, 4vw, 24px);
-            margin: 18px 0;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            border: 1px solid var(--border);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
+.scroll-bottom-btn {
+  position: fixed;
+  right: 24px;
+  bottom: 105px;
+  width: 44px;
+  height: 44px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 25;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.15s ease;
+  color: #555;
+}
+.scroll-bottom-btn.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.scroll-bottom-btn:hover {
+  background: #f7f7f7;
+  color: #111;
+}
+.scroll-bottom-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 28px rgba(0,0,0,0.12);
-        }
+.composer-wrap{
+  position:fixed;left:0;right:0;bottom:0;padding:10px 14px 16px;
+  background:linear-gradient(to top,rgba(255,255,255,1) 65%,rgba(255,255,255,.92),rgba(255,255,255,0));
+  z-index:20;
+}
+.composer{
+  width:100%;max-width:850px;margin:0 auto;min-height:58px;
+  background:#f1f3f4;border-radius:30px;display:flex;align-items:flex-end;
+  padding:8px 10px 8px 16px;gap:8px;box-shadow:var(--shadow);position:relative;
+}
+.composer textarea{
+  flex:1;resize:none;border:0;outline:0;background:transparent;
+  min-height:40px;max-height:130px;padding:9px 0;font-size:16px;line-height:1.35;
+}
+.round-btn{
+  width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:20px;flex:0 0 42px;
+}
+.round-btn:hover{background:#e2e4e5}
+.send-btn{background:#dbe9ff;color:#1a73e8}
+.send-btn:hover{background:#c9ddff}
+.send-btn:disabled{opacity:.45;cursor:not-allowed}
+.plus-btn{font-size:25px}
 
-        .card.highlight {
-            border-left: 5px solid #e63946;
-        }
+.drawer-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;
+  opacity:0;pointer-events:none;transition:.22s ease;
+}
+.drawer-overlay.active{opacity:1;pointer-events:auto}
+.drawer{
+  position:absolute;left:0;top:0;bottom:0;width:min(320px,86vw);
+  background:#fff;transform:translateX(-100%);transition:.25s ease;
+  display:flex;flex-direction:column;padding:12px;
+}
+.drawer-overlay.active .drawer{transform:translateX(0)}
+.drawer-head{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.drawer-head-title{font-size:20px;font-weight:500;flex:1}
+.new-chat{
+  display:flex;align-items:center;gap:12px;width:100%;padding:13px 15px;
+  border-radius:16px;background:#f1f1f1;cursor:pointer;font-size:15px;margin-bottom:12px;
+}
+.new-chat:hover{background:#e9e9e9}
+.history-title{font-size:12px;color:#777;padding:8px 10px;text-transform:uppercase}
+.history{overflow-y:auto;flex:1;min-height:0;padding-right:1px}
+.history-item{
+  position:relative;display:flex;align-items:center;gap:10px;width:100%;
+  padding:11px 42px 11px 11px;border:0;border-radius:13px;text-align:left;
+  cursor:pointer;margin-bottom:3px;background:transparent;color:inherit;
+}
+.history-item:hover,.history-item.active{background:#f1f1f1}
+.history-icon{
+  width:22px;height:22px;flex:0 0 22px;display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.history-icon .history-pin{
+  position:absolute;right:-5px;bottom:-5px;width:13px;height:13px;padding:1px;
+  background:#fff;border-radius:50%;color:#555;display:flex;align-items:center;justify-content:center;
+}
+.history-icon .history-pin svg{
+  width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;
+}
+.history-text{min-width:0;flex:1}
+.history-name{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.history-date{font-size:11px;color:#888;margin-top:3px;display:block}
+.history-more{
+  position:absolute;right:7px;top:50%;transform:translateY(-50%);
+  width:32px;height:32px;border:0;border-radius:50%;background:transparent;
+  color:#555;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;
+}
+.history-more:hover{background:#e5e5e5;color:#111}
+.history-more svg{width:18px;height:18px;fill:currentColor}
 
-        .card.success {
-            border-left: 5px solid var(--success);
-        }
+/* Estilização aprimorada dos ícones no Menu do Histórico */
+.history-menu{
+  position:fixed;z-index:10000;min-width:200px;padding:6px;background:#fff;
+  border:1px solid #e7e7e7;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.16);display:none;
+}
+.history-menu.active{display:block}
+.history-menu button{
+  width:100%;display:flex;align-items:center;gap:12px;padding:10px 12px;border:0;
+  background:transparent;border-radius:10px;color:#333;font-size:13px;text-align:left;cursor:pointer;
+}
+.history-menu button:hover{background:#f2f2f2}
+.history-menu button svg{
+  width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;color:#555;
+}
+.history-menu button.danger{color:#c62828}
+.history-menu button.danger svg{color:#c62828}
+.empty-history{padding:18px 10px;color:#888;font-size:14px;line-height:1.4}
 
-        .card.warning {
-            border-left: 5px solid #f4a261;
-        }
+.custom-dialog-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20000;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+  opacity:0;pointer-events:none;transition:opacity .2s ease;
+}
+.custom-dialog-overlay.active{
+  opacity:1;pointer-events:auto;
+}
+.custom-dialog{
+  width:100%;max-width:380px;background:#fff;border-radius:20px;
+  box-shadow:0 12px 40px rgba(0,0,0,.2);padding:24px;display:flex;
+  flex-direction:column;transform:scale(0.95);transition:transform .2s ease;
+}
+.custom-dialog-overlay.active .custom-dialog{
+  transform:scale(1);
+}
+.custom-dialog-title{
+  font-size:18px;font-weight:600;margin:0 0 16px;color:var(--text);
+}
+.custom-dialog-input{
+  width:100%;padding:12px 16px;border:1px solid var(--border);
+  border-radius:12px;font-size:15px;outline:0;background:#fafafa;
+  margin-bottom:20px;transition:border-color .15s ease,background .15s ease;
+}
+.custom-dialog-input:focus{
+  border-color:#1a73e8;background:#fff;
+}
+.custom-dialog-buttons{
+  display:flex;justify-content:flex-end;gap:10px;
+}
+.custom-dialog-btn{
+  padding:10px 18px;border-radius:10px;font-size:14px;font-weight:500;
+  cursor:pointer;transition:background .15s ease;
+}
+.custom-dialog-btn.cancel{
+  background:#f1f1f1;color:#333;
+}
+.custom-dialog-btn.cancel:hover{
+  background:#e4e4e4;
+}
+.custom-dialog-btn.save{
+  background:#1a73e8;color:#fff;
+}
+.custom-dialog-btn.save:hover{
+  background:#1557b0;
+}
 
-        .grid-2 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 18px;
-            margin: 22px 0;
-        }
+.drawer-foot{
+  position:relative !important;
+  min-height:0 !important;
+  padding:10px 0 0 !important;
+  margin-top:8px !important;
+  border-top:1px solid #eee !important;
+}
+.account{
+  width:100%;
+  min-height:58px;
+  display:flex !important;
+  align-items:center;
+  gap:10px;
+  padding:8px 8px 8px 10px !important;
+  border-radius:14px;
+  background:#fafafa;
+}
+.account img{
+  flex:0 0 36px;
+  width:36px !important;
+  height:36px !important;
+  border-radius:50%;
+  object-fit:cover;
+}
+.account-name{
+  flex:1 1 auto;
+  min-width:0;
+  font-size:14px !important;
+  font-weight:600;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.drawer-settings{
+  position:static !important;
+  flex:0 0 42px;
+  width:42px !important;
+  height:42px !important;
+  margin-left:auto;
+  display:flex !important;
+  align-items:center;
+  justify-content:center;
+  border:0;
+  border-radius:50%;
+  cursor:pointer;
+  color:#555;
+  background:transparent !important;
+  box-shadow:none !important;
+}
+.drawer-settings:hover{background:#eeeeee !important;color:#111}
+.drawer-settings svg{
+  width:22px !important;
+  height:22px !important;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.drawer-settings-label{display:none !important}
 
-        /* ========== PATH BOXES ========== */
-        .path-box {
-            background: #f1f3f5;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 12px 16px;
-            font-family: "SF Mono", "Fira Code", Consolas, monospace;
-            font-size: clamp(0.8rem, 2.2vw, 0.95rem);
-            word-break: break-all;
-            margin: 12px 0;
-        }
+.error-box{
+  background:#fff0f0;border:1px solid #ffd2d2;color:#b42318;padding:12px 14px;
+  border-radius:14px;margin:12px 0;font-size:14px;
+}
+.retry{margin-top:8px;padding:7px 12px;background:#fff;border-radius:10px;cursor:pointer}
 
-        .path-box.leitura {
-            background: #e8f5e9;
-            border-color: #a5d6a7;
-            color: #1b5e20;
-        }
+@media(max-width:600px){
+  .topbar{height:58px;flex-basis:58px;padding:0 9px}
+  .brand-title{font-size:17px}
+  .chat-area{padding:16px 13px 135px}
+  .welcome-title{font-size:28px}
+  .message-main{max-width:90%}
+  .message-text{font-size:15.5px}
+  .composer-wrap{padding:8px 9px 12px}
+  .scroll-bottom-btn{right:18px;bottom:95px}
+}
 
-        .path-box.download {
-            background: #fff3e0;
-            border-color: #ffcc80;
-            color: #e65100;
-        }
+.code-block-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.code-icon-btn,.code-run-btn,.code-download-btn{
+  border:0;border-radius:8px;padding:6px 9px;background:#f2f2f2;color:#222;
+  cursor:pointer;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:5px
+}
+.code-icon-btn{width:32px;height:32px;padding:6px}
+.code-icon-btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8}
+.code-icon-btn.copied{transform:scale(.94)}
+.code-execute-overlay{position:fixed;inset:0;z-index:30000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px}
+.code-execute-modal{width:min(1100px,100%);height:min(88vh,800px);background:#fff;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 18px 60px rgba(0,0,0,.3)}
+.code-execute-bar{min-height:48px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e5e5}
+.code-execute-close{border:1px solid #ddd;background:#f6f6f6;border-radius:9px;padding:7px 11px;cursor:pointer}
+.code-execute-frame{border:0;width:100%;height:100%;background:#fff}
 
-        /* ========== CÓDIGO ========== */
-        code {
-            background: #f1f3f5;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.9em;
-            font-family: "SF Mono", Consolas, monospace;
-        }
+.code-run-btn,.code-download-btn{width:32px;height:32px;padding:6px}
+.code-run-btn svg,.code-download-btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.code-run-btn svg path:first-child{fill:currentColor;stroke:none}
+.code-icon-btn svg{stroke-linecap:round;stroke-linejoin:round}
 
-        pre {
-            background: var(--code-bg);
-            color: var(--code-text);
-            padding: clamp(14px, 3vw, 18px);
-            border-radius: 10px;
-            overflow-x: auto;
-            font-size: clamp(0.78rem, 2vw, 0.88rem);
-            line-height: 1.5;
-            margin: 14px 0;
-            -webkit-overflow-scrolling: touch;
-        }
+.code-download-btn.downloaded{transform:scale(.92);opacity:.7}
 
-        pre .comment { color: #6a9955; }
-        pre .string  { color: #ce9178; }
-        pre .keyword { color: #569cd6; }
+.ai-thinking-loader{
+  display:inline-flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:5px;
+  min-height:22px;
+  padding:3px 0;
+  vertical-align:middle;
+}
+.ai-thinking-loader .dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:currentColor;
+  opacity:.35;
+  animation:aiThinkingDot 1.15s infinite ease-in-out;
+}
+.ai-thinking-loader .dot:nth-child(2){animation-delay:.15s}
+.ai-thinking-loader .dot:nth-child(3){animation-delay:.30s}
+@keyframes aiThinkingDot{
+  0%,60%,100%{transform:translateY(0);opacity:.3}
+  30%{transform:translateY(-5px);opacity:1}
+}
 
-        /* ========== TABELA ========== */
-        .table-wrap {
-            overflow-x: auto;
-            margin: 18px 0;
-            border-radius: 10px;
-            -webkit-overflow-scrolling: touch;
-        }
+.ai-thinking-row{width:100%;margin:0;padding:0}
+.ai-thinking-row .message-main{min-height:28px}
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: clamp(0.85rem, 2.2vw, 0.95rem);
-            min-width: 520px;
-        }
+/* ===== AMHEEX — syntax highlighting dos blocos de código ===== */
+.code-block-wrapper .code-block-body{
+  overflow-x:auto !important;
+  overflow-y:auto;
+  white-space:pre !important;
+  -webkit-overflow-scrolling:touch;
+  max-width:100%;
+  tab-size:2;
+}
+.code-block-wrapper .code-block-body code{
+  display:block;
+  min-width:max-content;
+  white-space:pre !important;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+}
+.code-block-wrapper .tok-keyword{font-weight:700}
+.code-block-wrapper .tok-string{font-style:normal}
+.code-block-wrapper .tok-comment{font-style:italic;opacity:.72}
+.code-block-wrapper .tok-number{font-weight:600}
+.code-block-wrapper .tok-function{font-weight:600}
+.code-block-wrapper .tok-tag{font-weight:700}
+.code-block-wrapper .tok-tagline{font-weight:500}
+.code-block-wrapper .tok-attr{font-weight:600}
+.code-block-wrapper .tok-property{font-weight:600}
 
-        th, td {
-            padding: 12px 14px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
 
-        th {
-            background: #f1f3f5;
-            font-weight: 600;
-            color: #333;
-            white-space: nowrap;
-        }
+.code-block-wrapper .tok-keyword{color:#c586c0;font-weight:700}
+.code-block-wrapper .tok-string{color:#ce9178}
+.code-block-wrapper .tok-comment{color:#6a9955;font-style:italic}
+.code-block-wrapper .tok-number{color:#b5cea8}
+.code-block-wrapper .tok-function{color:#dcdcaa}
+.code-block-wrapper .tok-tag{color:#569cd6;font-weight:700}
+.code-block-wrapper .tok-tagline{color:#9cdcfe}
+.code-block-wrapper .tok-attr{color:#9cdcfe;font-weight:600}
+.code-block-wrapper .tok-property{color:#9cdcfe;font-weight:600}
 
-        tr:hover td {
-            background: rgba(0,0,0,0.02);
-        }
+/* ===== AMHEEX — URLs clicáveis + toque longo para copiar ===== */
+.message-url{
+  color:#1683ff;
+  text-decoration:underline;
+  text-decoration-thickness:1.5px;
+  text-underline-offset:2px;
+  cursor:pointer;
+  overflow-wrap:anywhere;
+  -webkit-tap-highlight-color:transparent;
+  transition:opacity .12s ease,background-color .12s ease;
+}
+.message-url:hover{opacity:.82}
+.message-url:active{opacity:.65}
+.message-url.url-copied{
+  background:rgba(22,131,255,.14);
+  border-radius:4px;
+  text-decoration:none;
+}
 
-        /* ========== STEPS ========== */
-        .step {
-            display: flex;
-            gap: 14px;
-            margin-bottom: 20px;
-            align-items: flex-start;
-        }
 
-        .step-number {
-            flex-shrink: 0;
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #e63946, #457b9d);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.95rem;
-        }
+.inline-code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  font-size:.92em;
+  padding:2px 5px;
+  border-radius:5px;
+  background:rgba(127,127,127,.14);
+}
+.message-content strong{font-weight:700;}
+.message-content em{font-style:italic;}
+.message-content del{text-decoration:line-through;}
 
-        .step-content {
-            flex: 1;
-            min-width: 0;
-        }
 
-        /* ========== ALERTAS ========== */
-        .alert {
-            padding: 14px 16px;
-            border-radius: 8px;
-            margin: 14px 0;
-            font-size: clamp(0.88rem, 2.3vw, 0.95rem);
-        }
+.amheex-url{
+  color:#1683ff;
+  text-decoration:underline;
+  text-decoration-thickness:1px;
+  text-underline-offset:2px;
+  cursor:pointer;
+  overflow-wrap:anywhere;
+  -webkit-touch-callout:none;
+}
+.amheex-url:hover{filter:brightness(1.12);}
+.amheex-url.url-copied{
+  text-decoration-thickness:2px;
+  opacity:.75;
+}
 
-        .alert-info {
-            background: #e3f2fd;
-            border-left: 4px solid #1976d2;
-            color: #0d47a1;
-        }
 
-        .alert-success {
-            background: #e8f5e9;
-            border-left: 4px solid #2e7d32;
-            color: #1b5e20;
-        }
+.message-text .markdown-paragraph{display:block;margin:0 0 10px;}
+.message-text .markdown-heading{margin:16px 0 8px;line-height:1.25;font-weight:700;}
+.message-text h1.markdown-heading{font-size:1.55em}.message-text h2.markdown-heading{font-size:1.35em}.message-text h3.markdown-heading{font-size:1.18em}
+.message-text .markdown-list{margin:6px 0 12px;padding-left:26px}.message-text .markdown-list li{margin:4px 0}
+.message-text .markdown-quote{margin:8px 0;padding:7px 12px;border-left:3px solid currentColor;opacity:.82}
+.message-text .markdown-table{width:100%;max-width:100%;border-collapse:collapse;margin:12px 0 16px;font-size:.96em}
+.message-text .markdown-table th,.message-text .markdown-table td{border:1px solid rgba(127,127,127,.3);padding:8px 10px;text-align:left;vertical-align:top}
+.message-text .markdown-table th{font-weight:700}.message-text hr{border:0;border-top:1px solid rgba(127,127,127,.35);margin:14px 0}
 
-        .alert-warning {
-            background: #fff8e1;
-            border-left: 4px solid #f9a825;
-            color: #e65100;
-        }
-
-        /* ========== TAGS ========== */
-        .tag {
-            display: inline-block;
-            font-size: 0.72rem;
-            font-weight: 600;
-            padding: 3px 8px;
-            border-radius: 4px;
-            margin-right: 6px;
-            white-space: nowrap;
-        }
-
-        .tag-get     { background: #e3f2fd; color: #1565c0; }
-        .tag-post    { background: #fce4ec; color: #c2185b; }
-        .tag-leitura { background: #e8f5e9; color: #2e7d32; }
-        .tag-download{ background: #fff3e0; color: #ef6c00; }
-
-        ul {
-            padding-left: 22px;
-            margin-bottom: 14px;
-        }
-
-        /* ========== FOOTER ========== */
-        footer {
-            text-align: center;
-            margin-top: 50px;
-            padding: 24px 16px 10px;
-            border-top: 1px solid rgba(0,0,0,0.1);
-            color: var(--muted);
-            font-size: clamp(0.8rem, 2vw, 0.9rem);
-        }
-
-        footer .api-footer {
-            display: block;
-            margin-top: 8px;
-            font-family: "SF Mono", Consolas, monospace;
-            color: #0e7490;
-            word-break: break-all;
-        }
-
-        /* ========== RESPONSIVO EXTRA ========== */
-        @media (max-width: 600px) {
-            header {
-                margin-left: -16px;
-                margin-right: -16px;
-                border-radius: 0;
-            }
-
-            .card {
-                border-radius: 10px;
-            }
-
-            .step {
-                gap: 10px;
-            }
-
-            th, td {
-                padding: 10px 10px;
-            }
-        }
-
-        @media (max-width: 400px) {
-            .container {
-                padding: 0 12px 50px;
-            }
-        }
-    </style>
+</style>
 </head>
+
 <body>
-    <header>
-        <a href="https://api-storageamheex.onrender.com" target="_blank" rel="noopener" title="Abrir API Storage">
-            <img src="https://api-storageamheex.onrender.com/icon.png" alt="Ícone Storage" class="header-icon">
-        </a>
-        <h1>Documentação Storage</h1>
-        <p>Como usar a API na sua aplicação /web</p>
-        <div class="api-domain">https://api-storageamheex.onrender.com</div>
-        <div class="badge">COM /X/ = LEITURA &nbsp;|&nbsp; SEM /X/ = DOWNLOAD + REDIRECIONAMENTO</div>
-    </header>
+<div class="app">
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Abrir menu" title="Menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <div class="brand">
+      <span class="brand-title">AMHEEX AI</span>
+      <span class="model-arrow">⌄</span>
+    </div>
+    <button class="icon-btn" id="newTopBtn" aria-label="Nova conversa" title="Nova conversa">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    </button>
+    <img id="topAvatar" class="top-avatar" src="https://ai-amheex.onrender.com/icon.png" alt="AMHEEX">
+  </header>
 
-    <div class="container">
+  <main class="chat-area" id="chatArea">
+    <div class="chat-inner" id="chatInner"></div>
+  </main>
 
-        <!-- RESUMO RÁPIDO -->
-        <h2>Resumo Rápido (o mais importante)</h2>
+  <button class="scroll-bottom-btn" id="scrollBottomBtn" type="button" title="Ir para baixo" aria-label="Ir para baixo">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+  </button>
 
-        <div class="grid-2">
-            <div class="card highlight">
-                <h3 style="margin-top:0; color:#c1121f;">Com pasta <code>/X/</code> → LEITURA</h3>
-                <p>Use a URL contendo <strong>/X/</strong> quando o objetivo for <strong>ler / visualizar / servir</strong> o arquivo.</p>
-                <div class="path-box leitura">
-                    https://api-storageamheex.onrender.com/<strong>X</strong>/caminho/do/arquivo.ext
-                </div>
-                <p style="margin-bottom:0; font-size:0.9rem; color:var(--muted);">
-                    Exemplo real:<br>
-                    <code>https://api-storageamheex.onrender.com/X/videos/filme.mp4</code>
-                </p>
-            </div>
+  <div class="composer-wrap">
+    <input type="file" id="fileInput" accept=".html,.htm,.php,.txt,.css,.js,.jsx,.ts,.tsx,.json,.xml,.md,.py,.java,.c,.cpp,.h,.hpp,.cs,.go,.rs,.rb,.swift,.kt,.kts,.sql,.sh,.bash,.yml,.yaml,.ini,.conf,.log,.zip" multiple style="display:none">
+    <div class="file-preview-container" id="filePreviewContainer"></div>
 
-            <div class="card warning">
-                <h3 style="margin-top:0; color:#e65100;">Sem pasta <code>/X/</code> → DOWNLOAD + REDIRECIONA</h3>
-                <p>Quando a URL <strong>não</strong> contém <code>/X/</code>, a API:</p>
-                <ul style="margin-bottom:8px;">
-                    <li>Inicia o <strong>download</strong> do arquivo</li>
-                    <li>Depois redireciona automaticamente para a URL de <strong>leitura</strong> (com /X/)</li>
-                </ul>
-                <div class="path-box download">
-                    https://api-storageamheex.onrender.com/caminho/do/arquivo.ext
-                </div>
-            </div>
-        </div>
+    <div class="composer">
+      <button class="round-btn plus-btn" id="plusBtn" type="button" title="Adicionar arquivos (.html, .php, .txt - máx. 3)" aria-label="Adicionar arquivos">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <textarea id="promptInput" rows="1" placeholder="Pergunte à AMHEEX AI..." autocomplete="off"></textarea>
+      <button class="round-btn voice-btn" id="voiceBtn" type="button" title="Conversar por voz" aria-label="Conversar por voz">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Zm-7-3a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg>
+      </button>
+      <button class="round-btn send-btn" id="sendBtn" type="button" title="Enviar" aria-label="Enviar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 4 17 8-17 8 3-8-3-8Zm3 8h14"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
 
-        <div class="alert alert-info">
-            <strong>Regra de ouro para a aplicação /web:</strong><br>
-            • Para <strong>exibir / reproduzir / ler</strong> o arquivo → sempre use a URL <strong>com /X/</strong><br>
-            • Para forçar o <strong>download</strong> e depois ir para a leitura → use a URL <strong>sem /X/</strong>
-        </div>
+<div class="drawer-overlay" id="drawerOverlay">
+  <aside class="drawer" id="drawer">
+    <div class="drawer-head">
+      <span class="drawer-head-title">AMHEEX</span>
+      <button class="icon-btn" id="closeDrawer" aria-label="Fechar menu" title="Fechar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
 
-        <!-- COMPORTAMENTO DETALHADO -->
-        <h2>Comportamento detalhado da API</h2>
+    <button class="new-chat" id="newChatBtn">
+      <span class="menu-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </span>
+      <span>Nova conversa</span>
+    </button>
 
-        <div class="card">
-            <h3>1. URL com <code>/X/</code> (Leitura)</h3>
-            <p>
-                Quando a requisição chega com a pasta <code>/X/</code> explicitamente na URL, a API trata como caminho de <strong>leitura</strong>.
-            </p>
-            <ul>
-                <li>O arquivo é localizado dentro da pasta <code>X/</code> no servidor</li>
-                <li>A página de loading é exibida enquanto verifica o tamanho do arquivo</li>
-                <li>Assim que o arquivo tem tamanho &gt; 0, o download é iniciado e a página pode ser recarregada (mantendo o contexto de leitura)</li>
-            </ul>
-            <div class="path-box leitura">
-                GET https://api-storageamheex.onrender.com/X/pasta/arquivo.mp4
-            </div>
-        </div>
+    <div class="history-title">Recentes</div>
+    <div class="history" id="historyList"></div>
+    
+    <!-- Menu de 3 pontinhos atualizado com ícones SVG modernos -->
+    <div class="history-menu" id="historyMenu" role="menu">
+      <button type="button" data-action="rename">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+        <span>Trocar nome</span>
+      </button>
+      <button type="button" data-action="up">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+        <span>Mover para cima</span>
+      </button>
+      <button type="button" data-action="down">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+        <span>Mover para baixo</span>
+      </button>
+      <button type="button" data-action="pin">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-.11.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
+        <span>Fixar conversa</span>
+      </button>
+      <button type="button" data-action="delete" class="danger">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        <span>Excluir conversa</span>
+      </button>
+    </div>
 
-        <div class="card">
-            <h3>2. URL sem <code>/X/</code> (Download + Redirecionamento para Leitura)</h3>
-            <p>
-                Quando a URL <strong>não</strong> contém a pasta <code>/X/</code>, a API:
-            </p>
-            <ol>
-                <li>Cria o arquivo vazio (se ainda não existir) e o marcador <code>.created</code></li>
-                <li>Mostra a tela de “Aguardando arquivo...”</li>
-                <li>Faz polling no tamanho do arquivo</li>
-                <li>Quando o arquivo tem conteúdo, inicia o <strong>download</strong></li>
-                <li>Após ~5 segundos, <strong>redireciona</strong> automaticamente para a URL de leitura (com <code>/X/</code>)</li>
-            </ol>
-            <div class="path-box download">
-                GET https://api-storageamheex.onrender.com/pasta/arquivo.mp4
-                <br>→ redireciona para →
-                <br>https://api-storageamheex.onrender.com/<strong>X</strong>/pasta/arquivo.mp4
-            </div>
-        </div>
+    <div class="drawer-foot">
+      <div class="account">
+        <img id="drawerAvatar" src="https://ai-amheex.onrender.com/icon.png" alt="AMHEEX AI">
+        <div class="account-name" id="accountName">AMHEEX AI</div>
 
-        <!-- COMO USAR NA APP -->
-        <h2>Como instalar / usar na sua aplicação /web</h2>
+        <button class="drawer-settings" id="settingsBtn" type="button" title="Configurações" aria-label="Configurações">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9.5 3.7h5l.6 2.1c.5.2 1 .5 1.4.8l2-.7 2.5 4.3-1.7 1.3a7.2 7.2 0 0 1 0 1.7l1.7 1.3-2.5 4.3-2-.7c-.4.3-.9.6-1.4.8l-.6 2.1h-5l-.6-2.1c-.5-.2-1-.5-1.4-.8l-2 .7-2.5-4.3 1.7-1.3a7.2 7.2 0 0 1 0-1.7L3 10.2l2.5-4.3 2 .7c.4-.3.9-.6 1.4-.8l-.6-2.1Z"/>
+            <circle cx="12" cy="12.3" r="2.6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+</div>
 
-        <div class="step">
-            <div class="step-number">1</div>
-            <div class="step-content">
-                <strong>Defina a base da API</strong>
-                <p>Coloque a URL base da sua API em uma constante (recomendado no frontend):</p>
-                <pre><span class="comment">// Exemplo em JavaScript</span>
-<span class="keyword">const</span> API_BASE = <span class="string">"https://api-storageamheex.onrender.com"</span>;</pre>
-            </div>
-        </div>
+<div class="custom-dialog-overlay" id="renameDialogOverlay">
+  <div class="custom-dialog">
+    <div class="custom-dialog-title">Renomear Conversa</div>
+    <input type="text" class="custom-dialog-input" id="renameInput" placeholder="Digite aqui, Nome..." autocomplete="off">
+    <div class="custom-dialog-buttons">
+      <button type="button" class="custom-dialog-btn cancel" id="renameCancelBtn">Fechar</button>
+      <button type="button" class="custom-dialog-btn save" id="renameSaveBtn">Salvar</button>
+    </div>
+  </div>
+</div>
 
-        <div class="step">
-            <div class="step-number">2</div>
-            <div class="step-content">
-                <strong>Montar URL de LEITURA (sempre com /X/)</strong>
-                <p>Use esta URL quando quiser que o usuário <strong>veja / reproduza</strong> o arquivo:</p>
-                <pre><span class="keyword">function</span> urlLeitura(caminhoRelativo) {
-  <span class="comment">// caminhoRelativo = "videos/filme.mp4"  (sem barra no início)</span>
-  <span class="keyword">return</span> `${API_BASE}/X/${caminhoRelativo}`;
+<script>
+let audioAtual = null;
+
+const STORAGE_BASE = "https://api-storageamheex.onrender.com/AMHEEX/AI/CHAT";
+const DEFAULT_ICON = "https://ai-amheex.onrender.com/icon.png";
+
+const menuBtn = document.getElementById("menuBtn");
+const newTopBtn = document.getElementById("newTopBtn");
+const newChatBtn = document.getElementById("newChatBtn");
+const closeDrawer = document.getElementById("closeDrawer");
+const drawerOverlay = document.getElementById("drawerOverlay");
+const chatInner = document.getElementById("chatInner");
+const chatArea = document.getElementById("chatArea");
+const promptInput = document.getElementById("promptInput");
+const sendBtn = document.getElementById("sendBtn");
+const voiceBtn = document.getElementById("voiceBtn");
+const settingsBtn = document.getElementById("settingsBtn");
+const historyList = document.getElementById("historyList");
+const topAvatar = document.getElementById("topAvatar");
+const drawerAvatar = document.getElementById("drawerAvatar");
+const accountName = document.getElementById("accountName");
+const scrollBottomBtn = document.getElementById("scrollBottomBtn");
+
+const plusBtn = document.getElementById("plusBtn");
+const fileInput = document.getElementById("fileInput");
+const filePreviewContainer = document.getElementById("filePreviewContainer");
+
+const renameDialogOverlay = document.getElementById("renameDialogOverlay");
+const renameInput = document.getElementById("renameInput");
+const renameCancelBtn = document.getElementById("renameCancelBtn");
+const renameSaveBtn = document.getElementById("renameSaveBtn");
+
+const params = new URLSearchParams(location.search);
+const USER_TOKEN = params.get("token") || "";
+
+let chats = [];
+let activeChatId = null;
+let waiting = false;
+let editingChatId = null;
+
+let selectedFiles = [];
+
+function esc(value){
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[c]));
 }
 
-<span class="comment">// Exemplo de uso:</span>
-<span class="keyword">const</span> linkParaAssistir = urlLeitura(<span class="string">"videos/filme.mp4"</span>);
-<span class="comment">// → https://api-storageamheex.onrender.com/X/videos/filme.mp4</span></pre>
-            </div>
-        </div>
-
-        <div class="step">
-            <div class="step-number">3</div>
-            <div class="step-content">
-                <strong>Montar URL de DOWNLOAD (sem /X/)</strong>
-                <p>Use esta URL quando quiser forçar o download e depois redirecionar para a leitura:</p>
-                <pre><span class="keyword">function</span> urlDownload(caminhoRelativo) {
-  <span class="keyword">return</span> `${API_BASE}/${caminhoRelativo}`;
+function tokenOk(){
+  return USER_TOKEN.trim().length > 0;
 }
 
-<span class="comment">// Exemplo:</span>
-<span class="keyword">const</span> linkParaBaixar = urlDownload(<span class="string">"videos/filme.mp4"</span>);
-<span class="comment">// → https://api-storageamheex.onrender.com/videos/filme.mp4</span>
-<span class="comment">//    (a API vai baixar e depois redirecionar para /X/videos/filme.mp4)</span></pre>
-            </div>
-        </div>
+function storageUrl(forDownload = false){
+  if(!tokenOk()) return null;
+  const base = `${STORAGE_BASE}/${encodeURIComponent(USER_TOKEN)}/index.json`;
+  // Leitura no browser: usar ?download=1 (padrão do login/index.js / storage AMHEEX)
+  // para garantir CORS e conteúdo bruto do JSON.
+  return forDownload ? `${base}?download=1` : base;
+}
 
-        <div class="step">
-            <div class="step-number">4</div>
-            <div class="step-content">
-                <strong>Upload de arquivos (POST – chunks)</strong>
-                <p>A API aceita upload em chunks via <code>POST</code>. Exemplo básico com FormData:</p>
-                <pre><span class="keyword">async function</span> enviarChunk(caminhoRelativo, chunk, index, totalChunks) {
-  <span class="keyword">const</span> form = <span class="keyword">new</span> FormData();
-  form.append(<span class="string">"chunkIndex"</span>, index);
-  form.append(<span class="string">"totalChunks"</span>, totalChunks);
-  form.append(<span class="string">"file"</span>, chunk);
+function makeId(){
+  return "chat_" + Date.now().toString(36) + "_" +
+    Math.random().toString(36).slice(2,8);
+}
 
-  <span class="keyword">const</span> response = <span class="keyword">await</span> fetch(`${API_BASE}/${caminhoRelativo}`, {
-    method: <span class="string">"POST"</span>,
-    body: form
+function nowIso(){
+  return new Date().toISOString();
+}
+
+function formatDate(value){
+  if(!value) return "";
+  const d = new Date(value);
+  if(Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("pt-BR", {
+    day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit"
+  });
+}
+
+function titleFromText(text){
+  const clean = String(text || "").replace(/\s+/g," ").trim();
+  if(!clean) return "Nova conversa";
+  return clean.length > 42 ? clean.slice(0,42).trim() + "…" : clean;
+}
+
+function normalizeHistory(data){
+  if(Array.isArray(data)) return { chats:data };
+  return { 
+    chats: Array.isArray(data?.chats) ? data.chats : (Array.isArray(data?.historico) ? data.historico : (Array.isArray(data?.conversas) ? data.conversas : []))
+  };
+}
+
+function normalizeChat(chat){
+  const messages = Array.isArray(chat.mensagens)
+    ? chat.mensagens
+    : (Array.isArray(chat.messages) ? chat.messages : []);
+
+  return {
+    id: String(chat.id || chat.token || makeId()),
+    titulo: String(chat.titulo || chat.title || "Nova conversa"),
+    criado_em: chat.criado_em || chat.created_at || nowIso(),
+    atualizado_em: chat.atualizado_em || chat.updated_at || nowIso(),
+    fixado: Boolean(chat.fixado ?? chat.pinned ?? false),
+    ordem: Number.isFinite(Number(chat.ordem)) ? Number(chat.ordem) : 0,
+    mensagens: messages.map(m => ({
+      role: m.role === "user" ? "user" : "assistant",
+      text: String(m.text ?? m.content ?? m.mensagem ?? ""),
+      audio_url: String(m.audio_url ?? m.audioUrl ?? ""),
+      file_name: String(m.file_name ?? m.fileName ?? ""),
+      files: Array.isArray(m.files) ? m.files : [],
+      timestamp: m.timestamp || m.data || nowIso()
+    }))
+  };
+}
+
+plusBtn.addEventListener("click", () => {
+  if(fileInput) fileInput.click();
+});
+
+fileInput.addEventListener("change", async (e) => {
+  const incomingFiles = Array.from(e.target.files || []);
+  if(!incomingFiles.length) return;
+
+  const MAX_FILES = 3;
+  const MAX_BYTES = 1024 * 1024;
+
+  // Restrições originais: imagens/vídeos continuam proibidos.
+  const badExt = /\.(?:jpe?g|png|gif|webp|bmp|svg|ico|tiff?|heic|heif|avif|mp4|webm|mov|avi|mkv|m4v|3gp|mpeg|mpg|wmv)$/i;
+
+  if(selectedFiles.length + incomingFiles.length > MAX_FILES){
+    showUploadError("Upload recusado: máximo de 3 arquivos por mensagem.");
+    fileInput.value = "";
+    return;
+  }
+
+  for(const file of incomingFiles){
+    if(file.size > MAX_BYTES){
+      showUploadError(`Upload recusado: "${file.name}" ultrapassa 1 MB.`);
+      continue;
+    }
+
+    if(/^image\//i.test(file.type) || /^video\//i.test(file.type) || badExt.test(file.name)){
+      showUploadError(`Upload recusado: imagens e vídeos não são permitidos ("${file.name}").`);
+      continue;
+    }
+
+    // Validação de ZIP preservada.
+    if(/\.zip$/i.test(file.name)){
+      try {
+        const b = await file.arrayBuffer();
+        const v = new DataView(b);
+        const u = new Uint8Array(b);
+        let eocd = -1;
+
+        for(let i=u.length-22; i>=Math.max(0,u.length-65557); i--){
+          if(u[i]===80 && u[i+1]===75 && u[i+2]===5 && u[i+3]===6){
+            eocd=i;
+            break;
+          }
+        }
+
+        if(eocd < 0) throw new Error("ZIP inválido ou corrompido.");
+
+        const n = v.getUint16(eocd+10,true);
+        if(n > MAX_FILES){
+          throw new Error(`o ZIP contém ${n} arquivos; o máximo permitido é 3.`);
+        }
+
+        let off = v.getUint32(eocd+16,true);
+
+        for(let j=0; j<n; j++){
+          if(off + 46 > u.length || v.getUint32(off,true)!==0x02014b50){
+            throw new Error("não foi possível validar o ZIP.");
+          }
+
+          const nl=v.getUint16(off+28,true);
+          const xl=v.getUint16(off+30,true);
+          const cl=v.getUint16(off+32,true);
+          const name=new TextDecoder().decode(u.slice(off+46,off+46+nl)).replace(/\\/g,"/");
+
+          if(badExt.test(name)){
+            throw new Error(`o ZIP contém imagem/vídeo não permitido: ${name.split("/").pop()}.`);
+          }
+
+          off += 46+nl+xl+cl;
+          if(off > u.length) throw new Error("ZIP inválido ou corrompido.");
+        }
+      } catch(err) {
+        showUploadError(`Erro no ZIP "${file.name}": ${err?.message || "arquivo inválido."}`);
+        continue;
+      }
+    }
+
+    // Cria a entrada antes do PUT para o usuário sempre ver o arquivo
+    // na área acima do campo de pergunta.
+    const localId = `file_${Date.now()}_${Math.random().toString(36).slice(2,9)}`;
+    const timestampPasta = Date.now() + "_" + Math.random().toString(36).slice(2,7);
+    const storageFileUrl =
+      `https://api-storageamheex.onrender.com/AMHEEX/AI/FILES/${timestampPasta}/${encodeURIComponent(file.name)}`;
+
+    const pendingFile = {
+      id: localId,
+      name: file.name,
+      size: file.size,
+      type: file.type || "application/octet-stream",
+      url: "",
+      uploadUrl: storageFileUrl,
+      uploading: true,
+      uploadError: false
+    };
+
+    selectedFiles.push(pendingFile);
+    renderFilePreviews();
+
+    try {
+      const putRes = await fetch(storageFileUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream"
+        },
+        body: file,
+        cache: "no-store"
+      });
+
+      if(!putRes.ok){
+        throw new Error(`servidor HTTP ${putRes.status}`);
+      }
+
+      const saved = selectedFiles.find(f => f.id === localId);
+      if(saved){
+        saved.url = storageFileUrl;
+        saved.uploading = false;
+        saved.uploadError = false;
+        saved.uploadUrl = "";
+      }
+
+      renderFilePreviews();
+    } catch(err){
+      // Mantém a entrada visível para deixar claro qual arquivo falhou.
+      // O arquivo com erro não será enviado para a API.
+      const failed = selectedFiles.find(f => f.id === localId);
+      if(failed){
+        failed.uploading = false;
+        failed.uploadError = true;
+        failed.url = "";
+        failed.uploadErrorMessage = err?.message || "não foi possível enviar o arquivo.";
+      }
+
+      renderFilePreviews();
+      showUploadError(`Erro de upload "${file.name}": ${err?.message || "não foi possível enviar o arquivo."}`);
+    }
+  }
+
+  fileInput.value = "";
+  renderFilePreviews();
+});
+
+function showUploadError(message){
+  document.querySelector(".upload-error-box")?.remove();
+  const box=document.createElement("div"); box.className="upload-error-box"; box.textContent=message;
+  document.querySelector(".composer-wrap")?.prepend(box);
+  setTimeout(()=>box.remove(),7000);
+}
+
+function renderFilePreviews(){
+  filePreviewContainer.innerHTML = "";
+
+  if(selectedFiles.length === 0){
+    filePreviewContainer.classList.remove("active");
+    resizeComposer();
+    return;
+  }
+
+  filePreviewContainer.classList.add("active");
+
+  selectedFiles.forEach((f, idx) => {
+    const item = document.createElement("div");
+    item.className = "file-preview-item";
+
+    const statusText = f.uploading
+      ? "Enviando..."
+      : (f.uploadError ? "Falha no upload" : `${(Number(f.size || 0) / 1024).toFixed(1)} KB`);
+
+    const statusClass = f.uploading ? " uploading" : (f.uploadError ? " upload-failed" : "");
+
+    item.innerHTML = `
+      <div class="file-preview-icon${statusClass}">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+      </div>
+      <div class="file-preview-info">
+        <div class="file-preview-name">${esc(f.name)}</div>
+        <div class="file-preview-size${statusClass}">${esc(statusText)}</div>
+      </div>
+      <button class="file-preview-remove" type="button" title="Remover arquivo" aria-label="Remover arquivo">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    `;
+
+    item.querySelector(".file-preview-remove").addEventListener("click", () => {
+      selectedFiles.splice(idx, 1);
+      renderFilePreviews();
+    });
+
+    filePreviewContainer.appendChild(item);
   });
 
-  <span class="keyword">const</span> texto = <span class="keyword">await</span> response.text();
-  <span class="keyword">return</span> texto; <span class="comment">// "chunk_ok" ou a URL pública final</span>
-}</pre>
-                <div class="alert alert-success" style="margin-top:12px;">
-                    Quando o último chunk é enviado com sucesso, a API retorna a URL pública de leitura (já com <code>/X/</code>).
-                </div>
-            </div>
+  resizeComposer();
+}
+
+
+chatArea.addEventListener("scroll", () => {
+  const distanceToBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight;
+  if(distanceToBottom > 150){
+    scrollBottomBtn.classList.add("visible");
+  }else{
+    scrollBottomBtn.classList.remove("visible");
+  }
+});
+
+scrollBottomBtn.addEventListener("click", () => {
+  scrollBottom();
+});
+
+function showAiThinkingLoader(){
+  hideAiThinkingLoader();
+
+  const loader = document.createElement("div");
+  loader.id = "ai-thinking-loader";
+  loader.className = "message-row ai-thinking-row";
+
+  const main = document.createElement("div");
+  main.className = "message-main";
+
+  const avatar = document.createElement("img");
+  avatar.className = "message-avatar";
+  avatar.src = typeof DEFAULT_ICON !== "undefined" ? DEFAULT_ICON : "";
+  avatar.alt = "AMHEEX";
+
+  const bubble = document.createElement("div");
+  bubble.className = "message-content";
+
+  const dots = document.createElement("div");
+  dots.className = "ai-thinking-loader";
+  dots.setAttribute("aria-label", "Carregando resposta");
+  dots.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+
+  bubble.appendChild(dots);
+  main.append(avatar, bubble);
+  loader.appendChild(main);
+
+  if(typeof chatInner !== "undefined"){
+    chatInner.appendChild(loader);
+  }
+
+  return loader;
+}
+
+function hideAiThinkingLoader(){
+  const old = document.getElementById("ai-thinking-loader");
+  if(old) old.remove();
+}
+
+async function loadHistory(isInitial = false, silent = false){
+  if(!tokenOk()){
+    chats = [];
+    activeChatId = null;
+    if(!silent){
+      renderHistory();
+      startNewChat(false);
+    }
+    return false;
+  }
+
+  try{
+    const url = storageUrl(true) + `&_=${Date.now()}`;
+    const response = await fetch(url, { cache: "no-store", mode: "cors" });
+
+    if(!response.ok) return false;
+
+    const rawText = (await response.text()).trim();
+    // Respostas de erro do storage ("Erro: Arquivo não encontrado.") não são JSON.
+    if(!rawText || rawText.startsWith("Erro:") || rawText.startsWith("<!")) {
+      if(!silent){
+        chats = [];
+        activeChatId = null;
+        renderHistory();
+        startNewChat(false);
+      }
+      return false;
+    }
+
+    let rawData = {};
+    try {
+      rawData = JSON.parse(rawText);
+    } catch(e) {
+      rawData = {};
+    }
+
+    const normalized = normalizeHistory(rawData);
+    const remoteChats = normalized.chats.map(normalizeChat);
+    const nextFingerprint = JSON.stringify(remoteChats);
+
+    // No modo silencioso, se nenhum caractere/valor mudou, não renderiza nada.
+    if(silent && nextFingerprint === amheexHistoryFingerprint){
+      return false;
+    }
+
+    const previousScrollTop = chatArea ? chatArea.scrollTop : 0;
+    const previousScrollLeft = chatArea ? chatArea.scrollLeft : 0;
+
+    chats = remoteChats;
+    amheexHistoryFingerprint = nextFingerprint;
+
+    if(!silent){
+      renderHistory();
+
+      if(chats.length){
+        normalizeOrder();
+        if(!activeChatId || !chats.some(c => c.id === activeChatId)){
+          activeChatId = getOrderedChats()[0].id;
+        }
+
+        renderActiveChat();
+
+        if(isInitial){
+          scrollBottom();
+        }else{
+          requestAnimationFrame(() => {
+            chatArea.scrollTop = previousScrollTop;
+            chatArea.scrollLeft = previousScrollLeft;
+          });
+        }
+      }else{
+        startNewChat(false);
+      }
+    }else{
+      // Atualização automática: atualiza o conteúdo sem alterar a posição.
+      if(chats.length){
+        normalizeOrder();
+        if(!activeChatId || !chats.some(c => c.id === activeChatId)){
+          activeChatId = getOrderedChats()[0].id;
+        }
+        renderHistory();
+        renderActiveChat();
+
+        requestAnimationFrame(() => {
+          chatArea.scrollTop = previousScrollTop;
+          chatArea.scrollLeft = previousScrollLeft;
+        });
+      }
+    }
+
+    return true;
+  }catch(error){
+    return false;
+  }
+}
+
+/* ===== AMHEEX — verificação silenciosa do histórico a cada 1 segundo ===== */
+const AMHEEX_HISTORY_POLL_MS = 1000;
+let amheexHistoryPollTimer = null;
+let amheexHistoryPollingBusy = false;
+let amheexHistoryFingerprint = "";
+
+function amheexMarkHistoryFingerprint(){
+  try{
+    amheexHistoryFingerprint = JSON.stringify(chats || []);
+  }catch(_){
+    amheexHistoryFingerprint = "";
+  }
+}
+
+async function amheexPollHistory(){
+  if(amheexHistoryPollingBusy || waiting || !tokenOk()) return;
+
+  amheexHistoryPollingBusy = true;
+  try{
+    // loadHistory(..., true) só toca no DOM se o JSON normalizado mudou.
+    await loadHistory(false, true);
+  }finally{
+    amheexHistoryPollingBusy = false;
+  }
+}
+
+function amheexStartHistoryPolling(){
+  if(amheexHistoryPollTimer) clearInterval(amheexHistoryPollTimer);
+  amheexHistoryPollTimer = setInterval(amheexPollHistory, AMHEEX_HISTORY_POLL_MS);
+}
+
+/* Chamado exclusivamente depois do envio do usuário. */
+function amheexScrollAfterUserSend(){
+  if(!chatArea) return;
+  requestAnimationFrame(() => {
+    chatArea.scrollTo({
+      top: chatArea.scrollHeight,
+      left: chatArea.scrollLeft,
+      behavior: "smooth"
+    });
+  });
+}
+
+async function saveHistory(){
+  if(!tokenOk()) return false;
+
+  const payload = {
+    version: 1,
+    token: USER_TOKEN,
+    atualizado_em: nowIso(),
+    chats: chats
+  };
+
+  try{
+    const response = await fetch(storageUrl(), {
+      method:"POST",
+      headers:{"Content-Type":"application/json;charset=UTF-8"},
+      body:JSON.stringify(payload)
+    });
+
+    if(!response.ok) return false;
+    amheexMarkHistoryFingerprint();
+    return true;
+  }catch(error){
+    return false;
+  }
+}
+
+function getActiveChat(){
+  return chats.find(c => c.id === activeChatId) || null;
+}
+
+function startNewChat(openDrawer = true){
+  const chat = {
+    id: makeId(),
+    titulo: "Nova conversa",
+    criado_em: nowIso(),
+    atualizado_em: nowIso(),
+    fixado: false,
+    ordem: chats.length ? Math.max(...chats.map(c => Number(c.ordem) || 0), 0) + 1 : 0,
+    mensagens: []
+  };
+
+  chats.unshift(chat);
+  activeChatId = chat.id;
+
+  renderHistory();
+  renderActiveChat();
+  scrollBottom();
+
+  if(openDrawer) closeMenu();
+  promptInput.focus();
+}
+
+function selectChat(id){
+  if(!chats.some(c => c.id === id)) return;
+  activeChatId = id;
+  renderHistory();
+  renderActiveChat();
+  scrollBottom();
+  closeMenu();
+}
+
+let historyMenuChatId = null;
+
+function getOrderedChats(){
+  return [...chats].sort((a,b) => {
+    if(Boolean(a.fixado) !== Boolean(b.fixado)) return a.fixado ? -1 : 1;
+    const oa = Number.isFinite(Number(a.ordem)) ? Number(a.ordem) : 0;
+    const ob = Number.isFinite(Number(b.ordem)) ? Number(b.ordem) : 0;
+    if(oa !== ob) return oa - ob;
+    return new Date(b.atualizado_em) - new Date(a.atualizado_em);
+  });
+}
+
+function closeHistoryMenu(){
+  const menu = document.getElementById("historyMenu");
+  if(menu) menu.classList.remove("active");
+  historyMenuChatId = null;
+}
+
+function normalizeOrder(){
+  const ordered = [...chats].sort((a,b) => (Number(a.ordem)||0) - (Number(b.ordem)||0));
+  ordered.forEach((chat,index) => chat.ordem = index);
+}
+
+function openRenameDialog(chatId){
+  const chat = chats.find(c => c.id === chatId);
+  if(!chat) return;
+
+  editingChatId = chatId;
+  renameInput.value = chat.titulo;
+  renameDialogOverlay.classList.add("active");
+  setTimeout(() => {
+    renameInput.focus();
+    renameInput.select();
+  }, 50);
+}
+
+function closeRenameDialog(){
+  renameDialogOverlay.classList.remove("active");
+  editingChatId = null;
+  renameInput.value = "";
+}
+
+async function saveRenameDialog(){
+  if(!editingChatId) return;
+  const novoNome = renameInput.value.trim();
+  if(!novoNome) return;
+
+  const chat = chats.find(c => c.id === editingChatId);
+  if(chat){
+    chat.titulo = novoNome;
+    chat.atualizado_em = nowIso();
+    renderHistory();
+    await saveHistory();
+  }
+  closeRenameDialog();
+}
+
+renameCancelBtn.addEventListener("click", closeRenameDialog);
+renameSaveBtn.addEventListener("click", saveRenameDialog);
+renameDialogOverlay.addEventListener("click", (e) => {
+  if(e.target === renameDialogOverlay) closeRenameDialog();
+});
+renameInput.addEventListener("keydown", (e) => {
+  if(e.key === "Enter"){
+    e.preventDefault();
+    saveRenameDialog();
+  }else if(e.key === "Escape"){
+    closeRenameDialog();
+  }
+});
+
+async function moveChat(chatId, direction){
+  const ordered = getOrderedChats();
+  const index = ordered.findIndex(c => c.id === chatId);
+  if(index < 0) return;
+
+  const target = direction === "up" ? index - 1 : index + 1;
+  if(target < 0 || target >= ordered.length) return;
+
+  const a = ordered[index], b = ordered[target];
+  const temp = a.ordem;
+  a.ordem = b.ordem;
+  b.ordem = temp;
+
+  normalizeOrder();
+  renderHistory();
+  await saveHistory();
+}
+
+async function togglePinChat(chatId){
+  const chat = chats.find(c => c.id === chatId);
+  if(!chat) return;
+  chat.fixado = !Boolean(chat.fixado);
+  renderHistory();
+  closeHistoryMenu();
+  await saveHistory();
+}
+
+async function deleteChat(chatId){
+  const chat = chats.find(c => c.id === chatId);
+  if(!chat) return;
+
+  chats = chats.filter(c => c.id !== chatId);
+  normalizeOrder();
+
+  if(activeChatId === chatId){
+    activeChatId = chats.length ? getOrderedChats()[0].id : null;
+    if(activeChatId) {
+      renderActiveChat();
+      scrollBottom();
+    }
+    else startNewChat(false);
+  }
+
+  renderHistory();
+  closeHistoryMenu();
+  await saveHistory();
+}
+
+function openHistoryMenu(chatId, event){
+  event.stopPropagation();
+  const menu = document.getElementById("historyMenu");
+  const chat = chats.find(c => c.id === chatId);
+  if(!menu || !chat) return;
+
+  historyMenuChatId = chatId;
+
+  const pinButton = menu.querySelector('[data-action="pin"]');
+  if(pinButton){
+    pinButton.innerHTML = Boolean(chat.fixado)
+      ? `<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-.11.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg><span>Desafixar conversa</span>`
+      : `<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-.11.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg><span>Fixar conversa</span>`;
+  }
+
+  menu.classList.add("active");
+
+  const rect = event.currentTarget.getBoundingClientRect();
+  const menuWidth = 200;
+  const menuHeight = 220;
+  let left = rect.right - menuWidth;
+  let top = rect.bottom + 5;
+
+  if(left < 8) left = 8;
+  if(left + menuWidth > window.innerWidth - 8) left = window.innerWidth - menuWidth - 8;
+  if(top + menuHeight > window.innerHeight - 8) top = Math.max(8, rect.top - menuHeight - 5);
+
+  menu.style.left = left + "px";
+  menu.style.top = top + "px";
+}
+
+function renderHistory(){
+  closeHistoryMenu();
+  historyList.innerHTML = "";
+
+  const ordered = getOrderedChats();
+
+  if(!ordered.length){
+    historyList.innerHTML =
+      '<div class="empty-history">Nenhuma conversa salva ainda.<br>Envie uma pergunta para criar seu primeiro chat.</div>';
+    return;
+  }
+
+  ordered.forEach(chat => {
+    const button = document.createElement("button");
+    button.className = "history-item" + (chat.id === activeChatId ? " active" : "");
+    button.type = "button";
+    button.innerHTML = `
+      <span class="history-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8l-4 3v-3H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>
+        ${chat.fixado ? `
+          <span class="history-pin" title="Conversa fixada" aria-label="Conversa fixada">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 3h8l-1 5 3 3v2H6v-2l3-3-1-5Zm4 10v8"/>
+            </svg>
+          </span>
+        ` : ''}
+      </span>
+      <span class="history-text">
+        <span class="history-name">${esc(chat.titulo)}</span>
+        <span class="history-date">${esc(formatDate(chat.atualizado_em))}</span>
+      </span>
+      <span class="history-more" role="button" tabindex="0" aria-label="Opções da conversa" title="Opções">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+      </span>
+    `;
+
+    button.addEventListener("click", () => selectChat(chat.id));
+
+    const more = button.querySelector(".history-more");
+    more.addEventListener("click", (event) => openHistoryMenu(chat.id, event));
+    more.addEventListener("keydown", (event) => {
+      if(event.key === "Enter" || event.key === " "){
+        event.preventDefault();
+        openHistoryMenu(chat.id, event);
+      }
+    });
+
+    historyList.appendChild(button);
+  });
+}
+
+document.addEventListener("click", (event) => {
+  const menu = document.getElementById("historyMenu");
+  if(!menu || !menu.classList.contains("active")) return;
+  if(!menu.contains(event.target) && !event.target.closest(".history-more")){
+    closeHistoryMenu();
+  }
+});
+
+document.getElementById("historyMenu").addEventListener("click", async (event) => {
+  const item = event.target.closest("button[data-action]");
+  if(!item || !historyMenuChatId) return;
+
+  const action = item.dataset.action;
+  const id = historyMenuChatId;
+  closeHistoryMenu();
+
+  if(action === "rename"){
+    openRenameDialog(id);
+  } else if(action === "up") {
+    await moveChat(id, "up");
+  } else if(action === "down") {
+    await moveChat(id, "down");
+  } else if(action === "pin") {
+    await togglePinChat(id);
+  } else if(action === "delete") {
+    await deleteChat(id);
+  }
+});
+
+function renderWelcome(){
+  const userName = accountName.textContent.trim() || "AMHEEX";
+  chatInner.innerHTML = `
+    <section class="welcome">
+      <img class="welcome-logo" src="${esc(DEFAULT_ICON)}" alt="AMHEEX AI">
+      <h1 class="welcome-title">Sua vez, ${esc(userName)}!</h1>
+      <p class="welcome-sub">Pergunte qualquer coisa para começar.</p>
+    </section>
+  `;
+}
+
+function renderActiveChat(){
+  const chat = getActiveChat();
+
+  if(!chat || !chat.mensagens.length){
+    renderWelcome();
+    return;
+  }
+
+  chatInner.innerHTML = "";
+
+  chat.mensagens.forEach(message => {
+    appendMessageToDom(message.role, message.text, message.timestamp, message.audio_url || "", message.files || []);
+  });
+}
+
+function preprocessConversationContent(text){
+  let value = String(text ?? "");
+
+  // Normaliza TODAS as representações de quebra de linha que podem chegar
+  // da API, banco, JSON ou do modelo. O caractere U+001A também é tratado
+  // porque alguns fluxos antigos o usam no lugar de \n.
+  value = value
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/[\u2028\u2029]/g, "\n")
+    .replace(/[\u21B5\u23CE\u21A9]/g, "\n")
+    .replace(/\u001A/g, "\n")
+    .replace(/&#(?:x21B5|x23CE|x21A9);?/gi, "\n")
+    .replace(/&#(?:8629|9166|8617);?/g, "\n")
+    .replace(/&crarr;?/gi, "\n");
+
+  // Alguns backends salvam uma quebra como os dois caracteres "\\n".
+  // Só convertemos a sequência escapada; quebras reais permanecem intactas.
+  value = value.replace(/\\n/g, "\n");
+
+  // Remove somente caracteres invisíveis que NÃO são quebras.
+  value = value.replace(/[\u200B-\u200D\u2060\uFEFF]/g, "");
+
+  // Nunca deixa cercas inválidas com 4+ crases impedirem a detecção.
+  // A quantidade original ainda é aceita pelo parser abaixo.
+  return value;
+}
+
+/* ===== AMHEEX — execução, download Blob e URLs clicáveis ===== */
+function codeFileExtension(language){
+  const map={html:'html',xml:'xml',svg:'svg',css:'css',scss:'scss',sass:'sass',javascript:'js',typescript:'ts',jsx:'jsx',tsx:'tsx',python:'py',php:'php',java:'java',c:'c',cpp:'cpp',csharp:'cs',go:'go',rust:'rs',ruby:'rb',swift:'swift',kotlin:'kt',dart:'dart',lua:'lua',r:'r',perl:'pl',scala:'scala',groovy:'groovy',objectivec:'m',sql:'sql',bash:'sh',powershell:'ps1',yaml:'yml',toml:'toml',ini:'ini',json:'json',markdown:'md',dockerfile:'dockerfile',graphql:'graphql',vue:'vue',svelte:'svelte',angular:'html',texto:'txt'};
+  return map[String(language||'texto').toLowerCase()] || 'txt';
+}
+
+function downloadCode(codeText, language){
+  try{
+    const ext=codeFileExtension(language);
+    const safeLang=String(language||'texto').toLowerCase().replace(/[^a-z0-9_-]/g,'');
+    const name=(safeLang && safeLang!=='texto' ? 'codigo.'+ext : 'codigo.txt');
+    const blob=new Blob([String(codeText??'')],{type:'text/plain;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=name;
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{
+      try{a.remove();}catch(_){ }
+      try{URL.revokeObjectURL(url);}catch(_){ }
+    },15000);
+    return true;
+  }catch(err){
+    console.error('Falha ao baixar código:',err);
+    return false;
+  }
+}
+
+function executeHtmlCode(codeText, language){
+  const old=document.querySelector('.code-execute-overlay');
+  if(old) old.remove();
+
+  const overlay=document.createElement('div');
+  overlay.className='code-execute-overlay';
+  const modal=document.createElement('div');
+  modal.className='code-execute-modal';
+  const bar=document.createElement('div');
+  bar.className='code-execute-bar';
+  const title=document.createElement('strong');
+  title.textContent='Código em execução';
+  const close=document.createElement('button');
+  close.type='button';
+  close.className='code-execute-close';
+  close.textContent='Fechar';
+  bar.append(title,close);
+
+  const frame=document.createElement('iframe');
+  frame.className='code-execute-frame';
+  frame.title='Pré-visualização do código HTML';
+  frame.setAttribute('sandbox','allow-scripts allow-forms allow-modals');
+  frame.setAttribute('referrerpolicy','no-referrer');
+  frame.srcdoc=String(codeText??'');
+
+  modal.append(bar,frame);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  const closeIt=()=>overlay.remove();
+  close.addEventListener('click',closeIt);
+  overlay.addEventListener('click',e=>{if(e.target===overlay) closeIt();});
+  document.addEventListener('keydown',function escClose(e){
+    if(e.key==='Escape' && document.body.contains(overlay)) closeIt();
+    if(!document.body.contains(overlay)) document.removeEventListener('keydown',escClose);
+  });
+}
+
+function executeCode(codeText, language){
+  const lang=String(language||'').toLowerCase();
+  if(['html','xml','svg','vue','svelte','angular'].includes(lang)) executeHtmlCode(codeText,lang);
+}
+
+function appendRichText(el, text){
+  const normalized=preprocessConversationContent(text);
+  const lines=normalized.split("\n");
+  let i=0;
+
+  while(i<lines.length){
+    const line=lines[i];
+
+    if(!line.trim()){ el.appendChild(document.createElement("br")); i++; continue; }
+
+    if(/^\s*(?:```|~~~)/.test(line)){
+      const fm=line.match(/^\s*(```|~~~)\s*([A-Za-z0-9+#._-]*)\s*$/);
+      if(fm){
+        const fence=fm[1], lang=fm[2]||"";
+        const code=[];
+        i++;
+        while(i<lines.length && lines[i].trim()!==fence) { code.push(lines[i]); i++; }
+        if(i<lines.length) i++;
+        if(typeof appendCodeBlock==="function") appendCodeBlock(el,code.join("\n"),lang);
+        else appendPlainTextWithLineBreaks(el,code.join("\n"));
+        continue;
+      }
+    }
+
+    if(isMarkdownTableHeader(lines,i)){
+      const table=document.createElement("table");
+      table.className="markdown-table";
+      const thead=document.createElement("thead"), tbody=document.createElement("tbody");
+      const heads=parseMarkdownTableRow(lines[i]);
+      const tr=document.createElement("tr");
+      heads.forEach(x=>{const th=document.createElement("th");appendInlineRichText(th,x);tr.appendChild(th);});
+      thead.appendChild(tr); table.appendChild(thead); i+=2;
+
+      while(i<lines.length && isMarkdownTableRow(lines[i])){
+        const row=document.createElement("tr"), cells=parseMarkdownTableRow(lines[i]);
+        heads.forEach((_,c)=>{const td=document.createElement("td");appendInlineRichText(td,cells[c]??"");row.appendChild(td);});
+        tbody.appendChild(row); i++;
+      }
+      table.appendChild(tbody); el.appendChild(table); continue;
+    }
+
+    const heading=line.match(/^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/);
+    if(heading){
+      const h=document.createElement("h"+heading[1].length);
+      h.className="markdown-heading";
+      appendInlineRichText(h,heading[2]);
+      el.appendChild(h); i++; continue;
+    }
+
+    const quote=line.match(/^\s*>\s?(.*)$/);
+    if(quote){
+      const q=document.createElement("blockquote"); q.className="markdown-quote";
+      appendInlineRichText(q,quote[1]); el.appendChild(q); i++; continue;
+    }
+
+    const bullet=line.match(/^\s*[-*+]\s+(.+)$/);
+    if(bullet){
+      const ul=document.createElement("ul"); ul.className="markdown-list";
+      while(i<lines.length){
+        const b=lines[i].match(/^\s*[-*+]\s+(.+)$/); if(!b) break;
+        const li=document.createElement("li"); appendInlineRichText(li,b[1]); ul.appendChild(li); i++;
+      }
+      el.appendChild(ul); continue;
+    }
+
+    const ordered=line.match(/^\s*(\d+)[.)]\s+(.+)$/);
+    if(ordered){
+      const ol=document.createElement("ol"); ol.className="markdown-list";
+      while(i<lines.length){
+        const o=lines[i].match(/^\s*(\d+)[.)]\s+(.+)$/); if(!o) break;
+        const li=document.createElement("li"); appendInlineRichText(li,o[2]); ol.appendChild(li); i++;
+      }
+      el.appendChild(ol); continue;
+    }
+
+    if(/^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/.test(line)){
+      el.appendChild(document.createElement("hr")); i++; continue;
+    }
+
+    const p=document.createElement("div"); p.className="markdown-paragraph";
+    appendInlineRichText(p,line); i++;
+    while(i<lines.length && lines[i].trim() && !isMarkdownBlockStart(lines,i)){
+      p.appendChild(document.createElement("br")); appendInlineRichText(p,lines[i]); i++;
+    }
+    el.appendChild(p);
+  }
+}
+
+function appendInlineRichText(el,text){
+  const value=String(text??"");
+  const tokenRegex=/(`[^`\n]+`|\*\*[\s\S]*?\*\*|__[\s\S]*?__|~~[\s\S]*?~~|\*(?!\s)[^*\n]+?\*(?!\*)|_(?!\s)[^_\n]+?_(?!_))/g;
+  for(const part of value.split(tokenRegex)){
+    if(!part) continue;
+    if(part.startsWith("`")&&part.endsWith("`")){
+      const c=document.createElement("code"); c.className="inline-code"; c.textContent=part.slice(1,-1); el.appendChild(c);
+    }else if((part.startsWith("**")&&part.endsWith("**"))||(part.startsWith("__")&&part.endsWith("__"))){
+      const b=document.createElement("strong"); appendPlainTextWithLineBreaks(b,part.slice(2,-2)); el.appendChild(b);
+    }else if(part.startsWith("~~")&&part.endsWith("~~")){
+      const d=document.createElement("del"); appendPlainTextWithLineBreaks(d,part.slice(2,-2)); el.appendChild(d);
+    }else if((part.startsWith("*")&&part.endsWith("*"))||(part.startsWith("_")&&part.endsWith("_"))){
+      const e=document.createElement("em"); appendPlainTextWithLineBreaks(e,part.slice(1,-1)); el.appendChild(e);
+    }else appendPlainTextWithLineBreaks(el,part);
+  }
+}
+
+function parseMarkdownTableRow(line){
+  let v=String(line??"").trim();
+  if(v.startsWith("|")) v=v.slice(1);
+  if(v.endsWith("|")) v=v.slice(0,-1);
+  return v.split("|").map(x=>x.trim());
+}
+function isMarkdownTableRow(line){
+  return String(line??"").includes("|") && parseMarkdownTableRow(line).length>=2;
+}
+function isMarkdownTableSeparator(line){
+  return parseMarkdownTableRow(line).every(x=>/^:?-{3,}:?$/.test(x.trim()));
+}
+function isMarkdownTableHeader(lines,i){
+  return i+1<lines.length && isMarkdownTableRow(lines[i]) && isMarkdownTableSeparator(lines[i+1]);
+}
+function isMarkdownBlockStart(lines,i){
+  const l=lines[i]||"";
+  return /^\s*(?:```|~~~)/.test(l) ||
+    /^\s{0,3}#{1,6}\s+/.test(l) ||
+    /^\s*>\s?/.test(l) ||
+    /^\s*[-*+]\s+/.test(l) ||
+    /^\s*\d+[.)]\s+/.test(l) ||
+    /^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/.test(l) ||
+    isMarkdownTableHeader(lines,i);
+}
+
+function appendTextWithUrls(parent, value){
+  const text = String(value ?? "");
+  // Reconhece URLs http/https/www, sem capturar pontuação final da frase.
+  const urlRe = /(?:https?:\/\/|www\.)[^\s<>"'`]+/gi;
+  let last = 0;
+  let match;
+
+  while((match = urlRe.exec(text))){
+    const raw = match[0];
+    const cleaned = raw.replace(/[.,!?;:)\]}]+$/g, "");
+    const trailing = raw.slice(cleaned.length);
+
+    if(match.index > last){
+      parent.appendChild(document.createTextNode(text.slice(last, match.index)));
+    }
+
+    if(cleaned){
+      const link = document.createElement("a");
+      link.className = "amheex-url";
+      link.href = /^https?:\/\//i.test(cleaned) ? cleaned : "https://" + cleaned;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = cleaned;
+      link.title = "Clique para abrir • pressione e segure para copiar";
+
+      let longPressTimer = null;
+      let longPressTriggered = false;
+
+      const cancelLongPress = () => {
+        if(longPressTimer){
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+      };
+
+      const copyUrl = async (event) => {
+        if(event){
+          event.preventDefault();
+          event.stopPropagation();
+        }
+
+        longPressTriggered = true;
+        const ok = await copyTextReliable(cleaned);
+
+        if(ok){
+          link.classList.add("url-copied");
+          const oldTitle = link.title;
+          link.title = "URL copiada!";
+          setTimeout(() => {
+            link.classList.remove("url-copied");
+            link.title = oldTitle;
+          }, 1100);
+        }
+      };
+
+      link.addEventListener("pointerdown", (event) => {
+        longPressTriggered = false;
+        cancelLongPress();
+
+        // Somente toque/pressionamento físico; não interfere no clique normal.
+        if(event.pointerType === "touch" || event.pointerType === "pen" || event.pointerType === "mouse"){
+          longPressTimer = setTimeout(() => copyUrl(event), 650);
+        }
+      });
+
+      link.addEventListener("pointerup", (event) => {
+        cancelLongPress();
+        if(longPressTriggered){
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      });
+
+      link.addEventListener("pointercancel", cancelLongPress);
+      link.addEventListener("pointerleave", cancelLongPress);
+
+      // Botão direito também oferece copiar sem bloquear a abertura normal.
+      link.addEventListener("contextmenu", copyUrl);
+
+      link.addEventListener("click", (event) => {
+        if(longPressTriggered){
+          event.preventDefault();
+          event.stopPropagation();
+          longPressTriggered = false;
+        }
+        // Caso contrário, o navegador abre normalmente em nova aba.
+      });
+
+      parent.appendChild(link);
+    }
+
+    if(trailing){
+      parent.appendChild(document.createTextNode(trailing));
+    }
+
+    last = match.index + raw.length;
+  }
+
+  if(last < text.length){
+    parent.appendChild(document.createTextNode(text.slice(last)));
+  }
+}
+
+/* Clipboard moderno + fallback para navegadores/ambientes que bloqueiam
+   navigator.clipboard (inclusive alguns WebViews de Android). */
+async function copyTextReliable(text){
+  const value = String(text ?? "");
+
+  try{
+    if(navigator.clipboard && typeof navigator.clipboard.writeText === "function"){
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+  }catch(_){}
+
+  try{
+    const area = document.createElement("textarea");
+    area.value = value;
+    area.setAttribute("readonly","");
+    area.style.position = "fixed";
+    area.style.left = "-9999px";
+    area.style.top = "0";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    area.setSelectionRange(0, area.value.length);
+
+    const ok = document.execCommand("copy");
+    area.remove();
+    return ok;
+  }catch(_){
+    return false;
+  }
+}
+
+function copyCodeOnce(button, codeText){
+  copyTextReliable(String(codeText ?? "")).then(ok => {
+    if(ok){
+      button.classList.add("copied");
+      const oldText = button.textContent;
+      button.textContent = "Copiado!";
+      button.title = "Código copiado";
+
+      setTimeout(() => {
+        button.classList.remove("copied");
+        button.textContent = oldText || "Copiar";
+        button.title = "Copiar código";
+      }, 1400);
+    }else{
+      button.title = "Não foi possível copiar";
+    }
+  });
+}
+
+function appendPlainTextWithLineBreaks(parent, value){
+  const pieces = String(value ?? "").split("\n");
+  pieces.forEach((piece, index) => {
+    if(typeof appendTextWithUrls === "function"){
+      appendTextWithUrls(parent, piece);
+    }else{
+      parent.appendChild(document.createTextNode(piece));
+    }
+    if(index < pieces.length - 1){
+      parent.appendChild(document.createElement("br"));
+    }
+  });
+}
+
+function formatAiContent(text){
+  const container = document.createElement("div");
+
+  const languageAliases = {
+    html:"html", htm:"html", xhtml:"html",
+    xml:"xml", svg:"svg", php:"php",
+    css:"css", scss:"scss", sass:"sass",
+    javascript:"javascript", js:"javascript", node:"javascript", nodejs:"javascript",
+    typescript:"typescript", ts:"typescript",
+    jsx:"jsx", tsx:"tsx",
+    json:"json", python:"python", py:"python",
+    java:"java", c:"c", h:"c", cpp:"cpp", "c++":"cpp", hpp:"cpp",
+    csharp:"csharp", cs:"csharp", go:"go", golang:"go",
+    rust:"rust", rs:"rust", ruby:"ruby", rb:"ruby", swift:"swift",
+    kotlin:"kotlin", kt:"kotlin", kts:"kotlin", dart:"dart", lua:"lua",
+    r:"r", perl:"perl", pl:"perl", scala:"scala", groovy:"groovy",
+    objectivec:"objectivec", "objective-c":"objectivec",
+    sql:"sql", bash:"bash", shell:"bash", sh:"bash", zsh:"bash",
+    powershell:"powershell", ps:"powershell", ps1:"powershell",
+    yaml:"yaml", yml:"yaml", toml:"toml", ini:"ini", conf:"ini",
+    markdown:"markdown", md:"markdown", dockerfile:"dockerfile", docker:"dockerfile",
+    graphql:"graphql", gql:"graphql", vue:"vue", svelte:"svelte", angular:"angular",
+    plaintext:"texto", text:"texto", txt:"texto", texto:"texto"
+  };
+
+  const displayNames = {
+    html:"HTML", xml:"XML", svg:"SVG", css:"CSS", scss:"SCSS", sass:"SASS",
+    javascript:"JavaScript", typescript:"TypeScript", jsx:"JSX", tsx:"TSX",
+    python:"Python", php:"PHP", java:"Java", c:"C", cpp:"C++", csharp:"C#",
+    go:"Go", rust:"Rust", ruby:"Ruby", swift:"Swift", kotlin:"Kotlin", dart:"Dart",
+    lua:"Lua", r:"R", perl:"Perl", scala:"Scala", groovy:"Groovy",
+    objectivec:"Objective-C", sql:"SQL", bash:"Bash", powershell:"PowerShell",
+    yaml:"YAML", toml:"TOML", ini:"INI", json:"JSON", markdown:"Markdown",
+    dockerfile:"Dockerfile", graphql:"GraphQL", vue:"Vue", svelte:"Svelte",
+    angular:"Angular", texto:"Texto"
+  };
+
+  function normalizeLanguage(value){
+    let key = String(value ?? "")
+      .replace(/^\uFEFF/, "")
+      .replace(/[\u200B-\u200D\u2060]/g, "")
+      .trim()
+      .toLowerCase();
+    key = key.replace(/^language[-_]?/, "").replace(/^lang[-_]?/, "");
+    return languageAliases[key] || "texto";
+  }
+
+  function escapeHtml(value){
+    return String(value ?? "")
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;")
+      .replace(/'/g,"&#39;");
+  }
+
+  function addText(value){
+    if(!value) return;
+    const el = document.createElement("div");
+    el.className = "message-text";
+    if(typeof appendRichText === "function") appendRichText(el, value);
+    else el.textContent = value;
+    container.appendChild(el);
+  }
+
+  // Detecta a linguagem quando a cerca vem sem identificador.
+  // A ordem importa: HTML/PHP/XML/JSON/SQL são mais específicos que JS/CSS.
+  function detectLanguageFromCode(source){
+    const probe = String(source ?? "")
+      .replace(/^\uFEFF/, "")
+      .replace(/[\u200B-\u200D\u2060]/g, "")
+      .replace(/^[ \t\n]+/, "");
+
+    if(/^<\?php\b/i.test(probe)) return "php";
+    if(/^<!doctype\s+html\b/i.test(probe) || /^<html(?:[\s>])/i.test(probe)) return "html";
+    if(/^<\?xml\b/i.test(probe)) return "xml";
+    if(/^<svg(?:[\s>])/i.test(probe)) return "svg";
+
+    if(/^\s*(?:\{|\[)[\s\S]*(?:\}|\])\s*$/.test(probe)){
+      try { JSON.parse(probe); return "json"; } catch(_) {}
+    }
+
+    if(/^(?:SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|WITH|MERGE)\b/i.test(probe)) return "sql";
+    if(/^(?:def|class|from|import|print|async\s+def)\b/.test(probe)) return "python";
+    if(/^(?:interface|type|enum|namespace)\s+[A-Za-z_$]/.test(probe)) return "typescript";
+    if(/^(?:const|let|var|function|class|import|export|async|await)\b/.test(probe)) return "javascript";
+
+    if(/^#!.*\b(?:bash|sh)\b/.test(probe) || /(?:^|\n)\s*(?:if|then|fi|for|while|do|done)\b/.test(probe) && /\$[A-Za-z_][\w]*|\becho\b/.test(probe)) return "bash";
+    if(/(?:^|\n)\s*[.#]?[A-Za-z_-][\w-]*\s*\{[\s\S]*:[^}]+\}/.test(probe)) return "css";
+    if(/(?:^|\n)\s*<([A-Za-z][\w:-]*)(?:\s[^>]*)?>/.test(probe)) return "html";
+
+    if(/\b(?:public|private|protected|static)\s+(?:class|void|int|String|boolean)\b/.test(probe)) return "java";
+    if(/\b(?:#include\s*[<"]|printf\s*\(|std::|using\s+namespace)\b/.test(probe)) return "cpp";
+    if(/\b(?:package\s+main|func\s+\w+\s*\()/.test(probe)) return "go";
+    if(/\b(?:fn\s+\w+|let\s+mut|println!\s*\()/.test(probe)) return "rust";
+
+    return "texto";
+  }
+
+  function parseLanguageAndCode(header, body){
+    let code = String(body ?? "");
+    const h = String(header ?? "")
+      .replace(/^\uFEFF/, "")
+      .replace(/[\u200B-\u200D\u2060]/g, "")
+      .trim();
+
+    if(!h) return {language:detectLanguageFromCode(code), code};
+
+    // Suporta: ```html, ``` html, ```language:javascript e ```lang=js.
+    const labeled = h.match(/^(?:(?:language|lang)\s*[:=]\s*)?([A-Za-z][A-Za-z0-9_+#.-]*)\b\s*/i);
+    if(labeled){
+      const candidate = normalizeLanguage(labeled[1]);
+      if(candidate !== "texto"){
+        const rest = h.slice(labeled[0].length);
+        if(rest.trim()) code = rest.replace(/^[ \t]+/, "") + (code ? "\n" + code : "");
+        return {language:candidate, code};
+      }
+    }
+
+    // Header não reconhecido: pode ser o primeiro pedaço do próprio código.
+    code = h + (code ? "\n" + code : "");
+    return {language:detectLanguageFromCode(code), code};
+  }
+
+  function highlightCode(source, language){
+    const lang = normalizeLanguage(language);
+    let s = escapeHtml(source);
+    const stash = [];
+
+    function put(cls, value){
+      const id = "__AMHEX_TOKEN_" + stash.length + "__";
+      stash.push('<span class="tok-' + cls + '">' + value + '</span>');
+      return id;
+    }
+
+    // Protege strings/comentários para as regras seguintes não os recolorirem.
+    s = s.replace(/(&quot;(?:\\.|[^&]|&(?!quot;))*?&quot;|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)/g,
+      m => put("string", m));
+
+    if(["html","xml","svg","vue","svelte","angular"].includes(lang)){
+      s = s.replace(/(&lt;!--[\s\S]*?--&gt;)/g, m => put("comment",m));
+    }else if(["css","scss","sass"].includes(lang)){
+      s = s.replace(/(\/\*[\s\S]*?\*\/)/g, m => put("comment",m));
+    }else{
+      s = s.replace(/(\/\/[^\n]*|\/\*[\s\S]*?\*\/|(^|[ \t])#[^\n]*)/gm, m => put("comment",m));
+    }
+
+    if(["html","xml","svg","vue","svelte","angular"].includes(lang)){
+      s = s.replace(/(&lt;\/?)([A-Za-z][\w:-]*)(?=[\s\/&gt;])/g,
+        (m,prefix,tag) => prefix + put("tag",tag));
+      s = s.replace(/(\s)([A-Za-z_:][\w:.-]*)(=)/g,
+        (m,space,attr,eq) => space + put("attr",attr) + eq);
+      s = s.replace(/(&amp;#\d+;|&amp;#x[\da-fA-F]+;|&amp;[A-Za-z][A-Za-z0-9]+;)/g,
+        m => put("entity",m));
+    }
+
+    const keywordMap = {
+      javascript:"const let var function return if else for while do switch case break new class extends try catch finally throw async await yield typeof instanceof in of true false null undefined this",
+      typescript:"const let var function return if else for while do switch case break new class extends try catch finally throw async await interface type enum public private protected readonly implements abstract true false null undefined this",
+      python:"and as assert async await break case class continue def del elif else except finally for from global if import in is lambda match nonlocal not or pass raise return try while with yield True False None",
+      java:"abstract assert boolean break byte case catch char class const continue default do double else enum extends final finally float for if implements import instanceof int interface long native new package private protected public return short static super switch synchronized this throw throws try void volatile while true false null",
+      c:"auto break case char const continue default do double else enum extern float for goto if inline int long register return short signed sizeof static struct switch typedef union unsigned void volatile while",
+      cpp:"alignas alignof auto bool break case catch char class const constexpr continue default delete do double else enum explicit export extern false float for friend if inline int long namespace new nullptr operator private protected public register return short signed sizeof static struct switch template this throw true try typedef typename union unsigned using virtual void volatile while",
+      csharp:"abstract as base bool break byte case catch char checked class const decimal default delegate do double else enum event explicit extern false finally fixed float foreach for goto if implicit in int interface internal is lock long namespace new null object operator out override params private protected public readonly ref return sbyte sealed short sizeof static string struct switch this throw true try typeof uint ulong unchecked unsafe ushort using virtual void volatile while var async await",
+      go:"break default func interface select case defer go map struct chan else goto package switch const fallthrough if range type continue for import return var",
+      rust:"as break const continue crate else enum extern false fn for if impl in let loop match mod move mut pub ref return self Self static struct super trait true type unsafe use where while async await dyn",
+      ruby:"BEGIN END alias and begin break case class def defined do else elsif end ensure false for if in module next nil not or redo rescue retry return self super then true undef unless until when while yield",
+      php:"and or xor abstract array as break callable case catch class clone const continue declare default echo else elseif empty extends final finally fn for foreach function global if implements include include_once instanceof interface isset list match namespace new print private protected public readonly require require_once return static switch throw trait try unset use var while yield true false null",
+      sql:"select from where and or insert into update delete create alter drop table database index join inner left right full outer on as group by order having limit offset union all distinct values set null is not like between exists case when then else end asc desc",
+      bash:"if then else elif fi for while in do done case esac function select time until export local readonly declare source alias unalias return exit",
+      powershell:"function param begin process end if else elseif foreach for while do until switch try catch finally throw return class enum using namespace filter",
+      json:"true false null",
+      yaml:"true false null yes no on off"
+    };
+
+    const kws = keywordMap[lang];
+    if(kws){
+      const words = kws.split(/\s+/).filter(Boolean).sort((a,b)=>b.length-a.length);
+      const escapedWords = words.map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
+      const re = new RegExp("(?<![\\w$])(" + escapedWords.join("|") + ")(?![\\w$])","g");
+      s = s.replace(re, m => put("keyword",m));
+    }
+
+    s = s.replace(/(?<![\w$])(?:0x[\da-fA-F]+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?(?:e[+-]?\d+)?)(?![\w$])/gi,
+      m => put("number",m));
+
+    if(["css","scss","sass","json","yaml","toml"].includes(lang)){
+      s = s.replace(/(^|[\s{,])([A-Za-z_-][\w-]*)(?=\s*:)/gm,
+        (m,a,b) => a + put("property",b));
+    }
+
+    s = s.replace(/\b([A-Za-z_$][\w$]*)(?=\s*\()/g,
+      m => put("function",m));
+
+    for(let i=stash.length-1;i>=0;i--) s = s.replace("__AMHEX_TOKEN_"+i+"__", stash[i]);
+    return s;
+  }
+
+  function formatHtmlSource(source){
+    let value = String(source ?? "")
+      .replace(/\r\n/g,"\n").replace(/\r/g,"\n").trim();
+    if(value.split("\n").length > 2) return value;
+
+    const protectedBlocks = [];
+    value = value.replace(/<(pre|textarea)\b[\s\S]*?<\/\1>/gi, m => {
+      const token = "__AMHEX_HTML_PROTECTED_" + protectedBlocks.length + "__";
+      protectedBlocks.push(m);
+      return token;
+    });
+
+    value = value.replace(/>\s*</g, ">\n<").trim();
+    const voidTags = new Set(["area","base","br","col","embed","hr","img","input","link","meta","param","source","track","wbr"]);
+    let indent = 0;
+    const out = [];
+
+    for(const rawLine of value.split("\n")){
+      const line = rawLine.trim();
+      if(!line) continue;
+      const closing = /^<\//.test(line);
+      const opening = line.match(/^<([A-Za-z][\w:-]*)\b/);
+      const selfClosing = /\/>$/.test(line);
+      const tag = opening ? opening[1].toLowerCase() : "";
+      if(closing) indent = Math.max(0,indent-1);
+      out.push("  ".repeat(indent) + line);
+      if(opening && !closing && !selfClosing && !voidTags.has(tag) && !/^<!/.test(line) && !/^<\?/.test(line)) indent++;
+    }
+
+    value = out.join("\n");
+    protectedBlocks.forEach((block,i)=>{ value = value.replace("__AMHEX_HTML_PROTECTED_"+i+"__",block); });
+    return value;
+  }
+
+  function formatCssSource(source){
+    const value = String(source ?? "").trim();
+    if(value.split("\n").length > 2) return value;
+    return value
+      .replace(/\s*\{\s*/g," {\n  ")
+      .replace(/;\s*/g,";\n  ")
+      .replace(/\s*\}\s*/g,"\n}\n")
+      .replace(/\n\s*\n/g,"\n")
+      .trim();
+  }
+
+  function formatJavaScriptSource(source){
+    const value = String(source ?? "").trim();
+    if(value.split("\n").length > 2) return value;
+    return value
+      .replace(/;\s*(?=(const|let|var|function|if|else|for|while|return|class)\b)/g,";\n")
+      .replace(/\{\s*(?=(const|let|var|function|if|else|for|while|return|class)\b)/g,"{\n")
+      .replace(/\}\s*(?=(else|catch|finally|function|class)\b)/g,"}\n")
+      .trim();
+  }
+
+  function normalizeCodeForDisplay(language, source){
+    const lang = normalizeLanguage(language);
+    let value = String(source ?? "")
+      .replace(/\r\n/g,"\n").replace(/\r/g,"\n")
+      .replace(/[\u2028\u2029]/g,"\n")
+      .replace(/[\u21B5\u23CE\u21A9]/g,"\n")
+      .replace(/\u001A/g,"\n");
+
+    // Remove apenas as quebras artificiais imediatamente dentro da cerca.
+    value = value.replace(/^\n/,'').replace(/\n$/,'');
+
+    if(["html","xml","svg","vue","svelte","angular"].includes(lang)) return formatHtmlSource(value);
+    if(["css","scss","sass"].includes(lang)) return formatCssSource(value);
+    if(["javascript","typescript","jsx","tsx"].includes(lang)) return formatJavaScriptSource(value);
+    return value;
+  }
+
+  function addCode(language, source){
+    let lang = normalizeLanguage(language);
+    let codeText = String(source ?? "");
+
+    if(lang === "texto"){
+      const auto = detectLanguageFromCode(codeText);
+      if(auto !== "texto") lang = auto;
+    }
+
+    codeText = normalizeCodeForDisplay(lang, codeText);
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "code-block-wrapper";
+    wrapper.dataset.language = lang;
+
+    const header = document.createElement("div");
+    header.className = "code-block-header";
+
+    const label = document.createElement("span");
+    label.className = "code-language";
+    label.textContent = displayNames[lang] || lang || "Texto";
+
+    const tools = document.createElement("div");
+    tools.className = "code-block-tools";
+
+    const copyBtn = document.createElement("button");
+    copyBtn.type = "button";
+    copyBtn.className = "code-icon-btn";
+    copyBtn.title = "Copiar código";
+    copyBtn.setAttribute("aria-label","Copiar código");
+    copyBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+
+    const downloadBtn = document.createElement("button");
+    downloadBtn.type = "button";
+    downloadBtn.className = "code-download-btn";
+    downloadBtn.title = "Baixar código";
+    downloadBtn.setAttribute("aria-label","Baixar código");
+    downloadBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="M7.5 11.5L12 16l4.5-4.5"></path><path d="M5 20h14"></path></svg>';
+
+    const isHtml = ["html","xml","svg","vue","svelte","angular"].includes(lang);
+    if(isHtml){
+      const runBtn = document.createElement("button");
+      runBtn.type = "button";
+      runBtn.className = "code-run-btn";
+      runBtn.title = "Executar HTML";
+      runBtn.setAttribute("aria-label","Executar HTML");
+      runBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7V5z"></path></svg>';
+      runBtn.addEventListener("click",()=>executeCode(codeText,lang));
+      tools.append(copyBtn,runBtn,downloadBtn);
+    }else{
+      tools.append(copyBtn,downloadBtn);
+    }
+
+    header.append(label,tools);
+
+    const pre = document.createElement("pre");
+    pre.className = "code-block-body";
+    const code = document.createElement("code");
+    code.className = "language-" + lang;
+    code.innerHTML = highlightCode(codeText,lang);
+    pre.appendChild(code);
+    wrapper.append(header,pre);
+    container.appendChild(wrapper);
+
+    copyBtn.addEventListener("click",(event)=>{
+      event.preventDefault();
+      event.stopPropagation();
+      copyCodeOnce(copyBtn,codeText);
+    });
+
+    downloadBtn.addEventListener("click",event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      if(typeof downloadCode === "function" && downloadCode(codeText,lang)){
+        downloadBtn.classList.add("downloaded");
+        downloadBtn.title = "Download iniciado";
+        setTimeout(()=>{
+          downloadBtn.classList.remove("downloaded");
+          downloadBtn.title = "Baixar código";
+        },1200);
+      }
+    });
+  }
+
+  const raw = preprocessConversationContent(text);
+  const lines = raw.split("\n");
+  let textBuffer = [];
+  let inCode = false;
+  let fenceChar = "";
+  let fenceLength = 0;
+  let codeHeader = "";
+  let codeLines = [];
+
+  function flushText(){
+    if(!textBuffer.length) return;
+    addText(textBuffer.join("\n"));
+    textBuffer = [];
+  }
+
+  function flushCode(){
+    const parsed = parseLanguageAndCode(codeHeader,codeLines.join("\n"));
+    addCode(parsed.language,parsed.code);
+    codeHeader = "";
+    codeLines = [];
+  }
+
+  function isFenceClose(line){
+    const ch = fenceChar === "`" ? "`" : "~";
+    const re = new RegExp("^[\\t ]*" + ch + "{" + fenceLength + ",}[\\t ]*$");
+    if(re.test(line)) return true;
+    // APIs às vezes abrem com 4+ e fecham com 3.
+    if(fenceLength > 3){
+      const fallback = new RegExp("^[\\t ]*" + ch + "{3,}[\\t ]*$");
+      return fallback.test(line);
+    }
+    return false;
+  }
+
+  for(let i=0;i<lines.length;i++){
+    let line = lines[i];
+
+    if(!inCode){
+      // Aceita cerca no início da linha E cerca depois de texto normal.
+      const open = line.match(/([`~]{3,})([^`~]*)$/);
+      if(open && (open.index === 0 || /^[ \t]*$/.test(line.slice(0,open.index)) || line.slice(0,open.index).trim())){
+        // Se houver texto antes da cerca, ele continua sendo texto normal.
+        const before = line.slice(0,open.index);
+        if(before.trim()) textBuffer.push(before);
+        flushText();
+
+        inCode = true;
+        fenceChar = open[1][0];
+        fenceLength = open[1].length;
+        codeHeader = open[2] || "";
+        codeLines = [];
+
+        // Suporta ```html<!DOCTYPE html> na mesma linha.
+        const h = String(codeHeader).trim();
+        if(h){
+          const m = h.match(/^(?:(?:language|lang)\s*[:=]\s*)?([A-Za-z][A-Za-z0-9_+#.-]*)\s*(.*)$/i);
+          if(m && normalizeLanguage(m[1]) !== "texto"){
+            codeHeader = m[1];
+            if(m[2].trim()) codeLines.push(m[2].replace(/^[ \t]+/,""));
+          }
+        }
+        continue;
+      }
+
+      textBuffer.push(line);
+      continue;
+    }
+
+    // Fechamento normal do bloco.
+    if(isFenceClose(line)){
+      flushCode();
+      inCode = false;
+      fenceChar = "";
+      fenceLength = 0;
+      continue;
+    }
+
+    // Permite fechamento no final de uma linha de código, sem exigir que
+    // a API tenha colocado a cerca em uma linha separada.
+    const closeInline = line.match(new RegExp("^(.*?)[\\t ]+(" + (fenceChar === "`" ? "`" : "~") + "{3,})[\\t ]*$"));
+    if(closeInline && closeInline[2].length >= 3){
+      if(closeInline[1]) codeLines.push(closeInline[1]);
+      flushCode();
+      inCode = false;
+      fenceChar = "";
+      fenceLength = 0;
+      continue;
+    }
+
+    codeLines.push(line);
+  }
+
+  if(inCode) flushCode();
+  else flushText();
+
+  return container;
+}
+
+function appendMessageToDom(role, text, timestamp, audioUrl = "", files = []){
+  const row = document.createElement("div");
+  row.className = "message-row " + (role === "user" ? "user" : "ai");
+
+  const currentAvatar = drawerAvatar.src || DEFAULT_ICON;
+
+  if(role === "assistant"){
+    row.innerHTML = `
+      <div class="message-main">
+        <img class="message-avatar" src="${esc(DEFAULT_ICON)}" alt="AMHEEX">
+        <div class="message-content" id="aiContentContainer"></div>
+      </div>
+      <div class="message-actions" aria-label="Ações da resposta">
+        <button class="message-action copy-action" type="button" title="Copiar resposta" aria-label="Copiar resposta">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="8" y="8" width="11" height="12" rx="2"></rect>
+            <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"></path>
+          </svg>
+        </button>
+        <button class="message-action audio-action" type="button" title="${audioUrl ? "Ouvir resposta" : "Áudio não disponível"}" aria-label="Ouvir resposta">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 10v4h4l5 4V6l-5 4H4Z"></path>
+            <path d="M16 9.5a4 4 0 0 1 0 5"></path>
+            <path d="M18.5 7a7.5 7.5 0 0 1 0 10"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="message-time">${esc(formatDate(timestamp))}</div>
+    `;
+    row.querySelector("#aiContentContainer").appendChild(formatAiContent(text));
+  }else{
+    let filesHtml = "";
+    if(Array.isArray(files) && files.length > 0){
+      filesHtml = `<div class="message-files-container">`;
+      files.forEach(file => {
+        const fUrl = typeof file === 'string' ? file : (file.url || '#');
+        const fName = typeof file === 'string' ? file.split('/').pop() : (file.name || 'Arquivo');
+        filesHtml += `
+          <a class="message-file-badge" href="${esc(fUrl)}" target="_blank" title="Baixar / Ver arquivo">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <span>${esc(fName)}</span>
+          </a>
+        `;
+      });
+      filesHtml += `</div>`;
+    }
+
+    row.innerHTML = `
+      <div class="message-main">
+        <div class="message-content">
+          ${filesHtml}
+          <div class="message-text"></div>
         </div>
+        <img class="message-avatar" src="${esc(currentAvatar)}" alt="Usuário">
+      </div>
+      <div class="user-actions">
+        <button class="message-action retry-msg-action" type="button" title="Reenviar pergunta" aria-label="Reenviar pergunta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+        <button class="message-action copy-user-action" type="button" title="Copiar pergunta" aria-label="Copiar pergunta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="11" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/></svg>
+        </button>
+      </div>
+      <div class="message-time">${esc(formatDate(timestamp))}</div>
+    `;
+    row.querySelector(".message-text").appendChild(formatAiContent(text));
 
-        <!-- TABELA -->
-        <h2>Tabela de referência rápida</h2>
+    const retryBtn = row.querySelector(".retry-msg-action");
+    const copyUserBtn = row.querySelector(".copy-user-action");
 
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Objetivo</th>
-                        <th>URL a usar</th>
-                        <th>Comportamento</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><span class="tag tag-leitura">LEITURA</span> Ver / Reproduzir</td>
-                        <td><code>/X/caminho/arquivo.ext</code></td>
-                        <td>Serve o arquivo para visualização / streaming</td>
-                    </tr>
-                    <tr>
-                        <td><span class="tag tag-download">DOWNLOAD</span> Baixar + leitura</td>
-                        <td><code>/caminho/arquivo.ext</code> <small>(sem X)</small></td>
-                        <td>Inicia download e redireciona para a URL com /X/</td>
-                    </tr>
-                    <tr>
-                        <td><span class="tag tag-get">GET</span> Verificar tamanho</td>
-                        <td><code>/caminho/arquivo.ext?check_size=1</code></td>
-                        <td>Retorna JSON <code>{"size": 123456}</code></td>
-                    </tr>
-                    <tr>
-                        <td><span class="tag tag-get">GET</span> Forçar download</td>
-                        <td><code>/caminho/arquivo.ext?download=1</code></td>
-                        <td>Download forçado do arquivo</td>
-                    </tr>
-                    <tr>
-                        <td><span class="tag tag-post">POST</span> Enviar chunk</td>
-                        <td><code>/caminho/arquivo.ext</code></td>
-                        <td>Grava o chunk no arquivo final</td>
-                    </tr>
-                </tbody>
-            </table>
+    retryBtn.addEventListener("click", async () => {
+      if(waiting) return;
+
+      promptInput.value = text;
+      selectedFiles = Array.isArray(files)
+        ? files.map((file, index) => {
+            if(typeof file === "string") {
+              const url = file;
+              return {
+                id: `retry_file_${Date.now()}_${index}`,
+                name: decodeURIComponent((url.split('/').pop() || `arquivo_${index + 1}`).split('?')[0]),
+                url,
+                size: 0,
+                type: ""
+              };
+            }
+            return {
+              id: file.id || `retry_file_${Date.now()}_${index}`,
+              name: String(file.name || `arquivo_${index + 1}`),
+              url: String(file.url || ""),
+              size: Number(file.size || 0),
+              type: String(file.type || "")
+            };
+          }).filter(file => file.url)
+        : [];
+
+      renderFilePreviews();
+      resizeComposer();
+      await sendMessage();
+    });
+
+    copyUserBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(text);
+        copyUserBtn.classList.add("copied");
+        setTimeout(() => copyUserBtn.classList.remove("copied"), 1500);
+      } catch(e) {}
+    });
+  }
+
+  if(role === "assistant"){
+    const copyBtn = row.querySelector(".copy-action");
+    const audioBtn = row.querySelector(".audio-action");
+
+    copyBtn.addEventListener("click", async () => {
+      try{
+        await navigator.clipboard.writeText(text);
+        copyBtn.classList.add("copied");
+        setTimeout(() => copyBtn.classList.remove("copied"), 1500);
+      }catch(e){}
+    });
+
+    if(audioUrl){
+      audioBtn.addEventListener("click", () => tocarAudioAPI(audioUrl, audioBtn));
+    }else{
+      audioBtn.disabled = true;
+      audioBtn.style.opacity = ".35";
+    }
+  }
+
+  chatInner.appendChild(row);
+  return row;
+}
+
+async function appendStreamingAssistantMessage(text, timestamp, audioUrl = ""){
+  const row = document.createElement("div");
+  row.className = "message-row ai";
+
+  const main = document.createElement("div");
+  main.className = "message-main";
+
+  const avatar = document.createElement("img");
+  avatar.className = "message-avatar";
+  avatar.src = typeof DEFAULT_ICON !== "undefined" ? DEFAULT_ICON : "";
+  avatar.alt = "AMHEEX";
+
+  const content = document.createElement("div");
+  content.className = "message-content";
+
+  main.append(avatar, content);
+  row.appendChild(main);
+
+  const actions = document.createElement("div");
+  actions.className = "message-actions";
+
+  const copyBtn = document.createElement("button");
+  copyBtn.type = "button";
+  copyBtn.className = "message-action copy-action";
+  copyBtn.title = "Copiar resposta";
+  copyBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"></path></svg>';
+
+  const audioBtn = document.createElement("button");
+  audioBtn.type = "button";
+  audioBtn.className = "message-action audio-action";
+  audioBtn.title = audioUrl ? "Ouvir resposta" : "Áudio não disponível";
+  audioBtn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Z"></path><path d="M16 9.5a4 4 0 0 1 0 5"></path><path d="M18.5 7a7.5 7.5 0 0 1 0 10"></path></svg>';
+
+  actions.append(copyBtn, audioBtn);
+
+  const time = document.createElement("div");
+  time.className = "message-time";
+  time.textContent = timestamp ? formatDate(timestamp) : "";
+
+  row.append(actions, time);
+
+  chatInner.appendChild(row);
+
+  const originalText = String(text ?? "");
+  content.appendChild(formatAiContent(originalText));
+
+  copyBtn.addEventListener("click", async () => {
+    try{
+      await navigator.clipboard.writeText(originalText);
+      copyBtn.classList.add("copied");
+      setTimeout(() => copyBtn.classList.remove("copied"), 1000);
+    }catch(_){}
+  });
+
+  if(audioUrl){
+    audioBtn.disabled = false;
+    audioBtn.addEventListener("click", () => tocarAudioAPI(audioUrl, audioBtn));
+  }else{
+    audioBtn.disabled = true;
+    audioBtn.style.opacity = ".4";
+  }
+
+  return row;
+}
+
+function tocarAudioAPI(url, button, automatico = false){
+  if(!url) return false;
+
+  if(typeof audioAtual !== "undefined" && audioAtual && !audioAtual.paused){
+    try { audioAtual.pause(); } catch(_) {}
+    document.querySelectorAll(".audio-action.playing").forEach(b => b.classList.remove("playing"));
+
+    if(audioAtual.src === url){
+      audioAtual = null;
+      return true;
+    }
+  }
+
+  const novoAudio = new Audio(url);
+  novoAudio.preload = "auto";
+  novoAudio.playsInline = true;
+  audioAtual = novoAudio;
+
+  if(button) button.classList.add("playing");
+
+  const p = novoAudio.play();
+  if(p && typeof p.catch === "function"){
+    p.catch(() => {
+      if(button) button.classList.remove("playing");
+    });
+  }
+
+  novoAudio.onended = () => {
+    if(button) button.classList.remove("playing");
+    if(audioAtual === novoAudio) audioAtual = null;
+  };
+
+  novoAudio.onerror = () => {
+    if(button) button.classList.remove("playing");
+    if(audioAtual === novoAudio) audioAtual = null;
+  };
+
+  return true;
+}
+
+function scrollBottom(){
+  requestAnimationFrame(() => {
+    chatArea.scrollTop = chatArea.scrollHeight;
+    scrollBottomBtn.classList.remove("visible");
+  });
+}
+
+function resizeComposer(){
+  promptInput.style.height = "auto";
+  promptInput.style.height = Math.min(promptInput.scrollHeight, 130) + "px";
+}
+
+function extractApiText(data){
+  if(typeof data === "string") return {text:data.trim(), audio_url:""};
+
+  if(data && typeof data === "object"){
+    const keys = ["text","response","resposta","message","mensagem","output","content","answer","resultado"];
+    let text = "";
+    for(const key of keys){
+      if(typeof data[key] === "string" && data[key].trim()){
+        text = data[key].trim();
+        break;
+      }
+    }
+
+    let audio_url = "";
+    const audioKeys = ["audio_url","audioUrl","audio","audio_url_response","url_audio"];
+    for(const key of audioKeys){
+      if(typeof data[key] === "string" && data[key].trim()){
+        audio_url = data[key].trim();
+        break;
+      }
+    }
+
+    if(!text && data.data){
+      return extractApiText(data.data);
+    }
+
+    return {text, audio_url};
+  }
+
+  return {text:"", audio_url:""};
+}
+
+async function askApi(text, filesArray){
+  const activeChat = getActiveChat();
+  const chatId = activeChat ? String(activeChat.id || "") : "";
+  const apiEndpoint = "https://ai-amheex.onrender.com/api/index.php";
+
+  const filesPayload = (Array.isArray(filesArray) ? filesArray : [])
+    .filter(f => f && f.url)
+    .map((f, index) => ({
+      id: String(f.id || `file_${Date.now()}_${index}`),
+      name: String(f.name || `arquivo_${index + 1}`),
+      url: String(f.url),
+      size: Number(f.size || 0),
+      type: String(f.type || "application/octet-stream")
+    }));
+
+  // O endpoint de perguntas recebe JSON. Não misturamos FormData com JSON:
+  // isso evita campos duplicados e garante que URLs dos arquivos cheguem
+  // exatamente como foram enviados pelo navegador.
+  const payload = {
+    version: 2,
+    token: String(USER_TOKEN || ""),
+    chat_id: chatId,
+    text: String(text || ""),
+    pergunta: String(text || ""),
+    message: String(text || ""),
+    arquivos_json: {
+      version: 2,
+      files: filesPayload
+    },
+    files: filesPayload,
+    arquivo_url: filesPayload.map(f => f.url),
+    JSON_url_arquigos: filesPayload,
+    json_url_arquigos: {
+      version: 2,
+      files: filesPayload
+    }
+  };
+
+  const response = await fetch(apiEndpoint, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    cache: "no-store",
+    // Não seguir redirecionamentos neste POST. A pergunta deve chegar
+    // diretamente ao api.php, sem 301/302/307/308 no caminho.
+    redirect: "manual",
+    headers: {
+      "Content-Type": "application/json; charset=UTF-8",
+      "Accept": "application/json, text/plain, */*"
+    }
+  });
+
+  // Em navegadores, um redirect cross-origin pode aparecer como
+  // opaqueredirect (status 0). Não tratar isso como uma pergunta enviada.
+  if (response.type === "opaqueredirect") {
+    throw new Error("A API redirecionou o POST. O envio foi cancelado; use o endpoint direto do api.php.");
+  }
+
+  const raw = await response.text();
+  let data = raw;
+  try { data = JSON.parse(raw); } catch(_) {}
+
+  if(!response.ok){
+    const msg = extractApiText(data).text ||
+      (data && typeof data.message === "string" ? data.message : "") ||
+      raw || `API HTTP ${response.status}`;
+    throw new Error(`HTTP ${response.status}: ${msg}`);
+  }
+
+  if(data && typeof data === "object" && data.status === "error"){
+    throw new Error(data.message || "A API recusou a pergunta.");
+  }
+
+  return extractApiText(data);
+}
+
+async function waitForChatUpdate(chatId, initialMessageCount, maxAttempts = 60, intervalMs = 2000) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const url = storageUrl(true) + `&_=${Date.now()}`;
+      const response = await fetch(url, { cache: "no-store", mode: "cors" });
+      if (response.ok) {
+        const rawText = (await response.text()).trim();
+        if(!rawText || rawText.startsWith("Erro:") || rawText.startsWith("<!")) {
+          await new Promise(resolve => setTimeout(resolve, intervalMs));
+          continue;
+        }
+        const rawData = JSON.parse(rawText);
+        const normalized = normalizeHistory(rawData);
+        const remoteChats = normalized.chats.map(normalizeChat);
+        
+        const remoteChat = remoteChats.find(c => c.id === chatId);
+        if (remoteChat && remoteChat.mensagens.length > initialMessageCount) {
+          const lastMsg = remoteChat.mensagens[remoteChat.mensagens.length - 1];
+          if (lastMsg && lastMsg.role === "assistant") {
+            return {
+              text: lastMsg.text,
+              audio_url: lastMsg.audio_url || "",
+              timestamp: lastMsg.timestamp,
+              remoteChat
+            };
+          }
+        }
+      }
+    } catch (e) {}
+    await new Promise(resolve => setTimeout(resolve, intervalMs));
+  }
+  throw new Error("Tempo esgotado aguardando a resposta no JSON do chat.");
+}
+
+async function sendMessage(){
+  const aiLoader = showAiThinkingLoader();
+
+  if(waiting) return;
+
+  const text = preprocessConversationContent(promptInput.value).trim();
+  const currentFiles = [...selectedFiles];
+
+  const uploadingFiles = currentFiles.filter(f => f && f.uploading);
+  const failedFiles = currentFiles.filter(f => f && f.uploadError);
+
+  if(uploadingFiles.length > 0){
+    showUploadError("Aguarde o término do upload dos arquivos antes de enviar.");
+    return;
+  }
+
+  if(failedFiles.length > 0){
+    showUploadError("Remova o arquivo com falha no upload e selecione-o novamente.");
+    return;
+  }
+
+  if(!text && currentFiles.length === 0) return;
+
+  if(!tokenOk()){
+    showError("Informe o token na URL: ?token=SEU_TOKEN");
+    return;
+  }
+
+  let chat = getActiveChat();
+  if(!chat){
+    startNewChat(false);
+    chat = getActiveChat();
+  }
+
+  waiting = true;
+  sendBtn.disabled = true;
+  promptInput.value = "";
+  
+  selectedFiles = [];
+  fileInput.value = "";
+  filePreviewContainer.classList.remove("active");
+  resizeComposer();
+
+  if(!chat.mensagens.length){
+    chat.titulo = titleFromText(text || (currentFiles[0] ? currentFiles[0].name : "Arquivos enviados"));
+  }
+
+  const initialCount = chat.mensagens.length;
+
+  const userMessage = {
+    role:"user",
+    text,
+    files: currentFiles,
+    timestamp:nowIso()
+  };
+
+  chat.mensagens.push(userMessage);
+  chat.atualizado_em = nowIso();
+
+  renderActiveChat();
+  renderHistory();
+
+  // Envio manual do usuário: somente aqui descemos a conversa inteira.
+  amheexScrollAfterUserSend();
+
+  // Não gravamos o histórico aqui. O api.php/server.php é o responsável
+  // por persistir a pergunta; salvar antes causava perguntas órfãs/duplicadas
+  // quando o Storage retornava 500/502. A mensagem continua visível localmente.
+
+  const loadingRow = document.createElement("div");
+  loadingRow.className = "message-row ai";
+  loadingRow.innerHTML = `
+    <div class="message-main">
+      <img class="message-avatar" src="${esc(DEFAULT_ICON)}" alt="AMHEEX">
+      <div class="message-content">
+        <div class="loading-dots">
+          <span></span><span></span><span></span>
         </div>
-
-        <!-- EXEMPLO PRÁTICO -->
-        <h2>Exemplo prático na aplicação /web</h2>
-
-        <div class="card">
-            <h3>Cenário: Usuário sobe um vídeo e depois assiste</h3>
-            <pre><span class="comment">// 1. Upload (pode ser em vários chunks)</span>
-<span class="keyword">const</span> caminho = <span class="string">"videos/meu-filme.mp4"</span>;
-<span class="comment">// ... envia os chunks via POST para `${API_BASE}/${caminho}`</span>
-
-<span class="comment">// 2. Quando o upload terminar, a API devolve a URL de leitura:</span>
-<span class="comment">//    https://api-storageamheex.onrender.com/X/videos/meu-filme.mp4</span>
-
-<span class="comment">// 3. Na sua interface, use SEMPRE a URL com /X/ para o player:</span>
-&lt;video controls src=<span class="string">"https://api-storageamheex.onrender.com/X/videos/meu-filme.mp4"</span>&gt;&lt;/video&gt;
-
-<span class="comment">// 4. Se quiser um botão de "Baixar":</span>
-&lt;a href=<span class="string">"https://api-storageamheex.onrender.com/videos/meu-filme.mp4"</span>&gt;
-  Baixar arquivo
-&lt;/a&gt;
-<span class="comment">//    → a API faz o download e depois redireciona para a versão de leitura</span></pre>
-        </div>
-
-        <!-- OBSERVAÇÕES -->
-        <h2>Observações importantes</h2>
-
-        <div class="alert alert-warning">
-            <strong>Atenção:</strong>
-            <ul style="margin:8px 0 0 18px;">
-                <li>A pasta <code>/X/</code> é o diretório real de armazenamento no servidor.</li>
-                <li>Arquivos com extensão <code>.php</code> são automaticamente neutralizados (viram <code>.php.txt</code>) por segurança.</li>
-                <li>A API limpa automaticamente caminhos que contenham <code>chunk</code>, <code>chunks</code>, etc.</li>
-                <li>Suporta arquivos de até 1 TB (configurado no PHP).</li>
-                <li>CORS está liberado (<code>*</code>) e permite uso em iframe.</li>
-            </ul>
-        </div>
-
-        <div class="card success">
-            <h3 style="margin-top:0;">Resumo final para a aplicação /web</h3>
-            <p style="font-size:1.05rem; margin-bottom:8px;">
-                <strong>Leitura / Visualização / Player</strong> → sempre use a URL <strong>com /X/</strong>
-            </p>
-            <p style="font-size:1.05rem; margin-bottom:0;">
-                <strong>Download forçado + redirecionamento</strong> → use a URL <strong>sem /X/</strong>
-            </p>
-        </div>
-
-        <footer>
-            Documentação Storage · Uso recomendado na aplicação /web<br>
-            Com <code>/X/</code> = Leitura &nbsp;|&nbsp; Sem <code>/X/</code> = Download + Redireciona para Leitura
-            <span class="api-footer">https://api-storageamheex.onrender.com</span>
-        </footer>
+      </div>
     </div>
+  `;
+  chatInner.appendChild(loadingRow);
+
+  try{
+    await askApi(text, currentFiles);
+    const result = await waitForChatUpdate(chat.id, initialCount + 1);
+
+    loadingRow.remove();
+
+    const respostaProcessada = preprocessConversationContent(result.text ?? "");
+    const assistantMessage = {
+      role:"assistant",
+      text:respostaProcessada,
+      audio_url:result.audio_url || "",
+      timestamp:result.timestamp || nowIso()
+    };
+
+    chat.mensagens.push(assistantMessage);
+    chat.atualizado_em = nowIso();
+
+    const responseScrollTop = chatArea.scrollTop;
+    hideAiThinkingLoader();
+    const responseRow = await appendStreamingAssistantMessage(
+      assistantMessage.text, assistantMessage.timestamp, assistantMessage.audio_url
+    );
+    requestAnimationFrame(() => { chatArea.scrollTop = responseScrollTop; });
+
+    if(assistantMessage.audio_url){
+      tocarAudioAPI(
+        assistantMessage.audio_url,
+        responseRow.querySelector(".audio-action"),
+        true
+      );
+    }
+
+    renderHistory();
+    await saveHistory();
+  }catch(error){
+    hideAiThinkingLoader();
+    loadingRow.remove();
+    const errorRow = document.createElement("div");
+    errorRow.className = "error-box";
+    errorRow.innerHTML = `
+      Não foi possível obter uma resposta agora.
+      <br><small>${esc(error.message)}</small>
+      <br><button class="retry" type="button">Tentar novamente</button>
+    `;
+
+    chatInner.appendChild(errorRow);
+    errorRow.querySelector(".retry").addEventListener("click", async () => {
+      if(waiting) return;
+      errorRow.remove();
+      promptInput.value = text;
+      selectedFiles = currentFiles.map(file => ({ ...file }));
+      renderFilePreviews();
+      resizeComposer();
+      await sendMessage();
+    });
+  }finally{
+    waiting = false;
+    sendBtn.disabled = false;
+    promptInput.focus();
+  }
+}
+
+function showError(message){
+  const old = document.querySelector(".error-box");
+  old?.remove();
+
+  const box = document.createElement("div");
+  box.className = "error-box";
+  box.textContent = message;
+  chatInner.appendChild(box);
+}
+
+function openMenu(){
+  drawerOverlay.classList.add("active");
+}
+
+function closeMenu(){
+  drawerOverlay.classList.remove("active");
+}
+
+menuBtn.addEventListener("click", openMenu);
+closeDrawer.addEventListener("click", closeMenu);
+drawerOverlay.addEventListener("click", e => {
+  if(e.target === drawerOverlay) closeMenu();
+});
+newTopBtn.addEventListener("click", () => startNewChat(false));
+newChatBtn.addEventListener("click", () => startNewChat(true));
+
+function abrirConversaPorVoz(){
+  const currentParams = new URLSearchParams(window.location.search);
+  const token = currentParams.get("token") || USER_TOKEN;
+  const url = new URL("https://ai-amheex.onrender.com/voz/index.php");
+  
+  if(token) url.searchParams.set("token", token);
+  const activeChat = getActiveChat();
+  if(activeChat && activeChat.id) url.searchParams.set("chat_id", activeChat.id);
+  
+  window.location.href = url.toString();
+}
+
+function abrirConfiguracoes(){
+  const currentParams = new URLSearchParams(window.location.search);
+  const token = currentParams.get("token") || USER_TOKEN;
+  const url = new URL("https://ai-amheex.onrender.com/confing/index.php");
+  
+  if(token) url.searchParams.set("token", token);
+  window.location.href = url.toString();
+}
+
+voiceBtn.addEventListener("click", abrirConversaPorVoz);
+settingsBtn.addEventListener("click", abrirConfiguracoes);
+sendBtn.addEventListener("click", sendMessage);
+promptInput.addEventListener("input", resizeComposer);
+
+promptInput.addEventListener("keydown", e => {
+  if(e.key !== "Enter") return;
+
+  // Enter envia a pergunta.
+  // Shift+Enter mantém a quebra de linha dentro do textarea.
+  if(e.shiftKey) return;
+
+  e.preventDefault();
+  if(!waiting) sendMessage();
+});
+
+window.addEventListener("resize", resizeComposer);
+
+async function loadUserInfo(){
+  if(!USER_TOKEN) return;
+
+  // Importante: NÃO usar o prefixo /X/ no storage para fetch do browser.
+  // O caminho com /X/ não envia (ou envia de forma inconsistente) o header
+  // Access-Control-Allow-Origin e quebra o CORS. O padrão que funciona
+  // (login/index.js e o histórico de chat) é SEM /X/ e com ?download=1.
+  const possible = [
+    `https://api-storageamheex.onrender.com/AMHEEX/AI/USER/${encodeURIComponent(USER_TOKEN)}/index.json`,
+    `https://api-storageamheex.onrender.com/AMHEEX/USER/${encodeURIComponent(USER_TOKEN)}/index.json`,
+    // fallback legado com /X/ (caso o storage mude de comportamento)
+    `https://api-storageamheex.onrender.com/X/AMHEEX/AI/USER/${encodeURIComponent(USER_TOKEN)}/index.json`,
+    `https://api-storageamheex.onrender.com/X/AMHEEX/USER/${encodeURIComponent(USER_TOKEN)}/index.json`
+  ];
+
+  for(const baseUrl of possible){
+    try{
+      const url = baseUrl + (baseUrl.includes("?") ? "&" : "?") + `download=1&_=${Date.now()}`;
+      const r = await fetch(url, { cache: "no-store", mode: "cors" });
+      if(!r.ok) continue;
+
+      const data = await r.json();
+      if(!data || typeof data !== "object") continue;
+
+      const imagem =
+        data.imagem_url ||
+        data.imagem ||
+        data.avatar ||
+        data.foto ||
+        data.image_url ||
+        data.photo_url ||
+        data.avatar_url ||
+        "";
+
+      const nome =
+        data.USUARIO_NORMAL ||
+        data.usuario_normal ||
+        data.nome ||
+        data.name ||
+        data.usuario ||
+        data.user ||
+        data.username ||
+        "";
+
+      if(imagem){
+        drawerAvatar.src = String(imagem);
+        topAvatar.src = String(imagem);
+      }
+      if(nome){
+        accountName.textContent = String(nome);
+      }
+
+      // Se encontrou pelo menos um dado útil, para de tentar outros caminhos
+      if(imagem || nome) break;
+    }catch(_){}
+  }
+}
+
+function executarTelaLogin(){
+  const antigo = document.getElementById("amheex-login-script");
+  if(antigo) return;
+
+  const script = document.createElement("script");
+  script.id = "amheex-login-script";
+  script.src = "login/index.js";
+  script.async = false;
+  script.onerror = () => showError("Não foi possível carregar a tela de login.");
+  document.body.appendChild(script);
+}
+
+async function init(){
+  resizeComposer();
+
+  if(!USER_TOKEN){
+    executarTelaLogin();
+    return;
+  }
+
+  await loadUserInfo();
+  renderWelcome();
+  await loadHistory(true);
+  amheexMarkHistoryFingerprint();
+  amheexStartHistoryPolling();
+}
+
+init();
+</script>
 </body>
 </html>
