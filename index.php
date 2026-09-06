@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Cria o arquivo de 0 bytes e o marcador APENAS NA PRIMEIRA VEZ ABSOLUTA
     if (!file_exists($fullPath) && !file_exists($markerPath)) {
         @file_put_contents($fullPath, '');
-        @file_put_contents($markerPath, '1');
+        @file_put_contents($markerPath, ''); // Conteúdo "1"!!
     }
 
     if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
