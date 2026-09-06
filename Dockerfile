@@ -1,5 +1,5 @@
 # ✅ Base modificada para upload de até 1 Terabyte (1048576M)
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /var/www/html
@@ -9,16 +9,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl wget git unzip zip nano vim gnupg2 lsb-release apt-transport-https sudo net-tools \
     && rm -rf /var/lib/apt/lists/*
 
-# 2️⃣ PHP 8.2 + Apache (Porta 80)
-RUN curl -fsSL https://packages.sury.org/php/apt.gpg | gpg --dearmor -o /usr/share/keyrings/php.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" \
+# 2️⃣ PHP 8.2 + Apache (Porta 80) com chaveiro oficial do repositório Sury
+RUN curl -sSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb \
+    && dpkg -i /tmp/debsuryorg-archive-keyring.deb \
+    && echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" \
     > /etc/apt/sources.list.d/php.list \
     && apt-get update && apt-get install -y --no-install-recommends \
         apache2 \
         libapache2-mod-php8.2 \
         php8.2 php8.2-cli php8.2-common php8.2-mbstring php8.2-xml php8.2-zip \
         php8.2-curl php8.2-opcache php8.2-bcmath php8.2-intl php8.2-gd php8.2-mysql php8.2-dev \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/*.deb
 
 # 3️⃣ Node.js LTS + PM2
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
@@ -30,7 +31,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 RUN a2enmod rewrite headers expires dir php8.2 proxy proxy_http proxy_fcgi setenvif http2 deflate \
     && sed -i 's/Listen 80/Listen 0.0.0.0:80/' /etc/apache2/ports.conf
 
-# 5️⃣ Configuração Apache — Removido limite de corpo para 1TB (000-default.conf)
+# 5️⃣ Configuração Apache — Sem limite de corpo para 1TB (000-default.conf)
 RUN cat <<'EOF' > /etc/apache2/sites-available/000-default.conf
 <VirtualHost *:80>
     ServerAdmin webmaster@localhost
@@ -41,21 +42,17 @@ RUN cat <<'EOF' > /etc/apache2/sites-available/000-default.conf
         DirectoryIndex index.php index.html
         AllowOverride All
         Require all granted
-        # 🔒 Sem limite de upload (0 = ilimitado para suportar até 1TB)
         LimitRequestBody 0
     </Directory>
 
-    # 🕓 Timeouts Infinitos para Processos Longos
     Timeout 999999
     ProxyTimeout 999999
     RequestReadTimeout header=0 body=0
 
-    # 🔁 Keep-Alive Total
     KeepAlive On
     MaxKeepAliveRequests 0
     KeepAliveTimeout 999999
 
-    # ⚡ Performance e No-Buffer
     EnableSendfile Off
     EnableMMAP Off
     Header always set Connection keep-alive
