@@ -31,7 +31,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 RUN a2enmod rewrite headers expires dir php8.2 proxy proxy_http proxy_fcgi setenvif http2 deflate \
     && sed -i 's/Listen 80/Listen 0.0.0.0:80/' /etc/apache2/ports.conf
 
-# 5️⃣ Configuração Apache — Sem limite de corpo para 1TB (000-default.conf)
+# 5️⃣ Configuração Apache — Sem limite de corpo para 1TB + Fallback para index.php
 RUN cat <<'EOF' > /etc/apache2/sites-available/000-default.conf
 <VirtualHost *:80>
     ServerAdmin webmaster@localhost
@@ -43,6 +43,12 @@ RUN cat <<'EOF' > /etc/apache2/sites-available/000-default.conf
         AllowOverride All
         Require all granted
         LimitRequestBody 0
+
+        # Qualquer URL que não exista (incluindo .json) vai para o index.php
+        RewriteEngine On
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule ^ index.php [L]
     </Directory>
 
     Timeout 999999
