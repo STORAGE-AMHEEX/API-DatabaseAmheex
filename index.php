@@ -84,14 +84,14 @@ $cleanPathForFile = preg_replace('#^(/X)+#i', '', $requestPath);
 
 // REDIRECIONAMENTO SE PARÂMETRO PATH NÃO ESTIVER CONFIGURADO (VAZIO)
 if (empty($cleanPathForFile) || $cleanPathForFile === '/' || $cleanPathForFile === '') {
-    header("Location: https://amheexbot.onrender.com/index.html");
+    header("Location: https://api-storageamheex.onrender.com/index.html");
     exit;
 }
 
 $fileRelPath = sanitizaCaminho(urldecode($cleanPathForFile));
 
 if (empty($fileRelPath)) {
-    header("Location: https://amheexbot.onrender.com/index.html");
+    header("Location: https://api-storageamheex.onrender.com/index.html");
     exit;
 }
 
@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
 
         if (!file_exists($fullPath)) {
-            header("Location: https://amheexbot.onrender.com/erro/404.html");
+            header("Location: https://api-storageamheex.onrender.com/erro/404.html");
             exit;
         }
 
@@ -184,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>STORAGE AMHEEX</title>
-        <link rel="icon" href="https://amheexbot.onrender.com/icon.png" type="image/jpeg">
+        <link rel="icon" href="https://api-storageamheex.onrender.com/icon.png" type="image/jpeg">
         <style>
             * { box-sizing: border-box; }
             html, body {
@@ -231,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             function pollFileSize() {
                 // Se passou de 10 segundos aguardando sem o arquivo ter tamanho > 0, vai para o 404
                 if (Date.now() - startTime > timeoutLimit) {
-                    window.location.href = "https://amheexbot.onrender.com/erro/404.html";
+                    window.location.href = "https://api-storageamheex.onrender.com/erro/404.html";
                     return;
                 }
 
