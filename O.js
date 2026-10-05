@@ -5,7 +5,7 @@ const https = require("https");
 // URL por argumento
 const targetUrl =
     process.argv[2] ||
-    "https://amheexbot.onrender.com/B.php";
+    "https://api-storageamheex.onrender.com/B.php";
 
 // Timeout de INATIVIDADE
 // Só dispara se parar totalmente de receber dados
