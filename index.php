@@ -1,31 +1,24 @@
 <?php
 // =========================================================================
-//   AJUSTES PHP — SUPORTE A ARQUIVOS DE ATÉ 1 TERABYTE (1048576M)
+//   API FIREBASE-LIKE LOCAL (BASEADA EM ÁRVORE DE DIRETÓRIOS JSON)
 // =========================================================================
-@ini_set('upload_max_filesize', '1048576M');
-@ini_set('post_max_size', '1048576M');
-@ini_set('memory_limit', '4096M');
-@ini_set('max_execution_time', '0');
-@ini_set('max_input_time', '0');
-@ini_set('output_buffering', '0');
-@ini_set('implicit_flush', '1');
+@ini_set('memory_limit', '512M');
+@ini_set('max_execution_time', '60');
 
 ignore_user_abort(true);
-set_time_limit(0);
+set_time_limit(60);
 
 while (ob_get_level()) {
     @ob_end_clean();
 }
 
 // =========================================================================
-// CORS + PERMISSÃO DE IFRAME
+// CORS + SUPORTE A JSON
 // =========================================================================
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Range');
-header('Access-Control-Expose-Headers: Content-Length, Content-Range, Accept-Ranges, Content-Type');
-header('Content-Security-Policy: frame-ancestors *;');
-header('Cross-Origin-Resource-Policy: cross-origin');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Content-Type: application/json; charset=utf-8');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -49,10 +42,6 @@ function sanitizaCaminho($path) {
     $path = str_replace(['..\\', '../'], '', $path);
     $path = preg_replace('/[^a-zA-Z0-9_\-\.\@\/]/', '', $path);
     $path = preg_replace('#/+#', '/', $path);
-    
-    $path = preg_replace('#/(chunk|chuck|chunks|chucks)(/.*)?$#i', '', $path);
-    $path = preg_replace('#^(chunk|chuck|chunks|chucks)/?#i', '', $path);
-    
     return trim($path, "/\\");
 }
 
@@ -63,323 +52,108 @@ function neutralizaExtensaoPhp($path) {
     return $path;
 }
 
-function build_clean_public_url($fileRelPath, $comPastaX = false) {
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $pastaX = $comPastaX ? '/X' : '';
-    return "{$scheme}://{$host}{$pastaX}/" . ltrim($fileRelPath, '/');
-}
-
 // =========================================================================
-// OBTENÇÃO DO CAMINHO EXATO A PARTIR DA URL (LIMPAR DUPLICAÇÕES /X/)
+// OBTENÇÃO E TRATAMENTO DO CAMINHO DA URL
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 
-// DETECÇÃO SE A URL POSSUI A PASTA /X/ EXPLICITAMENTE NA FRENTE DO DOMÍNIO
-$veioComPastaXExplicitamente = (stripos($requestPath, '/X/') === 0 || preg_match('#^/X(/|$)#i', $requestPath));
-
-// Remove todas as repetições de /X do início para mapear o arquivo corretamente na BASE_DIR
+// Remove todas as repetições de /X do início para mapear corretamente na BASE_DIR
 $cleanPathForFile = preg_replace('#^(/X)+#i', '', $requestPath);
 
-// REDIRECIONAMENTO SE PARÂMETRO PATH NÃO ESTIVER CONFIGURADO (VAZIO)
 if (empty($cleanPathForFile) || $cleanPathForFile === '/' || $cleanPathForFile === '') {
-    header("Location: https://api-storageamheex.onrender.com/index.html");
+    echo json_encode(null);
     exit;
 }
 
 $fileRelPath = sanitizaCaminho(urldecode($cleanPathForFile));
 
 if (empty($fileRelPath)) {
-    header("Location: https://api-storageamheex.onrender.com/index.html");
+    echo json_encode(null);
     exit;
 }
 
 $fileRelPath = neutralizaExtensaoPhp($fileRelPath);
 
+// Força a extensão .json caso o caminho não possua nenhuma extensão
+if (pathinfo($fileRelPath, PATHINFO_EXTENSION) === '') {
+    $fileRelPath .= '.json';
+}
+
+$fullPath = BASE_DIR . '/' . $fileRelPath;
+$fileDir = dirname($fullPath);
+
 // =========================================================================
-// ROTA GET
+// MÉTODO GET: LÊ O CONTEÚDO DO ARQUIVO OU RETORNA NULL
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $fullPath = BASE_DIR . '/' . $fileRelPath;
-    $fileDir = dirname($fullPath);
-    
-    if (!is_dir($fileDir)) {
-        @mkdir($fileDir, 0777, true);
-    }
-
-    $markerPath = $fullPath . ''; // .created
-    
-    // Cria o arquivo de 0 bytes e o marcador APENAS NA PRIMEIRA VEZ ABSOLUTA
-    if (!file_exists($fullPath) && !file_exists($markerPath)) {
-        @file_put_contents($fullPath, '');
-        @file_put_contents($markerPath, ''); // Conteúdo "1"!!
-    }
-
-    if (isset($_GET['check_size']) && $_GET['check_size'] === '1') {
-        while (ob_get_level()) {
-            @ob_end_clean();
-        }
-
-        header('Content-Type: application/json');
-        clearstatcache(true, $fullPath);
-        $currentSize = file_exists($fullPath) ? filesize($fullPath) : 0;
-        echo json_encode(['size' => $currentSize]);
+    if (!file_exists($fullPath) || filesize($fullPath) === 0) {
+        echo json_encode(null);
         exit;
     }
 
-    if (isset($_GET['download']) && $_GET['download'] === '1') {
-        while (ob_get_level()) {
-            @ob_end_clean();
-        }
-
-        if (!file_exists($fullPath)) {
-            header("Location: https://api-storageamheex.onrender.com/erro/404.html");
-            exit;
-        }
-
-        $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
-        if ($ext === 'apk') {
-            $mime = 'application/vnd.android.package-archive';
-        } else {
-            $mime = @mime_content_type($fullPath) ?: 'application/octet-stream';
-        }
-
-        $fileSize = filesize($fullPath);
-        $fileName = basename($fullPath);
-
-        header('Content-Description: File Transfer');
-        header('Content-Type: ' . $mime);
-        header('Content-Disposition: attachment; filename="' . addslashes($fileName) . '"');
-        header('Content-Transfer-Encoding: binary');
-        header('Expires: 0');
-        header('Cache-Control: no-store, no-cache, must-revalidate');
-        header('Pragma: public');
-        header('Content-Length: ' . $fileSize);
-        @set_time_limit(0);
-
-        $handle = @fopen($fullPath, 'rb');
-        if ($handle) {
-            while (!feof($handle)) {
-                echo fread($handle, 8192 * 1024);
-                flush();
-            }
-            fclose($handle);
-        } else {
-            readfile($fullPath);
-        }
-        exit;
+    $content = file_get_contents($fullPath);
+    
+    // Tenta decodificar para garantir que é um JSON válido, se for, imprime direto
+    $jsonDecoded = json_decode($content);
+    if (json_last_error() === JSON_ERROR_NONE) {
+        echo $content;
+    } else {
+        // Se não for JSON puro, encapsula como string JSON
+        echo json_encode($content);
     }
-
-    // Checagem sem pasta X na URL, mas redirecionamento final com a pasta X (true)
-    $baseCleanUri = '/' . ltrim($fileRelPath, '/');
-    $stringBlobUrl = $baseCleanUri . '?download=1';
-    $stringCheckUrl = $baseCleanUri . '?check_size=1';
-    $stringRedirectUrl = build_clean_public_url($fileRelPath, true);
-    $jsVeioComPastaX = $veioComPastaXExplicitamente ? 'true' : 'false';
-
-    echo '<!DOCTYPE html>
-    <html lang="pt-BR">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>STORAGE AMHEEX</title>
-        <link rel="icon" href="https://api-storageamheex.onrender.com/icon.png" type="image/jpeg">
-        <style>
-            * { box-sizing: border-box; }
-            html, body {
-                margin: 0; padding: 0; width: 100%; height: 100vh;
-                background: #ffffff; color: #222222; font-family: Arial, sans-serif;
-                display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
-            }
-            .loadball {
-                width: 70px; height: 70px; border: 6px solid #f3f3f3;
-                border-top: 6px solid #ff0000; border-right: 6px solid #00ff00;
-                border-bottom: 6px solid #0000ff; border-left: 6px solid #ffff00;
-                border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 25px;
-            }
-            .title { font-size: 18px; letter-spacing: 2px; font-weight: bold; color: #333333; }
-            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        </style>
-    </head>
-    <body>
-        <div class="loadball"></div>
-        <div class="title" id="statusText">Aguardando arquivo...</div>
-        <script>
-            const checkUrl = ' . json_encode($stringCheckUrl) . ';
-            const blobUrl = ' . json_encode($stringBlobUrl) . ';
-            const redirectUrl = ' . json_encode($stringRedirectUrl) . ';
-            const veioComPastaX = ' . $jsVeioComPastaX . ';
-            const statusEl = document.getElementById("statusText");
-
-            const startTime = Date.now();
-            const timeoutLimit = 10000; // 10 segundos
-
-            function startDownload() {
-                statusEl.innerText = "Iniciando download...";
-                window.location.href = blobUrl;
-
-                setTimeout(() => {
-                    if (veioComPastaX) {
-                        window.location.reload();
-                    } else {
-                        window.location.href = redirectUrl;
-                    }
-                }, 5000);
-            }
-
-            function pollFileSize() {
-                // Se passou de 10 segundos aguardando sem o arquivo ter tamanho > 0, vai para o 404
-                if (Date.now() - startTime > timeoutLimit) {
-                    window.location.href = "https://api-storageamheex.onrender.com/erro/404.html";
-                    return;
-                }
-
-                fetch(checkUrl, { cache: "no-store" })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data && data.size > 0) {
-                            statusEl.innerText = "Arquivo detectado!";
-                            startDownload();
-                        } else {
-                            setTimeout(pollFileSize, 1000);
-                        }
-                    })
-                    .catch(() => {
-                        setTimeout(pollFileSize, 1000);
-                    });
-            }
-
-            pollFileSize();
-        </script>
-    </body>
-    </html>';
     exit;
 }
 
 // =========================================================================
-// ROTA POST — GRAVAÇÃO DIRETA DE CHUNKS NO ARQUIVO FINAL
+// MÉTODO POST / PUT: GRAVAÇÃO DIRETA DOS DADOS (JSON OU RAW)
 // =========================================================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    while (ob_get_level()) {
-        @ob_end_clean();
-    }
-
-    if (empty($fileRelPath)) {
-        http_response_code(400);
-        echo 'null';
-        exit;
-    }
-
-    $finalFilePath = BASE_DIR . '/' . $fileRelPath;
-    $fileDir = dirname($finalFilePath);
-    
+if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT') {
     if (!is_dir($fileDir)) {
         @mkdir($fileDir, 0777, true);
     }
 
-    if (isset($_POST['chunkIndex']) && isset($_POST['totalChunks'])) {
-        $chunkIndex = intval($_POST['chunkIndex']);
-        $totalChunks = intval($_POST['totalChunks']);
-        
-        $chunkTmp = null;
-        if (!empty($_FILES)) {
-            foreach ($_FILES as $fileKey => $fileInfo) {
-                if (isset($fileInfo['tmp_name']) && $fileInfo['error'] === UPLOAD_ERR_OK) {
-                    $chunkTmp = $fileInfo['tmp_name'];
-                    break;
-                }
-            }
-        }
+    $inputData = file_get_contents('php://input');
 
-        if ($chunkTmp && file_exists($chunkTmp)) {
-            $mode = ($chunkIndex === 0) ? 'wb' : 'ab';
-            
-            $out = @fopen($finalFilePath, $mode);
-            $in = @fopen($chunkTmp, 'rb');
-            
-            if ($out && $in) {
-                stream_copy_to_stream($in, $out);
-                @fclose($in);
-                @fclose($out);
-            } else {
-                http_response_code(500);
-                echo 'null';
-                exit;
-            }
+    // Se receber $_POST tradicional
+    if (empty($inputData) && !empty($_POST)) {
+        $inputData = json_encode($_POST);
+    }
 
-            if ($chunkIndex === ($totalChunks - 1)) {
-                if (file_exists($finalFilePath) && filesize($finalFilePath) > 0) {
-                    echo build_clean_public_url($fileRelPath, true);
-                    exit;
-                }
-                http_response_code(500);
-                echo 'null';
-                exit;
-            }
-
-            echo 'chunk_ok';
-            exit;
-        }
-        
+    if ($inputData === false || $inputData === '') {
         http_response_code(400);
-        echo 'null';
+        echo json_encode(null);
         exit;
     }
 
-    $httpRange = $_SERVER['HTTP_CONTENT_RANGE'] ?? '';
-    if (!empty($httpRange) && preg_match('/bytes\s+(\d+)-(\d+)\/(\d+|\*)/i', $httpRange, $matches)) {
-        $startByte = intval($matches[1]);
-        $totalSize = ($matches[3] !== '*') ? intval($matches[3]) : 0;
-        
-        $input = @fopen('php://input', 'rb');
-        $mode = ($startByte === 0) ? 'wb' : 'ab';
-        $out = @fopen($finalFilePath, $mode);
+    // Valida se o conteúdo enviado é um JSON válido, caso contrário salva como string/dado bruto
+    $decoded = json_decode($inputData);
+    $dataToSave = (json_last_error() === JSON_ERROR_NONE) ? json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : $inputData;
 
-        if ($input && $out) {
-            if ($startByte > 0) {
-                @fseek($out, $startByte);
-            }
-            stream_copy_to_stream($input, $out);
-            @fclose($input);
-            @fclose($out);
+    $bytesWritten = @file_put_contents($fullPath, $dataToSave, LOCK_EX);
 
-            if ($totalSize > 0 && file_exists($finalFilePath) && filesize($finalFilePath) >= $totalSize) {
-                echo build_clean_public_url($fileRelPath, true);
-                exit;
-            }
-
-            echo 'chunk_ok';
-            exit;
-        }
-
-        if ($input) @fclose($input);
-        if ($out) @fclose($out);
+    if ($bytesWritten !== false) {
+        echo $dataToSave;
+    } else {
         http_response_code(500);
+        echo json_encode(null);
+    }
+    exit;
+}
+
+// =========================================================================
+// MÉTODO DELETE: REMOVE O ARQUIVO (SIMULANDO O FIREBASE .remove())
+// =========================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    if (file_exists($fullPath)) {
+        @unlink($fullPath);
+        echo json_encode(null);
         exit;
     }
-
-    $input = fopen('php://input', 'rb');
-    if ($input) {
-        $out = fopen($finalFilePath, 'wb');
-        if ($out) {
-            stream_copy_to_stream($input, $out);
-            fclose($out);
-            fclose($input);
-
-            if (file_exists($finalFilePath) && filesize($finalFilePath) > 0) {
-                echo build_clean_public_url($fileRelPath, true);
-                exit;
-            }
-        } else {
-            fclose($input);
-        }
-    }
-
-    http_response_code(500);
-    echo 'null';
+    http_response_code(404);
+    echo json_encode(null);
     exit;
 }
 
 http_response_code(405);
-echo 'null';
+echo json_encode(null);
