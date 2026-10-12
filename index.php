@@ -28,10 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // =========================================================================
 // CONFIGURAÇÕES DE DIRETÓRIO LOCAL (DIRETÓRIO X)
 // =========================================================================
-define('BASE_DIR', __DIR__ . '/X');
+define('BASE_DIR', realpath(__DIR__) . '/X');
 
 if (!is_dir(BASE_DIR)) {
-    @mkdir(BASE_DIR, 0755, true);
+    @mkdir(BASE_DIR, 0777, true);
 }
 
 // =========================================================================
@@ -56,19 +56,7 @@ function neutralizaExtensaoPhp($path) {
 // OBTENÇÃO E TRATAMENTO DO CAMINHO DA URL
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
-$parsedUrl = parse_url($requestUri);
-$requestPath = $parsedUrl['path'] ?? '';
-
-// Remove o nome do script atual do caminho, se presente (ex: /api.php/caminho -> /caminho)
-$scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-if (strpos($requestPath, $scriptName) === 0) {
-    $requestPath = substr($requestPath, strlen($scriptName));
-} else {
-    $scriptDir = dirname($scriptName);
-    if ($scriptDir !== '/' && strpos($requestPath, $scriptDir) === 0) {
-        $requestPath = substr($requestPath, strlen($scriptDir));
-    }
-}
+$requestPath = parse_url($requestUri, PHP_URL_PATH);
 
 // Remove todas as repetições de /X do início para mapear corretamente na BASE_DIR
 $cleanPathForFile = preg_replace('#^(/X)+#i', '', $requestPath);
@@ -104,28 +92,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     }
 
-    $content = file_file_get_contents_safe($fullPath);
-    $jsonDecoded = json_decode($content);
+    $content = file_get_contents($fullPath);
     
+    // Tenta decodificar para garantir que é um JSON válido, se for, imprime direto
+    $jsonDecoded = json_decode($content);
     if (json_last_error() === JSON_ERROR_NONE) {
         echo $content;
     } else {
+        // Se não for JSON puro, encapsula como string JSON
         echo json_encode($content);
     }
     exit;
-}
-
-// Função auxiliar para leitura segura
-function file_file_get_contents_safe($filepath) {
-    $fp = fopen($filepath, 'r');
-    if ($fp) {
-        flock($fp, LOCK_SH);
-        $content = stream_get_contents($fp);
-        flock($fp, LOCK_UN);
-        fclose($fp);
-        return $content;
-    }
-    return file_get_contents($filepath);
 }
 
 // =========================================================================
@@ -133,15 +110,12 @@ function file_file_get_contents_safe($filepath) {
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT') {
     if (!is_dir($fileDir)) {
-        if (!@mkdir($fileDir, 0755, true)) {
-            http_response_code(500);
-            echo json_encode(['error' => 'Não foi possível criar o diretório. Verifique as permissões.']);
-            exit;
-        }
+        @mkdir($fileDir, 0777, true);
     }
 
     $inputData = file_get_contents('php://input');
 
+    // Se receber $_POST tradicional
     if (empty($inputData) && !empty($_POST)) {
         $inputData = json_encode($_POST);
     }
@@ -152,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
         exit;
     }
 
+    // Valida se o conteúdo enviado é um JSON válido, caso contrário salva como string/dado bruto
     $decoded = json_decode($inputData);
     $dataToSave = (json_last_error() === JSON_ERROR_NONE) ? json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : $inputData;
 
@@ -161,13 +136,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
         echo $dataToSave;
     } else {
         http_response_code(500);
-        echo json_encode(['error' => 'Erro ao escrever no arquivo. Verifique permissões de escrita.']);
+        echo json_encode(null);
     }
     exit;
 }
 
 // =========================================================================
-// MÉTODO DELETE: REMOVE O ARQUIVO
+// MÉTODO DELETE: REMOVE O ARQUIVO (SIMULANDO O FIREBASE .remove())
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
     if (file_exists($fullPath)) {
