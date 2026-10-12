@@ -1,6 +1,6 @@
 <?php
 // =========================================================================
-//   API FIREBASE-LIKE LOCAL (SUPORTE COMPLETO A ÁRVORES E SUBPASTAS)
+//   API FIREBASE-LIKE LOCAL (MAPEAMENTO AUTOMÁTICO DE JSON PARA DIRETÓRIOS)
 // =========================================================================
 @ini_set('memory_limit', '8192M');
 @ini_set('max_execution_time', '0');
@@ -59,7 +59,7 @@ function neutralizaExtensaoPhp($path) {
     return $path;
 }
 
-// Função recursiva para ler diretórios e montar a árvore JSON estilo Firebase
+// Lê diretórios e arquivos recursivamente para montar a árvore JSON
 function lerDiretorioComoArvore($dir) {
     $resultado = [];
     if (!is_dir($dir)) {
@@ -73,13 +73,14 @@ function lerDiretorioComoArvore($dir) {
         $caminhoItem = $dir . '/' . $item;
         
         if (is_dir($caminhoItem)) {
-            // Se for pasta, lê recursivamente
             $subArvore = lerDiretorioComoArvore($caminhoItem);
-            if (!empty($subArvore)) {
-                $resultado[$item] = $subArvore;
+            $nomeChave = $item;
+            if ($subArvore !== null) {
+                $resultado[$nomeChave] = $subArvore;
+            } else {
+                $resultado[$nomeChave] = [];
             }
         } elseif (pathinfo($item, PATHINFO_EXTENSION) === 'json') {
-            // Se for arquivo .json, lê o conteúdo
             $nomeChave = pathinfo($item, PATHINFO_FILENAME);
             $conteudo = file_get_contents($caminhoItem);
             $jsonDecoded = json_decode($conteudo);
@@ -88,6 +89,45 @@ function lerDiretorioComoArvore($dir) {
         }
     }
     return empty($resultado) ? null : $resultado;
+}
+
+// Função recursiva para salvar chaves de um objeto JSON como pastas e arquivos .json
+function salvarJsonRecursivo($baseDir, $data) {
+    if (!is_array($data) && !is_object($data)) {
+        return false;
+    }
+
+    foreach ($data as $chave => $valor) {
+        $chaveSanitizada = sanitizaCaminho((string)$chave);
+        if (empty($chaveSanitizada)) continue;
+
+        $caminhoAtual = $baseDir . '/' . $chaveSanitizada;
+
+        if (is_array($valor) || is_object($valor)) {
+            // Se o valor for um array ou objeto, criamos um diretório para ele
+            if (!is_dir($caminhoAtual)) {
+                @mkdir($caminhoAtual, 0777, true);
+                @chown($caminhoAtual, 'www-data');
+                @chgrp($caminhoAtual, 'www-data');
+            }
+            // Continuação recursiva para as subchaves
+            salvarJsonRecursivo($caminhoAtual, $valor);
+        } else {
+            // Se for um valor simples (string, número, booleano), salvamos como arquivo .json
+            $arquivoJson = $caminhoAtual . '.json';
+            $dirArquivo = dirname($arquivoJson);
+            if (!is_dir($dirArquivo)) {
+                @mkdir($dirArquivo, 0777, true);
+                @chown($dirArquivo, 'www-data');
+                @chgrp($dirArquivo, 'www-data');
+            }
+            
+            $dadoSalvar = is_string($valor) ? json_encode($valor, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : json_encode($valor);
+            @file_put_contents($arquivoJson, $dadoSalvar, LOCK_EX);
+            @chmod($arquivoJson, 0777);
+        }
+    }
+    return true;
 }
 
 // =========================================================================
@@ -110,7 +150,16 @@ if (strpos($requestPath, $scriptName) === 0) {
 $cleanPathForFile = preg_replace('#^(/X)+#i', '', $requestPath);
 
 if (empty($cleanPathForFile) || $cleanPathForFile === '/' || $cleanPathForFile === '') {
-    // Raiz da API: Retorna toda a árvore do diretório X
+    // Raiz da API: Retorna toda a árvore
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT') {
+        $inputData = file_get_contents('php://input');
+        $decoded = json_decode($inputData, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            salvarJsonRecursivo(BASE_DIR, $decoded);
+            echo json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            exit;
+        }
+    }
     echo json_encode(lerDiretorioComoArvore(BASE_DIR), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
@@ -125,22 +174,19 @@ if (empty($fileRelPath)) {
 
 $fileRelPath = neutralizaExtensaoPhp($fileRelPath);
 
-$hasJsonExtension = false;
 if (substr(strtolower($fileRelPath), -5) === '.json') {
-    $hasJsonExtension = true;
     $fileRelPath = substr($fileRelPath, 0, -5);
 }
 
-$fullPathJson = BASE_DIR . '/' . $fileRelPath . '.json';
-$fullDirPath = BASE_DIR . '/' . $fileRelPath;
+$targetPathJson = BASE_DIR . '/' . $fileRelPath . '.json';
+$targetDir = BASE_DIR . '/' . $fileRelPath;
 
 // =========================================================================
-// MÉTODO GET: LÊ ARQUIVO OU MONTA ÁRVORE DA PASTA
+// MÉTODO GET
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    // 1. Se existir um arquivo JSON exato para este caminho
-    if (file_exists($fullPathJson) && filesize($fullPathJson) > 0) {
-        $content = file_get_contents($fullPathJson);
+    if (file_exists($targetPathJson) && filesize($targetPathJson) > 0) {
+        $content = file_get_contents($targetPathJson);
         $jsonDecoded = json_decode($content);
         if (json_last_error() === JSON_ERROR_NONE) {
             echo $content;
@@ -150,9 +196,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     }
 
-    // 2. Se o caminho for uma pasta, monta a árvore de tudo o que está dentro dela
-    if (is_dir($fullDirPath)) {
-        $arvore = lerDiretorioComoArvore($fullDirPath);
+    if (is_dir($targetDir)) {
+        $arvore = lerDiretorioComoArvore($targetDir);
         echo json_encode($arvore, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }
@@ -162,23 +207,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 
 // =========================================================================
-// MÉTODO POST / PUT: GRAVAÇÃO E CRIAÇÃO DE ESTRUTURA
+// MÉTODO POST / PUT: CONVERTE CHAVES DO JSON EM PASTAS E ARQUIVOS
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT') {
-    // Define o destino final (prioriza salvar como arquivo .json correspondente à rota)
-    $targetPath = $fullPathJson;
-    $fileDir = dirname($targetPath);
-
-    if (!is_dir($fileDir)) {
-        if (!@mkdir($fileDir, 0777, true)) {
-            http_response_code(500);
-            echo json_encode(['error' => 'Falha ao criar diretórios. Verifique permissões.']);
-            exit;
-        }
-        @chown($fileDir, 'www-data');
-        @chgrp($fileDir, 'www-data');
-    }
-
     $inputData = file_get_contents('php://input');
 
     if (empty($inputData) && !empty($_POST)) {
@@ -191,34 +222,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
         exit;
     }
 
-    $decoded = json_decode($inputData);
-    $dataToSave = (json_last_error() === JSON_ERROR_NONE) ? json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : $inputData;
-
-    $bytesWritten = @file_put_contents($targetPath, $dataToSave, LOCK_EX);
-
-    if ($bytesWritten !== false) {
-        @chmod($targetPath, 0777);
-        echo $dataToSave;
+    $decoded = json_decode($inputData, true);
+    
+    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+        // Garante que o diretório base do alvo exista
+        $parentDir = dirname($targetDir);
+        if (!is_dir($parentDir)) {
+            @mkdir($parentDir, 0777, true);
+        }
+        
+        // Se enviou um objeto com várias chaves, mapeia cada chave como subpasta/arquivo
+        salvarJsonRecursivo($targetDir, $decoded);
+        echo $inputData;
     } else {
-        http_response_code(500);
-        echo json_encode(['error' => 'Erro ao escrever no arquivo JSON.']);
+        // Se for apenas uma string pura ou dado bruto
+        $fileDir = dirname($targetPathJson);
+        if (!is_dir($fileDir)) {
+            @mkdir($fileDir, 0777, true);
+        }
+        @file_put_contents($targetPathJson, $inputData, LOCK_EX);
+        echo $inputData;
     }
     exit;
 }
 
 // =========================================================================
-// MÉTODO DELETE: REMOVE O ARQUIVO OU PASTA CORRESPONDENTE
+// MÉTODO DELETE
 // =========================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
-    if (file_exists($fullPathJson)) {
-        @unlink($fullPathJson);
+    if (file_exists($targetPathJson)) {
+        @unlink($targetPathJson);
         echo json_encode(null);
         exit;
     }
-    if (is_dir($fullDirPath)) {
-        // Remove diretório recursivamente se necessário
-        array_map('unlink', glob("$fullDirPath/*.*"));
-        @rmdir($fullDirPath);
+    if (is_dir($targetDir)) {
+        array_map('unlink', glob("$targetDir/*.*"));
+        @rmdir($targetDir);
         echo json_encode(null);
         exit;
     }
