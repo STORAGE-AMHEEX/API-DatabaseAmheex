@@ -1,6 +1,6 @@
 <?php
 // =========================================================================
-//   API FIREBASE-LIKE LOCAL (COMPATÍVEL COM PHP 8.2 + DOCKER)
+//   API FIREBASE-LIKE LOCAL (SUPORTE COMPLETO A SUBPASTAS E .JSON)
 // =========================================================================
 @ini_set('memory_limit', '8192M');
 @ini_set('max_execution_time', '0');
@@ -40,11 +40,17 @@ if (!is_dir(BASE_DIR)) {
 // FUNÇÕES AUXILIARES
 // =========================================================================
 function sanitizaCaminho($path) {
-    $path = trim($path, "/\\");
-    $path = str_replace(['..\\', '../'], '', $path);
-    $path = preg_replace('/[^a-zA-Z0-9_\-\.\@\/]/', '', $path);
-    $path = preg_replace('#/+#', '/', $path);
-    return trim($path, "/\\");
+    // Mantém as barras para criar a árvore de subpastas
+    $parts = explode('/', $path);
+    $sanitizedParts = [];
+    foreach ($parts as $part) {
+        $part = trim($part, ".\\");
+        $part = preg_replace('/[^a-zA-Z0-9_\-\.\@]/', '', $part);
+        if ($part !== '') {
+            $sanitizedParts[] = $part;
+        }
+    }
+    return implode('/', $sanitizedParts);
 }
 
 function neutralizaExtensaoPhp($path) {
@@ -55,7 +61,7 @@ function neutralizaExtensaoPhp($path) {
 }
 
 // =========================================================================
-// OBTENÇÃO E TRATAMENTO DO CAMINHO DA URL
+// OBTENÇÃO E TRATAMENTO DO CAMINHO DA URL (ÁRVORE DE SUBPASTAS)
 // =========================================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $parsedUrl = parse_url($requestUri);
@@ -79,7 +85,9 @@ if (empty($cleanPathForFile) || $cleanPathForFile === '/' || $cleanPathForFile =
     exit;
 }
 
-$fileRelPath = sanitizaCaminho(urldecode($cleanPathForFile));
+// Decodifica a URL e sanitiza mantendo a estrutura de subpastas
+$fileRelPath = urldecode($cleanPathForFile);
+$fileRelPath = sanitizaCaminho($fileRelPath);
 
 if (empty($fileRelPath)) {
     echo json_encode(null);
@@ -88,14 +96,20 @@ if (empty($fileRelPath)) {
 
 $fileRelPath = neutralizaExtensaoPhp($fileRelPath);
 
-// Correção: Se já termina com .json, mantém; caso contrário, adiciona se não tiver extensão
-if (substr(strtolower($fileRelPath), -5) !== '.json') {
-    if (pathinfo($fileRelPath, PATHINFO_EXTENSION) === '') {
-        $fileRelPath .= '.json';
-    }
+// Se a URL já termina com .json, removemos temporariamente para tratar a extensão corretamente
+$hasJsonExtension = false;
+if (substr(strtolower($fileRelPath), -5) === '.json') {
+    $hasJsonExtension = true;
+    $fileRelPath = substr($fileRelPath, 0, -5);
 }
 
-$fullPath = BASE_DIR . '/' . $fileRelPath;
+// Reconstrói o caminho completo: se houver subpastas, a última parte vira o arquivo .json e as anteriores viram diretórios
+$pathInfo = pathinfo($fileRelPath);
+$dirname = ($pathInfo['dirname'] !== '.' && $pathInfo['dirname'] !== '') ? $pathInfo['dirname'] : '';
+$filename = $pathInfo['filename'];
+
+$targetRelativePath = ($dirname !== '' ? $dirname . '/' : '') . $filename . '.json';
+$fullPath = BASE_DIR . '/' . $targetRelativePath;
 $fileDir = dirname($fullPath);
 
 // =========================================================================
@@ -133,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT
     if (!is_dir($fileDir)) {
         if (!@mkdir($fileDir, 0777, true)) {
             http_response_code(500);
-            echo json_encode(['error' => 'Falha ao criar o diretório X. Verifique permissões.']);
+            echo json_encode(['error' => 'Falha ao criar o diretório e subpastas em X. Verifique permissões.']);
             exit;
         }
         @chown($fileDir, 'www-data');
