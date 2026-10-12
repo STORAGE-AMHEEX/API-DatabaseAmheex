@@ -88,8 +88,11 @@ if (empty($fileRelPath)) {
 
 $fileRelPath = neutralizaExtensaoPhp($fileRelPath);
 
-if (pathinfo($fileRelPath, PATHINFO_EXTENSION) === '') {
-    $fileRelPath .= '.json';
+// Correção: Se já termina com .json, mantém; caso contrário, adiciona se não tiver extensão
+if (substr(strtolower($fileRelPath), -5) !== '.json') {
+    if (pathinfo($fileRelPath, PATHINFO_EXTENSION) === '') {
+        $fileRelPath .= '.json';
+    }
 }
 
 $fullPath = BASE_DIR . '/' . $fileRelPath;
