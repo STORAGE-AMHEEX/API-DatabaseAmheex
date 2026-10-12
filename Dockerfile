@@ -1,16 +1,16 @@
-# ✅ Base atualizada para Debian 12 (Bookworm) para evitar erros 404 de repositório antigo
+# ✅ Base atualizada para Debian 12 (Bookworm)
 FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /var/www/html
 
-# 1️⃣ Pacotes essenciais e dependências de rede (limpeza explícita do cache antes de atualizar)
+# 1️⃣ Pacotes essenciais e dependências de rede
 RUN rm -rf /var/lib/apt/lists/* && \
     apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl wget git unzip zip nano vim gnupg2 lsb-release apt-transport-https sudo net-tools \
     && rm -rf /var/lib/apt/lists/*
 
-# 2️⃣ PHP 8.2 + Apache (Porta 80) com chaveiro oficial do repositório Sury
+# 2️⃣ PHP 8.2 + Apache (Porta 80) com repositório Sury
 RUN curl -sSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb \
     && dpkg -i /tmp/debsuryorg-archive-keyring.deb \
     && echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" \
@@ -32,7 +32,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 RUN a2enmod rewrite headers expires dir php8.2 proxy proxy_http proxy_fcgi setenvif http2 deflate \
     && sed -i 's/Listen 80/Listen 0.0.0.0:80/' /etc/apache2/ports.conf
 
-# 5️⃣ Configuração Apache — Sem limite de corpo para 1TB (000-default.conf)
+# 5️⃣ Configuração Apache
 RUN cat <<'EOF' > /etc/apache2/sites-available/000-default.conf
 <VirtualHost *:80>
     ServerAdmin webmaster@localhost
@@ -64,7 +64,7 @@ RUN cat <<'EOF' > /etc/apache2/sites-available/000-default.conf
 </VirtualHost>
 EOF
 
-# 6️⃣ PHP Config — Suporte a 1TB (1048576M) e memória otimizada
+# 6️⃣ PHP Config — Suporte otimizado
 RUN cat <<'EOF' > /etc/php/8.2/apache2/conf.d/99-custom.ini
 upload_max_filesize = 1048576M
 post_max_size = 1048576M
@@ -78,19 +78,20 @@ zlib.output_compression = Off
 implicit_flush = On
 EOF
 
-# 7️⃣ Permissões Críticas (Full Access)
-RUN chown -R www-data:www-data /var/www/html \
+# 7️⃣ Copia os arquivos do projeto e garante permissões totais na pasta X
+COPY . /var/www/html
+RUN mkdir -p /var/www/html/X \
+    && chown -R www-data:www-data /var/www/html \
     && chmod -R 777 /var/www/html
 
 # 8️⃣ Dependências Node.js (Se houver)
-COPY . /var/www/html
 RUN if [ -f package.json ]; then npm install; fi
 RUN npm install axios node-cron || true
 
 # 🌐 Porta 80 liberada
 EXPOSE 80
 
-# 🌀 Script de Inicialização para rodar PM2 e Apache Juntos
+# 🌀 Script de Inicialização
 RUN echo "#!/bin/bash\nservice apache2 start\npm2-runtime start /var/www/html/O.js --name keep-alive" > /index.sh \
     && chmod +x /index.sh
 
