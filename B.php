@@ -16,7 +16,7 @@ if (!is_dir(BASE_DIR)) {
 }
 
 $firebaseBaseUrl = 'https://storage-amheex-default-rtdb.firebaseio.com/';
-$raizStorage     = 'X';
+$raizStorage     = '#';
 $tempoMinimo     = 5;  
 $tempoMaximo     = 180; 
 $agora           = time();
