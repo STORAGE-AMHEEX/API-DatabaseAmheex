@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documentação Database API</title>
-    <link rel="icon" href="https://api-databaseamheex.onrender.com/icon.png" type="image/jpeg">
-    <link rel="apple-touch-icon" href="https://api-databaseamheex.onrender.com/icon.png">
+    <link rel="icon" href="https://api-databaseamheex1.onrender.com/icon.png" type="image/jpeg">
+    <link rel="apple-touch-icon" href="https://api-databaseamheex1.onrender.com/icon.png">
     <style>
         :root {
             --primary: #e63946;
@@ -268,33 +268,6 @@
             background: rgba(0,0,0,0.02);
         }
 
-        /* ========== STEPS ========== */
-        .step {
-            display: flex;
-            gap: 14px;
-            margin-bottom: 20px;
-            align-items: flex-start;
-        }
-
-        .step-number {
-            flex-shrink: 0;
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #e63946, #457b9d);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.95rem;
-        }
-
-        .step-content {
-            flex: 1;
-            min-width: 0;
-        }
-
         /* ========== ALERTAS ========== */
         .alert {
             padding: 14px 16px;
@@ -374,13 +347,13 @@
 </head>
 <body>
     <header>
-        <a href="https://api-databaseamheex.onrender.com" target="_blank" rel="noopener" title="Abrir API Database">
-            <img src="https://api-databaseamheex.onrender.com/icon.png" alt="Ícone Database" class="header-icon">
+        <a href="https://api-databaseamheex1.onrender.com" target="_blank" rel="noopener" title="Abrir API Database">
+            <img src="https://api-databaseamheex1.onrender.com/icon.png" alt="Ícone Database" class="header-icon">
         </a>
         <h1>Documentação Database API</h1>
-        <p>API Estilo Firebase Local (Árvore de Diretórios JSON)</p>
-        <div class="api-domain">https://api-databaseamheex.onrender.com</div>
-        <div class="badge">GET (Ler) &nbsp;|&nbsp; POST / PUT (Gravar) &nbsp;|&nbsp; DELETE (Remover)</div>
+        <p>API Estilo Firebase Local (Mapeamento Automático de JSON em Árvore de Diretórios)</p>
+        <div class="api-domain">https://api-databaseamheex1.onrender.com</div>
+        <div class="badge">GET (Ler/Árvore) &nbsp;|&nbsp; POST / PUT (Mapeamento JSON) &nbsp;|&nbsp; DELETE (Remover)</div>
     </header>
 
     <div class="container">
@@ -390,58 +363,61 @@
 
         <div class="grid-2">
             <div class="card highlight">
-                <h3 style="margin-top:0; color:#c1121f;">Método GET (Leitura)</h3>
-                <p>Lê o conteúdo do arquivo JSON armazenado na rota correspondente dentro da pasta interna <code>X/</code>.</p>
+                <h3 style="margin-top:0; color:#c1121f;">Método GET (Leitura e Árvore)</h3>
+                <p>Lê um arquivo JSON específico ou varre recursivamente pastas para reconstruir a árvore completa de dados (como o Firebase Realtime Database).</p>
                 <div class="path-box leitura">
-                    GET https://api-databaseamheex.onrender.com/usuarios/perfil
+                    GET https://api-databaseamheex1.onrender.com/usuario
                 </div>
                 <p style="margin-bottom:0; font-size:0.9rem; color:var(--muted);">
-                    Se o arquivo não existir, a API retorna <code>null</code> automaticamente.
+                    Se o nó não existir, retorna <code>null</code>.
                 </p>
             </div>
 
             <div class="card warning">
-                <h3 style="margin-top:0; color:#e65100;">Método POST / PUT (Gravação)</h3>
-                <p>Grava dados enviados (em formato JSON ou texto bruto) criando automaticamente os diretórios necessários.</p>
+                <h3 style="margin-top:0; color:#e65100;">Método POST / PUT (Gravação Estruturada)</h3>
+                <p>Recebe um objeto JSON e converte automaticamente cada chave em uma subpasta e cada valor em um arquivo <code>.json</code> correspondente.</p>
                 <div class="path-box download">
-                    POST/PUT https://api-databaseamheex.onrender.com/usuarios/perfil
+                    POST/PUT https://api-databaseamheex1.onrender.com/usuario
                 </div>
             </div>
         </div>
 
         <div class="alert alert-info">
-            <strong>Comportamento de Extensões:</strong><br>
-            • Se a URL acessada não possuir extensão, a API adiciona automaticamente <code>.json</code>.<br>
-            • Arquivos terminados em <code>.php</code> são automaticamente neutralizados para <code>.php.txt</code> por segurança.
+            <strong>Mapeamento Automático de Chaves:</strong><br>
+            • Enviar um objeto JSON cria pastas para subníveis e arquivos <code>.json</code> para valores finais.<br>
+            • Permite a coexistência de arquivos diretos (ex: <code>usuario.json</code>) e subpastas estruturadas.
         </div>
 
         <!-- MÉTODOS DETALHADOS -->
         <h2>Operações da API</h2>
 
         <div class="card">
-            <h3>1. GET - Ler dados</h3>
-            <p>Retorna o JSON salvo no caminho especificado ou <code>null</code> se vazio/inexistente.</p>
-            <pre><span class="keyword">fetch</span>(<span class="string">"https://api-databaseamheex.onrender.com/dados/config"</span>)
+            <h3>1. GET - Ler dados ou Árvore</h3>
+            <p>Retorna o conteúdo do arquivo JSON ou monta a árvore completa caso seja uma pasta.</p>
+            <pre><span class="keyword">fetch</span>(<span class="string">"https://api-databaseamheex1.onrender.com/usuario"</span>)
   .then(res => res.json())
   .then(data => console.log(data));</pre>
         </div>
 
         <div class="card">
-            <h3>2. POST / PUT - Salvar ou Atualizar dados</h3>
-            <p>Envia dados para serem salvos na árvore de diretórios do servidor.</p>
-            <pre><span class="keyword">fetch</span>(<span class="string">"https://api-databaseamheex.onrender.com/dados/config"</span>, {
+            <h3>2. POST / PUT - Salvar e Criar Subpastas/Arquivos Automaticamente</h3>
+            <p>Envia dados estruturados para serem mapeados na árvore do servidor.</p>
+            <pre><span class="keyword">fetch</span>(<span class="string">"https://api-databaseamheex1.onrender.com/usuario"</span>, {
   method: <span class="string">"POST"</span>,
   headers: { <span class="string">"Content-Type"</span>: <span class="string">"application/json"</span> },
-  body: <span class="keyword">JSON.stringify</span>({ tema: <span class="string">"escuro"</span>, ativo: <span class="keyword">true</span> })
+  body: <span class="keyword">JSON.stringify</span>({
+    "0": { "nome": "João", "status": "ativo" },
+    "1": { "nome": "Maria", "status": "inativo" }
+  })
 })
 .then(res => res.json())
-.then(data => console.log(<span class="string">"Salvo:"</span>, data));</pre>
+.then(data => console.log(<span class="string">"Estrutura criada:"</span>, data));</pre>
         </div>
 
         <div class="card">
-            <h3>3. DELETE - Remover dados (Simula .remove())</h3>
-            <p>Apaga o arquivo correspondente do servidor.</p>
-            <pre><span class="keyword">fetch</span>(<span class="string">"https://api-databaseamheex.onrender.com/dados/config"</span>, {
+            <h3>3. DELETE - Remover Nó ou Pasta</h3>
+            <p>Apaga o arquivo JSON correspondente ou remove a pasta inteira do servidor.</p>
+            <pre><span class="keyword">fetch</span>(<span class="string">"https://api-databaseamheex1.onrender.com/usuario/0"</span>, {
   method: <span class="string">"DELETE"</span>
 })
 .then(res => console.log(<span class="string">"Removido com sucesso"</span>));</pre>
@@ -463,27 +439,27 @@
                 <tbody>
                     <tr>
                         <td><span class="tag tag-get">GET</span></td>
-                        <td>Leitura</td>
-                        <td><code>/produtos/1</code></td>
-                        <td>Retorna o conteúdo do JSON ou <code>null</code></td>
+                        <td>Leitura / Árvore</td>
+                        <td><code>/usuario</code></td>
+                        <td>Retorna o JSON salvo ou monta a árvore de diretórios</td>
                     </tr>
                     <tr>
                         <td><span class="tag tag-post">POST</span></td>
-                        <td>Gravação</td>
-                        <td><code>/produtos/1</code></td>
-                        <td>Cria ou sobrescreve os dados enviados</td>
+                        <td>Gravação Recursiva</td>
+                        <td><code>/usuario</code></td>
+                        <td>Cria subpastas e arquivos <code>.json</code> para cada chave do objeto</td>
                     </tr>
                     <tr>
                         <td><span class="tag tag-put">PUT</span></td>
                         <td>Atualização</td>
-                        <td><code>/produtos/1</code></td>
-                        <td>Grava ou atualiza o recurso informado</td>
+                        <td><code>/usuario</code></td>
+                        <td>Atualiza ou insere dados na árvore de nós</td>
                     </tr>
                     <tr>
                         <td><span class="tag tag-delete">DELETE</span></td>
                         <td>Exclusão</td>
-                        <td><code>/produtos/1</code></td>
-                        <td>Remove o arquivo JSON (equivalente ao Firebase <code>.remove()</code>)</td>
+                        <td><code>/usuario/0</code></td>
+                        <td>Remove o arquivo ou diretório correspondente</td>
                     </tr>
                 </tbody>
             </table>
@@ -491,7 +467,7 @@
 
         <footer>
             Documentação Database API · Integrado com a infraestrutura AMHEEX<br>
-            Base URL: <span class="api-footer">https://api-databaseamheex.onrender.com</span>
+            Base URL: <span class="api-footer">https://api-databaseamheex1.onrender.com</span>
         </footer>
     </div>
 </body>
