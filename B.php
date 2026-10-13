@@ -15,7 +15,7 @@ if (!is_dir(BASE_DIR)) {
     @mkdir(BASE_DIR, 0777, true);
 }
 
-$firebaseBaseUrl = 'https://storage-amheex-default-rtdb.firebaseio.com/';
+$firebaseBaseUrl = 'https://database-amheex-default-rtdb.firebaseio.com/';
 $raizStorage     = '#';
 $tempoMinimo     = 5;  
 $tempoMaximo     = 180; 
