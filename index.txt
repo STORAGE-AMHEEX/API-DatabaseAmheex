@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // =========================================================================
 // CONFIGURAÇÕES DE DIRETÓRIO LOCAL (DIRETÓRIO X)
 // =========================================================================
-define('BASE_DIR', __DIR__ . '/X');
+define('BASE_DIR', __DIR__ . '/#');
 
 if (!is_dir(BASE_DIR)) {
     @mkdir(BASE_DIR, 0777, true);
